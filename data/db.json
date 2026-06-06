@@ -1,0 +1,5721 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-06T14:04:01.823Z",
+  "users": [
+    {
+      "id": "admin_1",
+      "email": "admin@pitchpick.local",
+      "displayName": "Admin",
+      "avatarUrl": "assets/admin_1.svg",
+      "role": "ADMIN",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "30ad33e1c3230ab2b2b5a7e6213fb37c666b6d927a7ecd788cd0f26dabdffad5"
+    },
+    {
+      "id": "user_you",
+      "email": "you@pitchpick.local",
+      "displayName": "You",
+      "avatarUrl": "assets/user_you.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_maya",
+      "email": "maya@pitchpick.local",
+      "displayName": "Maya",
+      "avatarUrl": "assets/user_maya.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_liam",
+      "email": "liam@pitchpick.local",
+      "displayName": "Liam",
+      "avatarUrl": "assets/user_liam.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_noah",
+      "email": "noah@pitchpick.local",
+      "displayName": "Noah",
+      "avatarUrl": "assets/user_noah.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_ava",
+      "email": "ava@pitchpick.local",
+      "displayName": "Ava",
+      "avatarUrl": "assets/user_ava.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_ethan",
+      "email": "ethan@pitchpick.local",
+      "displayName": "Ethan",
+      "avatarUrl": "assets/user_ethan.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_sofia",
+      "email": "sofia@pitchpick.local",
+      "displayName": "Sofia",
+      "avatarUrl": "assets/user_sofia.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_omar",
+      "email": "omar@pitchpick.local",
+      "displayName": "Omar",
+      "avatarUrl": "assets/user_omar.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_emma",
+      "email": "emma@pitchpick.local",
+      "displayName": "Emma",
+      "avatarUrl": "assets/user_emma.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_kenji",
+      "email": "kenji@pitchpick.local",
+      "displayName": "Kenji",
+      "avatarUrl": "assets/user_kenji.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_lina",
+      "email": "lina@pitchpick.local",
+      "displayName": "Lina",
+      "avatarUrl": "assets/user_lina.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    },
+    {
+      "id": "user_1780720001349",
+      "email": "leotranloc@gmail.com",
+      "displayName": "leotranloc",
+      "avatarUrl": "assets/user_1780720001349.svg",
+      "role": "PLAYER",
+      "createdAt": "2026-06-06T04:26:41.349Z",
+      "updatedAt": "2026-06-06T04:26:41.349Z",
+      "passwordHash": "1eab730e54e608bd8ae6e9a15e8297e68ae8c4f3512d3f637b0fc992ff28d505"
+    }
+  ],
+  "playerProfiles": [
+    {
+      "id": "profile_user_you",
+      "userId": "user_you",
+      "nickname": "You",
+      "favoriteTeam": "Brazil",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_maya",
+      "userId": "user_maya",
+      "nickname": "Maya",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_liam",
+      "userId": "user_liam",
+      "nickname": "Liam",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_noah",
+      "userId": "user_noah",
+      "nickname": "Noah",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_ava",
+      "userId": "user_ava",
+      "nickname": "Ava",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_ethan",
+      "userId": "user_ethan",
+      "nickname": "Ethan",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_sofia",
+      "userId": "user_sofia",
+      "nickname": "Sofia",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_omar",
+      "userId": "user_omar",
+      "nickname": "Omar",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_emma",
+      "userId": "user_emma",
+      "nickname": "Emma",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_kenji",
+      "userId": "user_kenji",
+      "nickname": "Kenji",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "profile_user_lina",
+      "userId": "user_lina",
+      "nickname": "Lina",
+      "favoriteTeam": "World Cup",
+      "country": "US",
+      "timezone": "America/Los_Angeles",
+      "metadata": {
+        "seedUser": true
+      },
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:00:19.128Z"
+    }
+  ],
+  "leagues": [
+    {
+      "id": "league_1",
+      "name": "Golden Boot League",
+      "slug": "golden-boot-league",
+      "seasonName": "World Cup 2026",
+      "pairingMode": "SOLO",
+      "createdByUserId": "admin_1",
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T03:49:06.087Z"
+    },
+    {
+      "id": "league_1780717329406",
+      "name": "Weekend Rivals",
+      "slug": "weekend-rivals",
+      "seasonName": "World Cup 2026",
+      "pairingMode": "SOLO",
+      "createdByUserId": "admin_1",
+      "createdAt": "2026-06-06T03:42:09.406Z",
+      "updatedAt": "2026-06-06T03:42:09.406Z"
+    }
+  ],
+  "leagueMembers": [
+    {
+      "id": "member_user_you",
+      "leagueId": "league_1",
+      "userId": "user_you",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_maya",
+      "leagueId": "league_1",
+      "userId": "user_maya",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_liam",
+      "leagueId": "league_1",
+      "userId": "user_liam",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_noah",
+      "leagueId": "league_1",
+      "userId": "user_noah",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_ava",
+      "leagueId": "league_1",
+      "userId": "user_ava",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_ethan",
+      "leagueId": "league_1",
+      "userId": "user_ethan",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_sofia",
+      "leagueId": "league_1",
+      "userId": "user_sofia",
+      "status": "REMOVED",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_omar",
+      "leagueId": "league_1",
+      "userId": "user_omar",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_emma",
+      "leagueId": "league_1",
+      "userId": "user_emma",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_kenji",
+      "leagueId": "league_1",
+      "userId": "user_kenji",
+      "status": "REMOVED",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_user_lina",
+      "leagueId": "league_1",
+      "userId": "user_lina",
+      "status": "ACTIVE",
+      "joinedAt": "2026-06-06T03:00:19.128Z"
+    },
+    {
+      "id": "member_league_1_user_1780720001349",
+      "leagueId": "league_1",
+      "userId": "user_1780720001349",
+      "status": "INVITED",
+      "joinedAt": null,
+      "inviteCode": "bGVhZ3VlXzE6dXNlcl8xNzgwNzIwMDAxMzQ5OjE3ODA3MjM4NTY3NTI"
+    }
+  ],
+  "matchdays": [
+    {
+      "id": "md_12",
+      "name": "Matchday 12",
+      "date": "2026-06-12",
+      "lockAt": "2026-06-12T20:00:00.000Z",
+      "status": "FINAL",
+      "createdAt": "2026-06-06T03:00:19.128Z",
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "md_11",
+      "name": "Matchday 11",
+      "date": "2026-06-10",
+      "lockAt": "2026-06-10T20:00:00.000Z",
+      "status": "FINAL",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "md_live_20260606_3",
+      "name": "Today Matchday",
+      "date": "2026-06-06",
+      "lockAt": "2026-06-06T11:45:02.221Z",
+      "status": "OPEN",
+      "createdAt": "2026-06-06T05:45:02.221Z",
+      "updatedAt": "2026-06-06T05:45:02.221Z"
+    }
+  ],
+  "tournamentMatches": [
+    {
+      "id": "match_bra_mar",
+      "externalProvider": "mock",
+      "externalId": "fix_bra_mar",
+      "matchDayId": "md_12",
+      "homeTeam": "Brazil",
+      "awayTeam": "Morocco",
+      "homeTeamCode": "BRA",
+      "awayTeamCode": "MAR",
+      "kickoffAt": "2026-06-12T20:00:00.000Z",
+      "status": "FINISHED",
+      "homeScore": 2,
+      "awayScore": 1,
+      "firstGoalMinute": 18,
+      "rawData": {
+        "seed": true
+      },
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "match_arg_jpn",
+      "externalProvider": "mock",
+      "externalId": "fix_arg_jpn",
+      "matchDayId": "md_12",
+      "homeTeam": "Argentina",
+      "awayTeam": "Japan",
+      "homeTeamCode": "ARG",
+      "awayTeamCode": "JPN",
+      "kickoffAt": "2026-06-12T23:00:00.000Z",
+      "status": "FINISHED",
+      "homeScore": 1,
+      "awayScore": 1,
+      "firstGoalMinute": 43,
+      "rawData": {
+        "seed": true
+      },
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "match_ger_can",
+      "externalProvider": "mock",
+      "externalId": "fix_ger_can",
+      "matchDayId": "md_12",
+      "homeTeam": "Germany",
+      "awayTeam": "Canada",
+      "homeTeamCode": "GER",
+      "awayTeamCode": "CAN",
+      "kickoffAt": "2026-06-13T02:00:00.000Z",
+      "status": "FINISHED",
+      "homeScore": 3,
+      "awayScore": 0,
+      "firstGoalMinute": 12,
+      "rawData": {
+        "seed": true
+      },
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "match_esp_crc",
+      "externalProvider": "mock",
+      "externalId": "fix_esp_crc",
+      "matchDayId": "md_12",
+      "homeTeam": "Spain",
+      "awayTeam": "Costa Rica",
+      "homeTeamCode": "ESP",
+      "awayTeamCode": "CRC",
+      "kickoffAt": "2026-06-13T05:00:00.000Z",
+      "status": "FINISHED",
+      "homeScore": 2,
+      "awayScore": 0,
+      "firstGoalMinute": 36,
+      "rawData": {
+        "seed": true
+      },
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "match_fra_mex",
+      "externalProvider": "mock",
+      "externalId": "fix_fra_mex",
+      "matchDayId": "md_11",
+      "homeTeam": "France",
+      "awayTeam": "Mexico",
+      "homeTeamCode": "FRA",
+      "awayTeamCode": "MEX",
+      "kickoffAt": "2026-06-10T20:00:00.000Z",
+      "status": "FINISHED",
+      "homeScore": 2,
+      "awayScore": 0,
+      "firstGoalMinute": 22,
+      "rawData": {
+        "seed": "history"
+      },
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "match_eng_usa",
+      "externalProvider": "mock",
+      "externalId": "fix_eng_usa",
+      "matchDayId": "md_11",
+      "homeTeam": "England",
+      "awayTeam": "United States",
+      "homeTeamCode": "ENG",
+      "awayTeamCode": "USA",
+      "kickoffAt": "2026-06-10T23:00:00.000Z",
+      "status": "FINISHED",
+      "homeScore": 1,
+      "awayScore": 1,
+      "firstGoalMinute": 39,
+      "rawData": {
+        "seed": "history"
+      },
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "match_bra_mar_md_live_20260606_3",
+      "externalProvider": "mock",
+      "externalId": "fix_md_live_20260606_3_1",
+      "matchDayId": "md_live_20260606_3",
+      "homeTeam": "Brazil",
+      "awayTeam": "Morocco",
+      "homeTeamCode": "BRA",
+      "awayTeamCode": "MAR",
+      "kickoffAt": "2026-06-06T07:45:02.221Z",
+      "status": "SCHEDULED",
+      "homeScore": null,
+      "awayScore": null,
+      "firstGoalMinute": null,
+      "rawData": {
+        "seed": "today"
+      },
+      "createdAt": "2026-06-06T05:45:02.221Z",
+      "updatedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "match_arg_jpn_md_live_20260606_3",
+      "externalProvider": "mock",
+      "externalId": "fix_md_live_20260606_3_2",
+      "matchDayId": "md_live_20260606_3",
+      "homeTeam": "Argentina",
+      "awayTeam": "Japan",
+      "homeTeamCode": "ARG",
+      "awayTeamCode": "JPN",
+      "kickoffAt": "2026-06-06T10:45:02.221Z",
+      "status": "SCHEDULED",
+      "homeScore": null,
+      "awayScore": null,
+      "firstGoalMinute": null,
+      "rawData": {
+        "seed": "today"
+      },
+      "createdAt": "2026-06-06T05:45:02.221Z",
+      "updatedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "match_ger_can_md_live_20260606_3",
+      "externalProvider": "mock",
+      "externalId": "fix_md_live_20260606_3_3",
+      "matchDayId": "md_live_20260606_3",
+      "homeTeam": "Germany",
+      "awayTeam": "Canada",
+      "homeTeamCode": "GER",
+      "awayTeamCode": "CAN",
+      "kickoffAt": "2026-06-06T13:45:02.221Z",
+      "status": "SCHEDULED",
+      "homeScore": null,
+      "awayScore": null,
+      "firstGoalMinute": null,
+      "rawData": {
+        "seed": "today"
+      },
+      "createdAt": "2026-06-06T05:45:02.221Z",
+      "updatedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "match_esp_crc_md_live_20260606_3",
+      "externalProvider": "mock",
+      "externalId": "fix_md_live_20260606_3_4",
+      "matchDayId": "md_live_20260606_3",
+      "homeTeam": "Spain",
+      "awayTeam": "Costa Rica",
+      "homeTeamCode": "ESP",
+      "awayTeamCode": "CRC",
+      "kickoffAt": "2026-06-06T16:45:02.221Z",
+      "status": "SCHEDULED",
+      "homeScore": null,
+      "awayScore": null,
+      "firstGoalMinute": null,
+      "rawData": {
+        "seed": "today"
+      },
+      "createdAt": "2026-06-06T05:45:02.221Z",
+      "updatedAt": "2026-06-06T05:45:02.221Z"
+    }
+  ],
+  "oddsSnapshots": [
+    {
+      "id": "odds_match_bra_mar_MATCH_WINNER_Brazil",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Brazil",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_MATCH_WINNER_Draw",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Draw",
+      "priceDecimal": 3.4,
+      "priceAmerican": null,
+      "impliedProbability": 0.2941,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_MATCH_WINNER_Morocco",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Morocco",
+      "priceDecimal": 4.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.2083,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_TOTAL_GOALS_Over_2_5",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Over 2.5",
+      "priceDecimal": 1.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.625,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_TOTAL_GOALS_Under_2_5",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Under 2.5",
+      "priceDecimal": 2.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.4545,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_BOTH_TEAMS_SCORE_Yes",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "Yes",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_BOTH_TEAMS_SCORE_No",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "No",
+      "priceDecimal": 2,
+      "priceAmerican": null,
+      "impliedProbability": 0.5,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_bra_mar_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_bra_mar",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_MATCH_WINNER_Argentina",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Argentina",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_MATCH_WINNER_Draw",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Draw",
+      "priceDecimal": 3.4,
+      "priceAmerican": null,
+      "impliedProbability": 0.2941,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_MATCH_WINNER_Japan",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Japan",
+      "priceDecimal": 4.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.2083,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_TOTAL_GOALS_Over_2_5",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Over 2.5",
+      "priceDecimal": 1.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.625,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_TOTAL_GOALS_Under_2_5",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Under 2.5",
+      "priceDecimal": 2.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.4545,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_BOTH_TEAMS_SCORE_Yes",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "Yes",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_BOTH_TEAMS_SCORE_No",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "No",
+      "priceDecimal": 2,
+      "priceAmerican": null,
+      "impliedProbability": 0.5,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_arg_jpn",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_MATCH_WINNER_Germany",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Germany",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_MATCH_WINNER_Draw",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Draw",
+      "priceDecimal": 3.4,
+      "priceAmerican": null,
+      "impliedProbability": 0.2941,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_MATCH_WINNER_Canada",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Canada",
+      "priceDecimal": 4.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.2083,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_TOTAL_GOALS_Over_2_5",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Over 2.5",
+      "priceDecimal": 1.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.625,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_TOTAL_GOALS_Under_2_5",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Under 2.5",
+      "priceDecimal": 2.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.4545,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_BOTH_TEAMS_SCORE_Yes",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "Yes",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_BOTH_TEAMS_SCORE_No",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "No",
+      "priceDecimal": 2,
+      "priceAmerican": null,
+      "impliedProbability": 0.5,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_ger_can_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_ger_can",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_MATCH_WINNER_Spain",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Spain",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_MATCH_WINNER_Draw",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Draw",
+      "priceDecimal": 3.4,
+      "priceAmerican": null,
+      "impliedProbability": 0.2941,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_MATCH_WINNER_Costa_Rica",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "MATCH_WINNER",
+      "bookmaker": "MockBook",
+      "outcomeName": "Costa Rica",
+      "priceDecimal": 4.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.2083,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_TOTAL_GOALS_Over_2_5",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Over 2.5",
+      "priceDecimal": 1.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.625,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_TOTAL_GOALS_Under_2_5",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "TOTAL_GOALS",
+      "bookmaker": "MockBook",
+      "outcomeName": "Under 2.5",
+      "priceDecimal": 2.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.4545,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_BOTH_TEAMS_SCORE_Yes",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "Yes",
+      "priceDecimal": 1.7,
+      "priceAmerican": null,
+      "impliedProbability": 0.5882,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_BOTH_TEAMS_SCORE_No",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "BOTH_TEAMS_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "No",
+      "priceDecimal": 2,
+      "priceAmerican": null,
+      "impliedProbability": 0.5,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_esp_crc_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_esp_crc",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": true
+      },
+      "capturedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.4,
+      "priceAmerican": null,
+      "impliedProbability": 0.1351,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1639,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1538,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1042,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.098,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.0893,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_fra_mex_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_fra_mex",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.08,
+      "rawData": {
+        "seed": "history"
+      },
+      "capturedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_bra_mar_md_live_20260606_3_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_arg_jpn_md_live_20260606_3_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_ger_can_md_live_20260606_3_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_0_0",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-0",
+      "priceDecimal": 7.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1333,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_1_0",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-0",
+      "priceDecimal": 6.6,
+      "priceAmerican": null,
+      "impliedProbability": 0.1515,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_1_1",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-1",
+      "priceDecimal": 5.8,
+      "priceAmerican": null,
+      "impliedProbability": 0.1724,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_2_1",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-1",
+      "priceDecimal": 6.2,
+      "priceAmerican": null,
+      "impliedProbability": 0.1613,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_2_0",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "2-0",
+      "priceDecimal": 7.1,
+      "priceAmerican": null,
+      "impliedProbability": 0.1408,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_3_1",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-1",
+      "priceDecimal": 9.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.1053,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_0_1",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "0-1",
+      "priceDecimal": 10.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.0952,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_1_2",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "1-2",
+      "priceDecimal": 11.5,
+      "priceAmerican": null,
+      "impliedProbability": 0.087,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    },
+    {
+      "id": "odds_match_esp_crc_md_live_20260606_3_CORRECT_SCORE_3_0",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "provider": "mock",
+      "marketKey": "CORRECT_SCORE",
+      "bookmaker": "MockBook",
+      "outcomeName": "3-0",
+      "priceDecimal": 12,
+      "priceAmerican": null,
+      "impliedProbability": 0.0833,
+      "rawData": {
+        "seed": "today"
+      },
+      "capturedAt": "2026-06-06T05:45:02.221Z"
+    }
+  ],
+  "predictionCards": [
+    {
+      "id": "card_1",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "TOTAL_GOALS_OVER",
+      "title": "Over 2.5 Goals",
+      "questionText": "Will Brazil vs Morocco have over 2.5 total goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 2.5
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_2",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "WEAKER_TEAM_SCORES",
+      "title": "Weaker Team Scores",
+      "questionText": "Will the weaker team score at least 1 goal?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "weakerTeam": "AWAY",
+        "scoresAtLeast": 1
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_3",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "FIRST_GOAL_BEFORE",
+      "title": "First Goal Before 30",
+      "questionText": "Will the first goal happen before minute 30?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "minute": 30
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_4",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "BOTH_TEAMS_SCORE",
+      "title": "Both Teams Score",
+      "questionText": "Will both teams score at least 1 goal?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_5",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "CLEAN_SHEET",
+      "title": "Clean Sheet",
+      "questionText": "Will either team keep a clean sheet?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_6",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "TOTAL_GOALS_OVER",
+      "title": "Over 8.5 Corners",
+      "questionText": "Will Brazil vs Morocco have over 8.5 corners?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 2.5
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_7",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "WIN_MARGIN",
+      "title": "Brazil by 2+",
+      "questionText": "Will Brazil win by 2 or more goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "team": "HOME",
+        "marginAtLeast": 2
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_8",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_arg_jpn",
+      "cardType": "TOTAL_GOALS_UNDER",
+      "title": "Under 3.5 Goals",
+      "questionText": "Will Argentina vs Japan have under 3.5 goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 3.5
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "card_9",
+      "matchDayId": "md_12",
+      "tournamentMatchId": "match_bra_mar",
+      "cardType": "WEAKER_TEAM_SCORES",
+      "title": "Underdog Scores",
+      "questionText": "Will the underdog team score at least 1 goal?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "weakerTeam": "AWAY",
+        "scoresAtLeast": 1
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T03:42:47.335Z",
+      "updatedAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "old_card_1",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_fra_mex",
+      "cardType": "TOTAL_GOALS_OVER",
+      "title": "Over 1.5 Goals",
+      "questionText": "Will France vs Mexico have over 1.5 total goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 1.5
+      },
+      "estimatedProbability": 0.52,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_2",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_fra_mex",
+      "cardType": "CLEAN_SHEET",
+      "title": "France Clean Sheet",
+      "questionText": "Will France keep a clean sheet?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.49,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_3",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_fra_mex",
+      "cardType": "FIRST_GOAL_BEFORE",
+      "title": "First Goal Before 30",
+      "questionText": "Will the first goal happen before minute 30?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "minute": 30
+      },
+      "estimatedProbability": 0.52,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_4",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_eng_usa",
+      "cardType": "BOTH_TEAMS_SCORE",
+      "title": "Both Teams Score",
+      "questionText": "Will both teams score in England vs USA?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.49,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_5",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_eng_usa",
+      "cardType": "TOTAL_GOALS_UNDER",
+      "title": "Under 3.5 Goals",
+      "questionText": "Will England vs USA have under 3.5 goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 3.5
+      },
+      "estimatedProbability": 0.52,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_6",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_fra_mex",
+      "cardType": "WIN_MARGIN",
+      "title": "France by 2+",
+      "questionText": "Will France win by 2 or more goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "team": "HOME",
+        "marginAtLeast": 2
+      },
+      "estimatedProbability": 0.49,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_7",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_fra_mex",
+      "cardType": "WEAKER_TEAM_SCORES",
+      "title": "Mexico Scores",
+      "questionText": "Will Mexico score at least 1 goal?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "weakerTeam": "AWAY",
+        "scoresAtLeast": 1
+      },
+      "estimatedProbability": 0.52,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_8",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_eng_usa",
+      "cardType": "TOTAL_GOALS_OVER",
+      "title": "England vs USA Over 2.5",
+      "questionText": "Will England vs USA have over 2.5 goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 2.5
+      },
+      "estimatedProbability": 0.49,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "old_card_9",
+      "matchDayId": "md_11",
+      "tournamentMatchId": "match_fra_mex",
+      "cardType": "BOTH_TEAMS_SCORE",
+      "title": "France-Mexico BTTS",
+      "questionText": "Will France and Mexico both score?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.52,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_1",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "TOTAL_GOALS_OVER",
+      "title": "Over 2.5 Goals",
+      "questionText": "Will Brazil vs Morocco have over 2.5 total goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 2.5
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_2",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "WEAKER_TEAM_SCORES",
+      "title": "Morocco Scores",
+      "questionText": "Will Morocco score at least 1 goal?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "weakerTeam": "AWAY",
+        "scoresAtLeast": 1
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_3",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "FIRST_GOAL_BEFORE",
+      "title": "First Goal Before 30",
+      "questionText": "Will the first goal in Brazil vs Morocco happen before minute 30?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "minute": 30
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_4",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "BOTH_TEAMS_SCORE",
+      "title": "Both Teams Score",
+      "questionText": "Will both teams score in Brazil vs Morocco?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_5",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "CLEAN_SHEET",
+      "title": "Clean Sheet",
+      "questionText": "Will either team keep a clean sheet in Brazil vs Morocco?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_6",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "TOTAL_GOALS_OVER",
+      "title": "BRA-MAR Over 1.5",
+      "questionText": "Will Brazil vs Morocco have over 1.5 total goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 1.5
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_7",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "WIN_MARGIN",
+      "title": "Brazil by 2+",
+      "questionText": "Will Brazil win by 2 or more goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "team": "HOME",
+        "marginAtLeast": 2
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_8",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "cardType": "TOTAL_GOALS_UNDER",
+      "title": "Under 3.5 Goals",
+      "questionText": "Will Argentina vs Japan have under 3.5 goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 3.5
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "card_md_live_20260606_3_9",
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "cardType": "WEAKER_TEAM_SCORES",
+      "title": "Underdog Scores",
+      "questionText": "Will Morocco score at least 1 goal?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "weakerTeam": "AWAY",
+        "scoresAtLeast": 1
+      },
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    }
+  ],
+  "playerCardSets": [
+    {
+      "id": "set_md_12_user_you",
+      "matchDayId": "md_12",
+      "userId": "user_you",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_maya",
+      "matchDayId": "md_12",
+      "userId": "user_maya",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_liam",
+      "matchDayId": "md_12",
+      "userId": "user_liam",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_noah",
+      "matchDayId": "md_12",
+      "userId": "user_noah",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_ava",
+      "matchDayId": "md_12",
+      "userId": "user_ava",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_ethan",
+      "matchDayId": "md_12",
+      "userId": "user_ethan",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_sofia",
+      "matchDayId": "md_12",
+      "userId": "user_sofia",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_omar",
+      "matchDayId": "md_12",
+      "userId": "user_omar",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_emma",
+      "matchDayId": "md_12",
+      "userId": "user_emma",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_kenji",
+      "matchDayId": "md_12",
+      "userId": "user_kenji",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_lina",
+      "matchDayId": "md_12",
+      "userId": "user_lina",
+      "generatedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "set_md_12_user_1780720001349",
+      "matchDayId": "md_12",
+      "userId": "user_1780720001349",
+      "generatedAt": "2026-06-06T05:30:56.752Z"
+    },
+    {
+      "id": "set_md_11_user_you",
+      "matchDayId": "md_11",
+      "userId": "user_you",
+      "generatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_you",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_you",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_maya",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_maya",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_liam",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_liam",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_noah",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_noah",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_ava",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_ava",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_ethan",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_ethan",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_omar",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_omar",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_emma",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_emma",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_lina",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_lina",
+      "generatedAt": "2026-06-06T05:45:02.222Z"
+    }
+  ],
+  "playerCards": [
+    {
+      "id": "pc_set_md_12_user_you_card_1",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_7",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_7",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_3",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_6",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_6",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_2",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_8",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_4",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_9",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_you_card_5",
+      "playerCardSetId": "set_md_12_user_you",
+      "predictionCardId": "card_5",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_8",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_2",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_2",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_9",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_9",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_1",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_5",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_5",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_3",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_7",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_6",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_maya_card_4",
+      "playerCardSetId": "set_md_12_user_maya",
+      "predictionCardId": "card_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_7",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_7",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_9",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_9",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_8",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_4",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_3",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_3",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_2",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_6",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_5",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_liam_card_1",
+      "playerCardSetId": "set_md_12_user_liam",
+      "predictionCardId": "card_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_8",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_1",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_4",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_2",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_2",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_6",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_6",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_3",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_5",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_7",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_noah_card_9",
+      "playerCardSetId": "set_md_12_user_noah",
+      "predictionCardId": "card_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_4",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_2",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_2",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_1",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_9",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_9",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_8",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_5",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_3",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_6",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ava_card_7",
+      "playerCardSetId": "set_md_12_user_ava",
+      "predictionCardId": "card_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_2",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_2",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_4",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_7",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_7",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_5",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_5",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_8",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_9",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_6",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_3",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_ethan_card_1",
+      "playerCardSetId": "set_md_12_user_ethan",
+      "predictionCardId": "card_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_6",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_6",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_5",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_5",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_4",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_9",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_9",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_3",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_3",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_1",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_2",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_7",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_sofia_card_8",
+      "playerCardSetId": "set_md_12_user_sofia",
+      "predictionCardId": "card_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_4",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_5",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_5",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_1",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_7",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_7",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_8",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_2",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_3",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_6",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_omar_card_9",
+      "playerCardSetId": "set_md_12_user_omar",
+      "predictionCardId": "card_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_9",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_9",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_1",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_4",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_7",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_7",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_6",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_6",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_8",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_2",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_5",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_emma_card_3",
+      "playerCardSetId": "set_md_12_user_emma",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_1",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_9",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_9",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_5",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_5",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_2",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_2",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_3",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_3",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_8",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_4",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_6",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_kenji_card_7",
+      "playerCardSetId": "set_md_12_user_kenji",
+      "predictionCardId": "card_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_7",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_7",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_3",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_3",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_4",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_5",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_5",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_1",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_2",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_8",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_6",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_lina_card_9",
+      "playerCardSetId": "set_md_12_user_lina",
+      "predictionCardId": "card_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_1",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_2",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_3",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_4",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_5",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_6",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_7",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_8",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_12_user_1780720001349_card_9",
+      "playerCardSetId": "set_md_12_user_1780720001349",
+      "predictionCardId": "card_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_1",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_1",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_2",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_2",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_3",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_3",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_4",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_4",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": false,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_5",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_6",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_6",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": true,
+      "pointsAwarded": 10,
+      "answeredAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_7",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_8",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_11_user_you_old_card_9",
+      "playerCardSetId": "set_md_11_user_you",
+      "predictionCardId": "old_card_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": true,
+      "playerAnswer": "NO",
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T05:48:08.784Z"
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": true,
+      "playerAnswer": "NO",
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T05:48:08.784Z"
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T05:48:08.784Z"
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": true,
+      "playerAnswer": "NO",
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T05:48:08.784Z"
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": true,
+      "playerAnswer": "YES",
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": "2026-06-06T05:48:08.784Z"
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_3",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    }
+  ],
+  "scorePredictions": [
+    {
+      "id": "score_user_you",
+      "matchDayId": "md_12",
+      "userId": "user_you",
+      "tournamentMatchId": "match_bra_mar",
+      "predictedHomeScore": 2,
+      "predictedAwayScore": 1,
+      "oddsMultiplier": 6.2,
+      "isExact": true,
+      "pointsAwarded": 31,
+      "submittedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "score_user_maya",
+      "matchDayId": "md_12",
+      "userId": "user_maya",
+      "tournamentMatchId": "match_bra_mar",
+      "predictedHomeScore": 1,
+      "predictedAwayScore": 1,
+      "oddsMultiplier": 5.8,
+      "isExact": false,
+      "pointsAwarded": 0,
+      "submittedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "score_user_liam",
+      "matchDayId": "md_12",
+      "userId": "user_liam",
+      "tournamentMatchId": "match_bra_mar",
+      "predictedHomeScore": 3,
+      "predictedAwayScore": 1,
+      "oddsMultiplier": 9.5,
+      "isExact": false,
+      "pointsAwarded": 0,
+      "submittedAt": "2026-06-06T03:00:19.129Z"
+    },
+    {
+      "id": "score_md_11_user_you",
+      "matchDayId": "md_11",
+      "userId": "user_you",
+      "tournamentMatchId": "match_fra_mex",
+      "predictedHomeScore": 2,
+      "predictedAwayScore": 0,
+      "oddsMultiplier": 7.1,
+      "isExact": true,
+      "pointsAwarded": 35.5,
+      "submittedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "score_md_live_20260606_3_user_you",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_you",
+      "tournamentMatchId": "match_bra_mar_md_live_20260606_3",
+      "predictedHomeScore": 1,
+      "predictedAwayScore": 1,
+      "oddsMultiplier": 5.8,
+      "isExact": null,
+      "pointsAwarded": 0,
+      "submittedAt": "2026-06-06T05:48:08.784Z"
+    }
+  ],
+  "headToHeadContests": [
+    {
+      "id": "contest_md_12_1",
+      "leagueId": "league_1",
+      "matchDayId": "md_12",
+      "mode": "SOLO",
+      "status": "FINAL",
+      "participantAName": "user_kenji",
+      "participantBName": "user_noah",
+      "participantAScore": 40,
+      "participantBScore": 50,
+      "result": "B_WIN",
+      "participants": [
+        {
+          "id": "part_md_12_0_a",
+          "side": "A",
+          "userId": "user_kenji"
+        },
+        {
+          "id": "part_md_12_0_b",
+          "side": "B",
+          "userId": "user_noah"
+        }
+      ],
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "contest_md_12_2",
+      "leagueId": "league_1",
+      "matchDayId": "md_12",
+      "mode": "SOLO",
+      "status": "FINAL",
+      "participantAName": "user_lina",
+      "participantBName": "user_emma",
+      "participantAScore": 30,
+      "participantBScore": 40,
+      "result": "B_WIN",
+      "participants": [
+        {
+          "id": "part_md_12_2_a",
+          "side": "A",
+          "userId": "user_lina"
+        },
+        {
+          "id": "part_md_12_2_b",
+          "side": "B",
+          "userId": "user_emma"
+        }
+      ],
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "contest_md_12_3",
+      "leagueId": "league_1",
+      "matchDayId": "md_12",
+      "mode": "SOLO",
+      "status": "FINAL",
+      "participantAName": "user_ethan",
+      "participantBName": "user_sofia",
+      "participantAScore": 30,
+      "participantBScore": 40,
+      "result": "B_WIN",
+      "participants": [
+        {
+          "id": "part_md_12_4_a",
+          "side": "A",
+          "userId": "user_ethan"
+        },
+        {
+          "id": "part_md_12_4_b",
+          "side": "B",
+          "userId": "user_sofia"
+        }
+      ],
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "contest_md_12_4",
+      "leagueId": "league_1",
+      "matchDayId": "md_12",
+      "mode": "SOLO",
+      "status": "FINAL",
+      "participantAName": "user_you",
+      "participantBName": "user_omar",
+      "participantAScore": 61,
+      "participantBScore": 30,
+      "result": "A_WIN",
+      "participants": [
+        {
+          "id": "part_md_12_6_a",
+          "side": "A",
+          "userId": "user_you"
+        },
+        {
+          "id": "part_md_12_6_b",
+          "side": "B",
+          "userId": "user_omar"
+        }
+      ],
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "contest_md_12_5",
+      "leagueId": "league_1",
+      "matchDayId": "md_12",
+      "mode": "SOLO",
+      "status": "FINAL",
+      "participantAName": "user_maya",
+      "participantBName": "user_ava",
+      "participantAScore": 40,
+      "participantBScore": 50,
+      "result": "B_WIN",
+      "participants": [
+        {
+          "id": "part_md_12_8_a",
+          "side": "A",
+          "userId": "user_maya"
+        },
+        {
+          "id": "part_md_12_8_b",
+          "side": "B",
+          "userId": "user_ava"
+        }
+      ],
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "contest_md_12_6",
+      "leagueId": "league_1",
+      "matchDayId": "md_12",
+      "mode": "SOLO",
+      "status": "FINAL",
+      "participantAName": "user_liam",
+      "participantBName": "Bye",
+      "participantAScore": 40,
+      "participantBScore": 0,
+      "result": "A_WIN",
+      "participants": [
+        {
+          "id": "part_md_12_10_a",
+          "side": "A",
+          "userId": "user_liam"
+        }
+      ],
+      "createdAt": "2026-06-06T03:00:19.129Z",
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "contest_md_11_1",
+      "leagueId": "league_1",
+      "matchDayId": "md_11",
+      "mode": "SOLO",
+      "status": "FINAL",
+      "participantAName": "user_you",
+      "participantBName": "user_maya",
+      "participantAScore": 75.5,
+      "participantBScore": 58,
+      "result": "A_WIN",
+      "participants": [
+        {
+          "id": "part_md_11_1_a",
+          "side": "A",
+          "userId": "user_you"
+        },
+        {
+          "id": "part_md_11_1_b",
+          "side": "B",
+          "userId": "user_maya"
+        }
+      ],
+      "createdAt": "2026-06-06T05:40:09.653Z",
+      "updatedAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "contest_md_live_20260606_3_1",
+      "leagueId": "league_1",
+      "matchDayId": "md_live_20260606_3",
+      "mode": "SOLO",
+      "status": "SCHEDULED",
+      "participantAName": "user_you",
+      "participantBName": "user_noah",
+      "participantAScore": 0,
+      "participantBScore": 0,
+      "result": null,
+      "participants": [
+        {
+          "id": "part_md_live_20260606_3_0_a",
+          "side": "A",
+          "userId": "user_you"
+        },
+        {
+          "id": "part_md_live_20260606_3_0_b",
+          "side": "B",
+          "userId": "user_noah"
+        }
+      ],
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "contest_md_live_20260606_3_2",
+      "leagueId": "league_1",
+      "matchDayId": "md_live_20260606_3",
+      "mode": "SOLO",
+      "status": "SCHEDULED",
+      "participantAName": "user_ava",
+      "participantBName": "user_maya",
+      "participantAScore": 0,
+      "participantBScore": 0,
+      "result": null,
+      "participants": [
+        {
+          "id": "part_md_live_20260606_3_2_a",
+          "side": "A",
+          "userId": "user_ava"
+        },
+        {
+          "id": "part_md_live_20260606_3_2_b",
+          "side": "B",
+          "userId": "user_maya"
+        }
+      ],
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "contest_md_live_20260606_3_3",
+      "leagueId": "league_1",
+      "matchDayId": "md_live_20260606_3",
+      "mode": "SOLO",
+      "status": "SCHEDULED",
+      "participantAName": "user_lina",
+      "participantBName": "user_omar",
+      "participantAScore": 0,
+      "participantBScore": 0,
+      "result": null,
+      "participants": [
+        {
+          "id": "part_md_live_20260606_3_4_a",
+          "side": "A",
+          "userId": "user_lina"
+        },
+        {
+          "id": "part_md_live_20260606_3_4_b",
+          "side": "B",
+          "userId": "user_omar"
+        }
+      ],
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "contest_md_live_20260606_3_4",
+      "leagueId": "league_1",
+      "matchDayId": "md_live_20260606_3",
+      "mode": "SOLO",
+      "status": "SCHEDULED",
+      "participantAName": "user_ethan",
+      "participantBName": "user_liam",
+      "participantAScore": 0,
+      "participantBScore": 0,
+      "result": null,
+      "participants": [
+        {
+          "id": "part_md_live_20260606_3_6_a",
+          "side": "A",
+          "userId": "user_ethan"
+        },
+        {
+          "id": "part_md_live_20260606_3_6_b",
+          "side": "B",
+          "userId": "user_liam"
+        }
+      ],
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "contest_md_live_20260606_3_5",
+      "leagueId": "league_1",
+      "matchDayId": "md_live_20260606_3",
+      "mode": "SOLO",
+      "status": "SCHEDULED",
+      "participantAName": "user_emma",
+      "participantBName": "Bye",
+      "participantAScore": 0,
+      "participantBScore": 0,
+      "result": null,
+      "participants": [
+        {
+          "id": "part_md_live_20260606_3_8_a",
+          "side": "A",
+          "userId": "user_emma"
+        }
+      ],
+      "createdAt": "2026-06-06T05:45:02.222Z",
+      "updatedAt": "2026-06-06T05:45:02.222Z"
+    }
+  ],
+  "leagueStandings": [
+    {
+      "id": "standing_league_1_user_you",
+      "leagueId": "league_1",
+      "userId": "user_you",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "leaguePoints": 3,
+      "fantasyPointsFor": 61,
+      "fantasyPointsAgainst": 30,
+      "cardCorrect": 3,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 1,
+      "scoreDifference": 31,
+      "exactScorePoints": 31,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_maya",
+      "leagueId": "league_1",
+      "userId": "user_maya",
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "leaguePoints": 0,
+      "fantasyPointsFor": 40,
+      "fantasyPointsAgainst": 50,
+      "cardCorrect": 4,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": -10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_liam",
+      "leagueId": "league_1",
+      "userId": "user_liam",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "leaguePoints": 3,
+      "fantasyPointsFor": 40,
+      "fantasyPointsAgainst": 0,
+      "cardCorrect": 4,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": 40,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_noah",
+      "leagueId": "league_1",
+      "userId": "user_noah",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "leaguePoints": 3,
+      "fantasyPointsFor": 50,
+      "fantasyPointsAgainst": 40,
+      "cardCorrect": 5,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": 10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_ava",
+      "leagueId": "league_1",
+      "userId": "user_ava",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "leaguePoints": 3,
+      "fantasyPointsFor": 50,
+      "fantasyPointsAgainst": 40,
+      "cardCorrect": 5,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": 10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_ethan",
+      "leagueId": "league_1",
+      "userId": "user_ethan",
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "leaguePoints": 0,
+      "fantasyPointsFor": 30,
+      "fantasyPointsAgainst": 40,
+      "cardCorrect": 3,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": -10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_sofia",
+      "leagueId": "league_1",
+      "userId": "user_sofia",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "leaguePoints": 3,
+      "fantasyPointsFor": 40,
+      "fantasyPointsAgainst": 30,
+      "cardCorrect": 4,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": 10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_omar",
+      "leagueId": "league_1",
+      "userId": "user_omar",
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "leaguePoints": 0,
+      "fantasyPointsFor": 30,
+      "fantasyPointsAgainst": 61,
+      "cardCorrect": 3,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": -31,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_emma",
+      "leagueId": "league_1",
+      "userId": "user_emma",
+      "played": 1,
+      "won": 1,
+      "drawn": 0,
+      "lost": 0,
+      "leaguePoints": 3,
+      "fantasyPointsFor": 40,
+      "fantasyPointsAgainst": 30,
+      "cardCorrect": 4,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": 10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_kenji",
+      "leagueId": "league_1",
+      "userId": "user_kenji",
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "leaguePoints": 0,
+      "fantasyPointsFor": 40,
+      "fantasyPointsAgainst": 50,
+      "cardCorrect": 4,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": -10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_lina",
+      "leagueId": "league_1",
+      "userId": "user_lina",
+      "played": 1,
+      "won": 0,
+      "drawn": 0,
+      "lost": 1,
+      "leaguePoints": 0,
+      "fantasyPointsFor": 30,
+      "fantasyPointsAgainst": 40,
+      "cardCorrect": 3,
+      "cardAttempted": 5,
+      "exactScoresCorrect": 0,
+      "scoreDifference": -10,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "standing_league_1_user_1780720001349",
+      "leagueId": "league_1",
+      "userId": "user_1780720001349",
+      "played": 0,
+      "won": 0,
+      "drawn": 0,
+      "lost": 0,
+      "leaguePoints": 0,
+      "fantasyPointsFor": 0,
+      "fantasyPointsAgainst": 0,
+      "cardCorrect": 0,
+      "cardAttempted": 0,
+      "exactScoresCorrect": 0,
+      "scoreDifference": 0,
+      "exactScorePoints": 0,
+      "updatedAt": "2026-06-06T04:29:10.962Z"
+    }
+  ],
+  "syncLogs": [
+    {
+      "id": "log_1780725334339_529be95aebb888",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "You logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:55:34.339Z"
+    },
+    {
+      "id": "log_1780724888784_1d7639ee3b021",
+      "type": "PLAYER_SUBMIT",
+      "status": "SUCCESS",
+      "message": "user_you submitted picks.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:48:08.784Z"
+    },
+    {
+      "id": "log_1780724863679_e2987300f5bba",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "You logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:47:43.679Z"
+    },
+    {
+      "id": "log_1780724719666_08f3beeaf756c8",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "You logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:45:19.666Z"
+    },
+    {
+      "id": "log_1780724702222_6a11214be1ebe8",
+      "type": "SEED_TODAY",
+      "status": "SUCCESS",
+      "message": "Created an open matchday for today's player view.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "log_1780724420751_3722f9b54b06c8",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "You logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:40:20.751Z"
+    },
+    {
+      "id": "log_1780724409653_01eec71db9275",
+      "type": "SEED_HISTORY",
+      "status": "SUCCESS",
+      "message": "Added historical Matchday 11 results.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:40:09.653Z"
+    },
+    {
+      "id": "log_1780723856753_79c21a64da51a",
+      "type": "INVITE_PLAYER",
+      "status": "SUCCESS",
+      "message": "Invited leotranloc@gmail.com to Golden Boot League via mock.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:30:56.753Z"
+    },
+    {
+      "id": "log_1780723828379_22f08fb0ae566",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "Admin logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:30:28.379Z"
+    },
+    {
+      "id": "log_1780723809878_2ef0cc7c542da",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "Admin logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:30:09.878Z"
+    },
+    {
+      "id": "log_1780723783442_d45715a7c9892",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "You logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T05:29:43.442Z"
+    },
+    {
+      "id": "log_1780720813371_da2a904be21c28",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "Admin logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:40:13.371Z"
+    },
+    {
+      "id": "log_1780720794307_b42aee2f3d5da8",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "Admin logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:39:54.307Z"
+    },
+    {
+      "id": "log_1780720794189_4bf10fb181d53",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "You logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:39:54.189Z"
+    },
+    {
+      "id": "log_1780720792385_e8451e81ac3708",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "You logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:39:52.385Z"
+    },
+    {
+      "id": "log_1780720792377_7b74b20b3931a",
+      "type": "LOGIN",
+      "status": "SUCCESS",
+      "message": "Admin logged in.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:39:52.377Z"
+    },
+    {
+      "id": "log_1780720406876_76f1d320148f7",
+      "type": "ACCEPT_INVITE",
+      "status": "SUCCESS",
+      "message": "leotranloc joined Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:33:26.876Z"
+    },
+    {
+      "id": "log_1780720395668_ec4407daa31d5",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "leotranloc is now INVITED in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:33:15.668Z"
+    },
+    {
+      "id": "log_1780720395248_0abfe00430dff",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "leotranloc is now ACTIVE in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:33:15.248Z"
+    },
+    {
+      "id": "log_1780720394235_0baa69ff9d834",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "leotranloc is now INVITED in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:33:14.235Z"
+    },
+    {
+      "id": "log_1780720393691_030de252ceb8f",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "leotranloc is now ACTIVE in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:33:13.691Z"
+    },
+    {
+      "id": "log_1780720327227_f769303feeecf8",
+      "type": "INVITE_PLAYER",
+      "status": "SUCCESS",
+      "message": "Invited leotranloc@gmail.com to Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:32:07.227Z"
+    },
+    {
+      "id": "log_1780720171609_6fcd8525da3df",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "leotranloc is now REMOVED in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:29:31.609Z"
+    },
+    {
+      "id": "log_1780720167725_71063fe5bc1af8",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "leotranloc is now ACTIVE in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:29:27.725Z"
+    },
+    {
+      "id": "log_1780720150962_0ffea9e215a6f8",
+      "type": "FINALIZE_MATCHDAY",
+      "status": "SUCCESS",
+      "message": "Matchday 12 finalized.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:29:10.962Z"
+    },
+    {
+      "id": "log_1780720129508_27ca7e83b7d558",
+      "type": "INVITE_PLAYER",
+      "status": "SUCCESS",
+      "message": "Invited leotranloc@gmail.com to Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:28:49.508Z"
+    },
+    {
+      "id": "log_1780720001349_576cec0e18027",
+      "type": "INVITE_PLAYER",
+      "status": "SUCCESS",
+      "message": "Invited leotranloc@gmail.com to Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:26:41.349Z"
+    },
+    {
+      "id": "log_1780719988808_317d4b3d29fb38",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "Kenji is now REMOVED in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:26:28.808Z"
+    },
+    {
+      "id": "log_1780719985025_611d8e34c8b16",
+      "type": "UPDATE_MEMBER",
+      "status": "SUCCESS",
+      "message": "Sofia is now REMOVED in Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T04:26:25.025Z"
+    },
+    {
+      "id": "log_1780717746087_2cba2c3d8b75f",
+      "type": "UPDATE_LEAGUE",
+      "status": "SUCCESS",
+      "message": "Updated Golden Boot League.",
+      "rawData": {},
+      "createdAt": "2026-06-06T03:49:06.087Z"
+    },
+    {
+      "id": "log_1780717367335_0fe2597addf3c",
+      "type": "GENERATE_CARDS",
+      "status": "SUCCESS",
+      "message": "Generated 9 matchday cards.",
+      "rawData": {},
+      "createdAt": "2026-06-06T03:42:47.335Z"
+    },
+    {
+      "id": "log_1780717329406_c6a50cfd6acf88",
+      "type": "CREATE_LEAGUE",
+      "status": "SUCCESS",
+      "message": "Created Weekend Rivals.",
+      "rawData": {},
+      "createdAt": "2026-06-06T03:42:09.406Z"
+    },
+    {
+      "id": "log_seed",
+      "type": "SEED",
+      "status": "SUCCESS",
+      "message": "Seeded mock World Cup league with 11 players.",
+      "rawData": {},
+      "createdAt": "2026-06-06T03:00:19.128Z"
+    }
+  ],
+  "emailOutbox": [
+    {
+      "id": "email_1780723856753_695f98cabfba18",
+      "to": "leotranloc@gmail.com",
+      "displayName": "leotranloc",
+      "leagueId": "league_1",
+      "leagueName": "Golden Boot League",
+      "subject": "You're invited to Golden Boot League on PitchPick",
+      "inviteLink": "http://localhost:4173/?invite=bGVhZ3VlXzE6dXNlcl8xNzgwNzIwMDAxMzQ5OjE3ODA3MjM4NTY3NTI",
+      "provider": "mock",
+      "status": "MOCK_SENT",
+      "providerMessageId": null,
+      "createdAt": "2026-06-06T05:30:56.753Z"
+    }
+  ]
+}

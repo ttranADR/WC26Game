@@ -1,0 +1,1041 @@
+import { createCardPool, createContests, createStandings } from "./seed.js";
+import { gradeCard, gradeExactPrediction, getExactScoreMultiplier } from "./scoring.js";
+import { ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
+import { sendInviteEmail } from "./email.js";
+
+export async function getAppState(store, userId = "user_you") {
+  return store.update((data) => {
+    ensureDemoScaffold(data);
+    return hydrateState(data, userId);
+  });
+}
+
+export async function loginUser(store, input) {
+  return store.update((data) => {
+    ensureDemoScaffold(data);
+    const email = String(input.email || "").trim().toLowerCase();
+    const password = String(input.password || "");
+    const user = data.users.find((item) => item.email.toLowerCase() === email);
+    if (!user || !verifyPassword(user, password)) {
+      throw new Error("Invalid email or password.");
+    }
+    data.syncLogs.unshift(log("LOGIN", "SUCCESS", `${user.displayName} logged in.`));
+    return {
+      ok: true,
+      user: publicUser(user),
+      state: hydrateState(data, user.id)
+    };
+  });
+}
+
+export async function submitPicks(store, input) {
+  const { userId = "user_you", matchDayId = "md_12", selectedCardIds, answers, scorePrediction } = input;
+
+  return store.update((data) => {
+    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
+    if (isLocked(matchday)) throw new Error("This matchday is locked. Picks can no longer be edited.");
+
+    const set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId);
+    if (!set) throw new Error("No generated card set found for this player.");
+    if (!Array.isArray(selectedCardIds) || selectedCardIds.length !== 5) {
+      throw new Error("Select exactly 5 prediction cards.");
+    }
+
+    const ownedCards = data.playerCards.filter((card) => card.playerCardSetId === set.id);
+    const ownedCardIds = new Set(ownedCards.map((card) => card.predictionCardId));
+    selectedCardIds.forEach((cardId) => {
+      if (!ownedCardIds.has(cardId)) throw new Error(`Card ${cardId} is not assigned to this player.`);
+      if (!["YES", "NO"].includes(answers?.[cardId])) throw new Error(`Card ${cardId} needs a Yes or No answer.`);
+    });
+
+    ownedCards.forEach((playerCard) => {
+      const selected = selectedCardIds.includes(playerCard.predictionCardId);
+      playerCard.selected = selected;
+      playerCard.playerAnswer = selected ? answers[playerCard.predictionCardId] : null;
+      playerCard.answeredAt = selected ? new Date().toISOString() : null;
+    });
+
+    const match = mustFind(data.tournamentMatches, scorePrediction.tournamentMatchId, "Match");
+    const existing = data.scorePredictions.find((item) => item.matchDayId === matchDayId && item.userId === userId);
+    const prediction = {
+      id: existing?.id || `score_${matchDayId}_${userId}`,
+      matchDayId,
+      userId,
+      tournamentMatchId: match.id,
+      predictedHomeScore: clampScore(scorePrediction.predictedHomeScore),
+      predictedAwayScore: clampScore(scorePrediction.predictedAwayScore),
+      oddsMultiplier: getExactScoreMultiplier(scorePrediction, match, data.oddsSnapshots),
+      isExact: null,
+      pointsAwarded: 0,
+      submittedAt: new Date().toISOString()
+    };
+
+    if (existing) Object.assign(existing, prediction);
+    else data.scorePredictions.push(prediction);
+
+    data.syncLogs.unshift(log("PLAYER_SUBMIT", "SUCCESS", `${userId} submitted picks.`));
+    return { ok: true, message: "Picks submitted.", state: hydrateState(data, userId) };
+  });
+}
+
+export async function acceptLeagueInvite(store, input) {
+  return store.update((data) => {
+    ensureDemoScaffold(data);
+    const inviteCode = String(input.inviteCode || "").trim();
+    if (!inviteCode) throw new Error("Invite code is required.");
+    const member = data.leagueMembers.find((item) => item.inviteCode === inviteCode);
+    if (!member || member.status === "REMOVED") throw new Error("Invite link is invalid or expired.");
+    const league = mustFind(data.leagues, member.leagueId, "League");
+    const user = mustFind(data.users, member.userId, "User");
+    member.status = "ACTIVE";
+    member.joinedAt = member.joinedAt || new Date().toISOString();
+    ensureStanding(data, league.id, user.id);
+    ensurePlayerCardSet(data, user.id, getTodayMatchday(data).id);
+    data.syncLogs.unshift(log("ACCEPT_INVITE", "SUCCESS", `${user.displayName} joined ${league.name}.`));
+    return {
+      ok: true,
+      message: `${user.displayName} joined ${league.name}.`,
+      user: publicUser(user),
+      state: hydrateState(data, user.id)
+    };
+  });
+}
+
+export async function createLeague(store, input) {
+  return store.update((data) => {
+    const name = String(input.name || "").trim();
+    if (name.length < 3) throw new Error("League name must be at least 3 characters.");
+    const id = `league_${Date.now()}`;
+    data.leagues.push({
+      id,
+      name,
+      slug: slugify(name),
+      seasonName: input.seasonName || "World Cup 2026",
+      pairingMode: input.pairingMode === "DUO" ? "DUO" : "SOLO",
+      createdByUserId: "admin_1",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    data.syncLogs.unshift(log("CREATE_LEAGUE", "SUCCESS", `Created ${name}.`));
+    return { ok: true, leagueId: id, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function updateLeague(store, input) {
+  return store.update((data) => {
+    const league = mustFind(data.leagues, input.leagueId, "League");
+    const name = String(input.name || "").trim();
+    if (name.length < 3) throw new Error("League name must be at least 3 characters.");
+    league.name = name;
+    league.slug = slugify(name);
+    league.seasonName = String(input.seasonName || league.seasonName || "World Cup 2026").trim();
+    league.pairingMode = input.pairingMode === "DUO" ? "DUO" : "SOLO";
+    league.updatedAt = new Date().toISOString();
+    data.syncLogs.unshift(log("UPDATE_LEAGUE", "SUCCESS", `Updated ${league.name}.`));
+    return { ok: true, leagueId: league.id, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function invitePlayer(store, input) {
+  return store.update(async (data) => {
+    const leagueId = input.leagueId || "league_1";
+    const league = mustFind(data.leagues, leagueId, "League");
+    const email = String(input.email || "").trim().toLowerCase();
+    if (!email.includes("@")) throw new Error("Enter a valid email.");
+
+    let user = data.users.find((item) => item.email.toLowerCase() === email);
+    if (!user) {
+      const id = `user_${Date.now()}`;
+      user = {
+        id,
+        email,
+        displayName: input.displayName || email.split("@")[0],
+        avatarUrl: `assets/${id}.svg`,
+        role: "PLAYER",
+        passwordHash: hashPassword("player123"),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      data.users.push(user);
+    }
+
+    const inviteCode = makeInviteCode(leagueId, user.id);
+    upsertLeagueMember(data, {
+      leagueId,
+      userId: user.id,
+      status: "INVITED",
+      joinedAt: null,
+      inviteCode
+    });
+    ensureStanding(data, leagueId, user.id);
+    ensurePlayerCardSet(data, user.id);
+    const appUrl = input.appUrl || "http://localhost:4173";
+    const inviteLink = `${appUrl}/?invite=${encodeURIComponent(inviteCode)}`;
+    const emailResult = await sendInviteEmail({
+      to: email,
+      displayName: user.displayName,
+      leagueName: league.name,
+      inviteLink
+    });
+
+    data.emailOutbox ||= [];
+    data.emailOutbox.unshift({
+      id: `email_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      to: email,
+      displayName: user.displayName,
+      leagueId,
+      leagueName: league.name,
+      subject: emailResult.subject,
+      inviteLink,
+      provider: emailResult.provider,
+      status: emailResult.status,
+      providerMessageId: emailResult.providerMessageId,
+      createdAt: new Date().toISOString()
+    });
+    data.syncLogs.unshift(log("INVITE_PLAYER", "SUCCESS", `Invited ${email} to ${league.name} via ${emailResult.provider}.`));
+    return {
+      ok: true,
+      message: emailResult.provider === "mock"
+        ? "Invite created in local Email Outbox."
+        : "Invite email sent.",
+      inviteLink,
+      emailStatus: emailResult.status,
+      state: hydrateState(data, input.currentUserId)
+    };
+  });
+}
+
+export async function addLeagueMember(store, input) {
+  return store.update((data) => {
+    const league = mustFind(data.leagues, input.leagueId, "League");
+    const user = mustFind(data.users, input.userId, "User");
+    if (user.role !== "PLAYER") throw new Error("Only player users can join a league.");
+    upsertLeagueMember(data, {
+      leagueId: league.id,
+      userId: user.id,
+      status: "ACTIVE",
+      joinedAt: new Date().toISOString(),
+      inviteCode: null
+    });
+    ensureStanding(data, league.id, user.id);
+    ensurePlayerCardSet(data, user.id);
+    data.syncLogs.unshift(log("ADD_MEMBER", "SUCCESS", `Added ${user.displayName} to ${league.name}.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function updateLeagueMemberStatus(store, input) {
+  return store.update((data) => {
+    const league = mustFind(data.leagues, input.leagueId, "League");
+    const user = mustFind(data.users, input.userId, "User");
+    const status = ["ACTIVE", "INVITED", "REMOVED"].includes(input.status) ? input.status : null;
+    if (!status) throw new Error("Member status must be ACTIVE, INVITED, or REMOVED.");
+    const member = data.leagueMembers.find((item) => item.leagueId === league.id && item.userId === user.id);
+    if (!member) throw new Error(`${user.displayName} is not in ${league.name}.`);
+    member.status = status;
+    member.joinedAt = status === "ACTIVE" ? (member.joinedAt || new Date().toISOString()) : member.joinedAt;
+    if (status === "INVITED" && !member.inviteCode) member.inviteCode = makeInviteCode(league.id, user.id);
+    data.syncLogs.unshift(log("UPDATE_MEMBER", "SUCCESS", `${user.displayName} is now ${status} in ${league.name}.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function syncFixtures(store, provider, input) {
+  return store.update(async (data) => {
+    const matchDayId = input.matchDayId || "md_12";
+    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
+    const fixtures = await provider.getFixturesByDate(matchday.date);
+
+    fixtures.forEach((fixture) => {
+      const existing = data.tournamentMatches.find((match) => match.externalId === fixture.externalId);
+      const next = {
+        ...fixture,
+        id: existing?.id || `match_${fixture.externalId.replace(/^fix_/, "")}`,
+        matchDayId,
+        createdAt: existing?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (existing) Object.assign(existing, next);
+      else data.tournamentMatches.push(next);
+    });
+
+    data.syncLogs.unshift(log("SYNC_FIXTURES", "SUCCESS", `Synced ${fixtures.length} fixtures.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function syncOdds(store, provider, input) {
+  return store.update(async (data) => {
+    const matchDayId = input.matchDayId || "md_12";
+    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
+    const rawOdds = await provider.getOddsByDate(matchday.date);
+    const matchesByExternal = new Map(data.tournamentMatches.map((match) => [match.externalId, match.id]));
+    const matchesById = new Set(data.tournamentMatches.map((match) => match.id));
+    const nextOdds = rawOdds.map((odd, index) => {
+      const tournamentMatchId = matchesById.has(odd.tournamentMatchId)
+        ? odd.tournamentMatchId
+        : matchesByExternal.get(odd.tournamentMatchId) || odd.tournamentMatchId;
+      return { ...odd, id: `odds_${tournamentMatchId}_${odd.marketKey}_${index}_${Date.now()}`, tournamentMatchId };
+    });
+
+    data.oddsSnapshots = data.oddsSnapshots.filter((odd) => !nextOdds.some((next) => (
+      next.tournamentMatchId === odd.tournamentMatchId && next.marketKey === odd.marketKey && next.outcomeName === odd.outcomeName
+    )));
+    data.oddsSnapshots.push(...nextOdds);
+    data.syncLogs.unshift(log("SYNC_ODDS", "SUCCESS", `Synced ${nextOdds.length} odds snapshots.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function syncLiveData(store, provider, input = {}) {
+  const matchDayIds = await store.update((data) => {
+    ensureDemoScaffold(data);
+    if (input.matchDayId) return [input.matchDayId];
+    return data.matchdays
+      .filter((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status))
+      .map((matchday) => matchday.id);
+  });
+
+  const results = [];
+  for (const matchDayId of matchDayIds) {
+    try {
+      await syncFixtures(store, provider, { ...input, matchDayId });
+      results.push({ matchDayId, type: "fixtures", status: "SUCCESS" });
+    } catch (error) {
+      results.push({ matchDayId, type: "fixtures", status: "ERROR", message: error.message });
+    }
+
+    try {
+      await syncOdds(store, provider, { ...input, matchDayId });
+      results.push({ matchDayId, type: "odds", status: "SUCCESS" });
+    } catch (error) {
+      results.push({ matchDayId, type: "odds", status: "ERROR", message: error.message });
+    }
+  }
+
+  const failures = results.filter((result) => result.status === "ERROR");
+  if (failures.length === results.length && results.length) {
+    throw new Error(`Live sync failed: ${failures.map((result) => `${result.type} ${result.matchDayId}: ${result.message}`).join("; ")}`);
+  }
+
+  return {
+    ok: true,
+    message: `Live sync complete for ${matchDayIds.length} matchday${matchDayIds.length === 1 ? "" : "s"}.`,
+    results,
+    state: await getAppState(store, input.currentUserId || "user_you")
+  };
+}
+
+export async function generateCardsForMatchday(store, input) {
+  return store.update((data) => {
+    const matchDayId = input.matchDayId || "md_12";
+    const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
+    const cards = createCardPool(matchDayId, matches);
+    data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchDayId);
+    data.predictionCards.push(...cards);
+    data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} matchday cards.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function generatePairingsForMatchday(store, input) {
+  return store.update((data) => {
+    const leagueId = input.leagueId || "league_1";
+    const matchDayId = input.matchDayId || "md_12";
+    const league = mustFind(data.leagues, leagueId, "League");
+    if (input.pairingMode) league.pairingMode = input.pairingMode === "DUO" ? "DUO" : "SOLO";
+    const userIds = data.leagueMembers
+      .filter((member) => member.leagueId === leagueId && member.status !== "REMOVED")
+      .map((member) => member.userId);
+    data.headToHeadContests = data.headToHeadContests.filter((contest) => !(contest.leagueId === leagueId && contest.matchDayId === matchDayId));
+    data.headToHeadContests.push(...createContests(leagueId, matchDayId, userIds, league.pairingMode));
+    data.syncLogs.unshift(log("GENERATE_PAIRINGS", "SUCCESS", `Generated ${league.pairingMode} pairings.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function lockMatchday(store, input) {
+  return store.update((data) => {
+    const matchday = mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday");
+    matchday.status = "LOCKED";
+    matchday.updatedAt = new Date().toISOString();
+    data.syncLogs.unshift(log("LOCK_MATCHDAY", "SUCCESS", `${matchday.name} locked.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function rescoreMatchday(store, input) {
+  return store.update((data) => {
+    scoreMatchday(data, input.matchDayId || "md_12", input.leagueId || "league_1");
+    data.syncLogs.unshift(log("SCORE_MATCHDAY", "SUCCESS", "Matchday scored idempotently."));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function finalizeMatchday(store, input) {
+  return store.update((data) => {
+    scoreMatchday(data, input.matchDayId || "md_12", input.leagueId || "league_1");
+    const matchday = mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday");
+    matchday.status = "FINAL";
+    matchday.updatedAt = new Date().toISOString();
+    data.syncLogs.unshift(log("FINALIZE_MATCHDAY", "SUCCESS", `${matchday.name} finalized.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function voidCard(store, input) {
+  return store.update((data) => {
+    const card = mustFind(data.predictionCards, input.cardId, "Prediction card");
+    card.status = "VOID";
+    card.voidReason = input.reason || "Voided by admin.";
+    card.updatedAt = new Date().toISOString();
+    data.syncLogs.unshift(log("VOID_CARD", "SUCCESS", `${card.title} voided.`));
+    return { ok: true, state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function exportStandingsCsv(store, leagueId) {
+  const data = await store.read();
+  const rows = hydrateStandings(data, leagueId);
+  return [
+    "rank,player,leaguePoints,fantasyPointsFor,cardAccuracy,scoreDifference,exactScorePoints,exactScoresCorrect",
+    ...rows.map((row, index) => [
+      index + 1,
+      row.displayName,
+      row.leaguePoints,
+      row.fantasyPointsFor,
+      row.cardAccuracy,
+      row.scoreDifference,
+      row.exactScorePoints,
+      row.exactScoresCorrect
+    ].join(","))
+  ].join("\n");
+}
+
+function scoreMatchday(data, matchDayId, leagueId) {
+  const matches = new Map(data.tournamentMatches.map((match) => [match.id, match]));
+  const cards = new Map(data.predictionCards.map((card) => [card.id, card]));
+  const playerTotals = new Map();
+  const cardStats = new Map();
+  const exactStats = new Map();
+
+  data.playerCardSets
+    .filter((set) => set.matchDayId === matchDayId)
+    .forEach((set) => {
+      let total = 0;
+      let cardCorrect = 0;
+      let cardAttempted = 0;
+      data.playerCards.filter((playerCard) => playerCard.playerCardSetId === set.id).forEach((playerCard) => {
+        const card = cards.get(playerCard.predictionCardId);
+        const match = matches.get(card?.tournamentMatchId);
+        if (playerCard.selected && card) {
+          const grade = gradeCard(card, match);
+          const answerCorrect = grade.isCorrect == null ? null : (
+            (playerCard.playerAnswer === card.expectedAnswer) === grade.isCorrect
+          );
+          playerCard.isCorrect = answerCorrect;
+          playerCard.pointsAwarded = answerCorrect ? 10 : 0;
+          if (answerCorrect != null && card.status !== "VOID") {
+            cardAttempted += 1;
+            if (answerCorrect) cardCorrect += 1;
+          }
+          total += playerCard.pointsAwarded;
+        } else {
+          playerCard.isCorrect = null;
+          playerCard.pointsAwarded = 0;
+        }
+      });
+      playerTotals.set(set.userId, total);
+      cardStats.set(set.userId, { cardCorrect, cardAttempted });
+    });
+
+  data.scorePredictions
+    .filter((prediction) => prediction.matchDayId === matchDayId)
+    .forEach((prediction) => {
+      const match = matches.get(prediction.tournamentMatchId);
+      const grade = gradeExactPrediction(prediction, match, data.oddsSnapshots);
+      Object.assign(prediction, grade);
+      playerTotals.set(prediction.userId, (playerTotals.get(prediction.userId) || 0) + grade.pointsAwarded);
+      exactStats.set(prediction.userId, {
+        exactScoresCorrect: grade.isExact ? 1 : 0,
+        exactScorePoints: grade.pointsAwarded
+      });
+    });
+
+  data.headToHeadContests
+    .filter((contest) => contest.leagueId === leagueId && contest.matchDayId === matchDayId)
+    .forEach((contest) => {
+      const aUsers = contest.participants.filter((part) => part.side === "A").map((part) => part.userId);
+      const bUsers = contest.participants.filter((part) => part.side === "B").map((part) => part.userId);
+      contest.participantAScore = sumScores(aUsers, playerTotals);
+      contest.participantBScore = bUsers.length ? sumScores(bUsers, playerTotals) : 0;
+      contest.status = "FINAL";
+      contest.result = contest.participantAScore === contest.participantBScore
+        ? "DRAW"
+        : contest.participantAScore > contest.participantBScore ? "A_WIN" : "B_WIN";
+      contest.updatedAt = new Date().toISOString();
+    });
+
+  const leagueUserIds = data.leagueMembers.filter((member) => member.leagueId === leagueId).map((member) => member.userId);
+  data.leagueStandings = data.leagueStandings.filter((standing) => standing.leagueId !== leagueId);
+  data.leagueStandings.push(...createStandings(leagueId, leagueUserIds));
+
+  data.headToHeadContests
+    .filter((contest) => contest.leagueId === leagueId && contest.matchDayId === matchDayId)
+    .forEach((contest) => {
+      updateSide(data, leagueId, contest, "A", contest.participantAScore, contest.participantBScore, cardStats, exactStats);
+      updateSide(data, leagueId, contest, "B", contest.participantBScore, contest.participantAScore, cardStats, exactStats);
+    });
+}
+
+function updateSide(data, leagueId, contest, side, scoreFor, scoreAgainst, cardStats, exactStats) {
+  const participants = contest.participants.filter((part) => part.side === side);
+  participants.forEach((part) => {
+    const standing = data.leagueStandings.find((row) => row.leagueId === leagueId && row.userId === part.userId);
+    if (!standing) return;
+    standing.played += 1;
+    standing.fantasyPointsFor += scoreFor;
+    standing.fantasyPointsAgainst += scoreAgainst;
+    standing.scoreDifference += scoreFor - scoreAgainst;
+    const result = contest.result;
+    const won = (side === "A" && result === "A_WIN") || (side === "B" && result === "B_WIN");
+    const drawn = result === "DRAW";
+    standing.won += won ? 1 : 0;
+    standing.drawn += drawn ? 1 : 0;
+    standing.lost += !won && !drawn ? 1 : 0;
+    standing.leaguePoints += won ? 3 : drawn ? 1 : 0;
+    standing.cardCorrect += cardStats.get(part.userId)?.cardCorrect || 0;
+    standing.cardAttempted += cardStats.get(part.userId)?.cardAttempted || 0;
+    standing.exactScoresCorrect += exactStats.get(part.userId)?.exactScoresCorrect || 0;
+    standing.exactScorePoints += exactStats.get(part.userId)?.exactScorePoints || 0;
+    standing.updatedAt = new Date().toISOString();
+  });
+}
+
+function hydrateState(data, currentUserId = "user_you") {
+  ensureDemoScaffold(data);
+  const league = data.leagues[0];
+  const matchday = getTodayMatchday(data);
+  data.users.forEach(ensureUserPassword);
+  const currentUser = data.users.find((user) => user.id === currentUserId) || data.users.find((user) => user.id === "user_you");
+  const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === currentUser.id);
+  const playerCards = data.playerCards
+    .filter((playerCard) => playerCard.playerCardSetId === cardSet?.id)
+    .map((playerCard) => ({
+      ...playerCard,
+      card: data.predictionCards.find((card) => card.id === playerCard.predictionCardId)
+    }));
+  const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchday.id && prediction.userId === currentUserId);
+  const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+
+  return {
+    currentUser: publicUser(currentUser),
+    adminUser: publicUser(data.users.find((user) => user.role === "ADMIN")),
+    users: data.users.map(publicUser),
+    profiles: data.playerProfiles,
+    leagues: hydrateLeagues(data),
+    leagueMembers: data.leagueMembers,
+    league,
+    matchdays: data.matchdays
+      .slice()
+      .sort((a, b) => new Date(b.date) - new Date(a.date)),
+    todayMatchdayId: matchday.id,
+    matchdaySummaries: hydrateMatchdaySummaries(data, league.id, currentUser.id),
+    matchday,
+    matches,
+    oddsSnapshots: data.oddsSnapshots,
+    correctScoreOdds: data.oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE"),
+    playerCards,
+    scorePrediction,
+    contests: hydrateContests(data, null, matchday.id),
+    standings: hydrateStandings(data, league.id),
+    syncLogs: data.syncLogs.slice(0, 20),
+    emailOutbox: (data.emailOutbox || []).slice(0, 20)
+  };
+}
+
+function publicUser(user) {
+  if (!user) return null;
+  const { passwordHash, ...safeUser } = user;
+  return safeUser;
+}
+
+function hydrateLeagues(data) {
+  return data.leagues.map((league) => {
+    const members = data.leagueMembers.filter((member) => member.leagueId === league.id && member.status !== "REMOVED");
+    const contests = data.headToHeadContests.filter((contest) => contest.leagueId === league.id);
+    return {
+      ...league,
+      memberCount: members.length,
+      activeMemberCount: members.filter((member) => member.status === "ACTIVE").length,
+      invitedMemberCount: members.filter((member) => member.status === "INVITED").length,
+      contestCount: contests.length,
+      standings: hydrateStandings(data, league.id)
+    };
+  });
+}
+
+function hydrateMatchdaySummaries(data, leagueId, userId) {
+  return data.matchdays
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .map((matchday) => {
+      const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+      const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === userId);
+      const playerCards = data.playerCards
+        .filter((playerCard) => playerCard.playerCardSetId === cardSet?.id)
+        .map((playerCard) => ({
+          ...playerCard,
+          card: data.predictionCards.find((card) => card.id === playerCard.predictionCardId)
+        }));
+      const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchday.id && prediction.userId === userId);
+      const contests = hydrateContests(data, leagueId, matchday.id);
+      const userContest = contests.find((contest) => contest.participants.some((part) => part.userId === userId));
+      const userSide = userContest?.participants.find((part) => part.userId === userId)?.side;
+      const opponentNames = userContest
+        ? userContest.participants
+          .filter((part) => part.userId !== userId)
+          .map((part) => part.user?.displayName || part.userId)
+        : [];
+      const cardPoints = playerCards.reduce((sum, card) => sum + (card.pointsAwarded || 0), 0);
+      const exactPoints = scorePrediction?.pointsAwarded || 0;
+      const userScore = userSide === "A" ? userContest?.participantAScore : userContest?.participantBScore;
+      const opponentScore = userSide === "A" ? userContest?.participantBScore : userContest?.participantAScore;
+
+      return {
+        ...matchday,
+        isToday: matchday.id === getTodayMatchday(data).id,
+        matches,
+        playerCards,
+        selectedCards: playerCards.filter((card) => card.selected),
+        scorePrediction,
+        contests,
+        userContest,
+        opponentNames,
+        userSide,
+        cardPoints,
+        exactPoints,
+        totalPoints: Number((cardPoints + exactPoints).toFixed(1)),
+        userScore: userScore ?? 0,
+        opponentScore: opponentScore ?? 0,
+        resultLabel: getContestResultLabel(userContest, userSide)
+      };
+    });
+}
+
+function getTodayMatchday(data) {
+  return data.matchdays.find((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status)) ||
+    data.matchdays.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+}
+
+function getContestResultLabel(contest, userSide) {
+  if (!contest || contest.status !== "FINAL") return contest?.status || "SCHEDULED";
+  if (contest.result === "DRAW") return "DRAW";
+  if ((contest.result === "A_WIN" && userSide === "A") || (contest.result === "B_WIN" && userSide === "B")) return "WIN";
+  return "LOSS";
+}
+
+function hydrateContests(data, leagueId, matchDayId) {
+  return data.headToHeadContests
+    .filter((contest) => (!leagueId || contest.leagueId === leagueId) && contest.matchDayId === matchDayId)
+    .map((contest) => ({
+      ...contest,
+      participants: contest.participants.map((part) => ({
+        ...part,
+        user: data.users.find((user) => user.id === part.userId)
+      }))
+    }));
+}
+
+function hydrateStandings(data, leagueId) {
+  return data.leagueStandings
+    .filter((standing) => standing.leagueId === leagueId)
+    .map((standing) => {
+      const user = data.users.find((item) => item.id === standing.userId);
+      return {
+        ...standing,
+        displayName: user?.displayName || standing.userId,
+        cardAccuracy: standing.cardAttempted ? Number((standing.cardCorrect / standing.cardAttempted * 100).toFixed(1)) : 0
+      };
+    })
+    .sort((a, b) => (
+      b.leaguePoints - a.leaguePoints ||
+      b.fantasyPointsFor - a.fantasyPointsFor ||
+      b.cardAccuracy - a.cardAccuracy ||
+      b.scoreDifference - a.scoreDifference ||
+      b.exactScorePoints - a.exactScorePoints ||
+      b.exactScoresCorrect - a.exactScoresCorrect
+    ));
+}
+
+function sumScores(userIds, playerTotals) {
+  return Number(userIds.reduce((sum, userId) => sum + (playerTotals.get(userId) || 0), 0).toFixed(1));
+}
+
+function upsertLeagueMember(data, memberInput) {
+  const existing = data.leagueMembers.find((member) => member.leagueId === memberInput.leagueId && member.userId === memberInput.userId);
+  if (existing) {
+    existing.status = memberInput.status;
+    existing.joinedAt = memberInput.joinedAt;
+    existing.inviteCode = memberInput.inviteCode;
+    return existing;
+  }
+
+  const member = {
+    id: `member_${memberInput.leagueId}_${memberInput.userId}`,
+    leagueId: memberInput.leagueId,
+    userId: memberInput.userId,
+    status: memberInput.status,
+    joinedAt: memberInput.joinedAt,
+    inviteCode: memberInput.inviteCode
+  };
+  data.leagueMembers.push(member);
+  return member;
+}
+
+function makeInviteCode(leagueId, userId) {
+  return Buffer.from(`${leagueId}:${userId}:${Date.now()}`).toString("base64url");
+}
+
+function ensureStanding(data, leagueId, userId) {
+  const existing = data.leagueStandings.find((standing) => standing.leagueId === leagueId && standing.userId === userId);
+  if (existing) return existing;
+
+  const standing = {
+    id: `standing_${leagueId}_${userId}`,
+    leagueId,
+    userId,
+    played: 0,
+    won: 0,
+    drawn: 0,
+    lost: 0,
+    leaguePoints: 0,
+    fantasyPointsFor: 0,
+    fantasyPointsAgainst: 0,
+    cardCorrect: 0,
+    cardAttempted: 0,
+    exactScoresCorrect: 0,
+    scoreDifference: 0,
+    exactScorePoints: 0,
+    updatedAt: new Date().toISOString()
+  };
+  data.leagueStandings.push(standing);
+  return standing;
+}
+
+function ensurePlayerCardSet(data, userId, matchDayId = "md_12") {
+  const existing = data.playerCardSets.find((set) => set.matchDayId === matchDayId && set.userId === userId);
+  if (existing) return existing;
+
+  const set = {
+    id: `set_${matchDayId}_${userId}`,
+    matchDayId,
+    userId,
+    generatedAt: new Date().toISOString()
+  };
+  data.playerCardSets.push(set);
+
+  data.predictionCards
+    .filter((card) => card.matchDayId === matchDayId)
+    .slice(0, 9)
+    .forEach((card) => {
+      data.playerCards.push({
+        id: `pc_${set.id}_${card.id}`,
+        playerCardSetId: set.id,
+        predictionCardId: card.id,
+        selected: false,
+        playerAnswer: null,
+        isCorrect: null,
+        pointsAwarded: 0,
+        answeredAt: null
+      });
+    });
+
+  return set;
+}
+
+function ensureDemoScaffold(data) {
+  ensureDemoMatchdayHistory(data);
+  ensurePlayableMatchday(data);
+}
+
+function ensurePlayableMatchday(data) {
+  if (data.matchdays.some((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status))) return;
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const date = nowIso.slice(0, 10);
+  const matchDayId = `md_live_${date.replaceAll("-", "")}_${data.matchdays.length + 1}`;
+  if (data.matchdays.some((matchday) => matchday.id === matchDayId)) return;
+
+  data.matchdays.push({
+    id: matchDayId,
+    name: "Today Matchday",
+    date,
+    lockAt: new Date(now.getTime() + 6 * 60 * 60 * 1000).toISOString(),
+    status: "OPEN",
+    createdAt: nowIso,
+    updatedAt: nowIso
+  });
+
+  const matches = createPlayableMatches(matchDayId, now);
+  data.tournamentMatches.push(...matches);
+  data.oddsSnapshots.push(...createPlayableCorrectScoreOdds(matches, nowIso));
+
+  const cards = createCardPool(matchDayId, matches);
+  data.predictionCards.push(...cards);
+
+  data.leagues.forEach((league) => {
+    const userIds = data.leagueMembers
+      .filter((member) => member.leagueId === league.id && member.status === "ACTIVE")
+      .map((member) => member.userId);
+    userIds.forEach((userId) => ensurePlayerCardSet(data, userId, matchDayId));
+    if (userIds.length && !data.headToHeadContests.some((contest) => contest.leagueId === league.id && contest.matchDayId === matchDayId)) {
+      data.headToHeadContests.push(...createContests(league.id, matchDayId, userIds, league.pairingMode));
+    }
+  });
+
+  data.syncLogs.unshift(log("SEED_TODAY", "SUCCESS", "Created an open matchday for today's player view."));
+}
+
+function createPlayableMatches(matchDayId, now) {
+  const base = [
+    ["match_bra_mar", "Brazil", "Morocco", "BRA", "MAR", 2],
+    ["match_arg_jpn", "Argentina", "Japan", "ARG", "JPN", 5],
+    ["match_ger_can", "Germany", "Canada", "GER", "CAN", 8],
+    ["match_esp_crc", "Spain", "Costa Rica", "ESP", "CRC", 11]
+  ];
+
+  return base.map(([baseId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, hoursFromNow], index) => ({
+    id: `${baseId}_${matchDayId}`,
+    externalProvider: "mock",
+    externalId: `fix_${matchDayId}_${index + 1}`,
+    matchDayId,
+    homeTeam,
+    awayTeam,
+    homeTeamCode,
+    awayTeamCode,
+    kickoffAt: new Date(now.getTime() + hoursFromNow * 60 * 60 * 1000).toISOString(),
+    status: "SCHEDULED",
+    homeScore: null,
+    awayScore: null,
+    firstGoalMinute: null,
+    rawData: { seed: "today" },
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString()
+  }));
+}
+
+function createPlayableCorrectScoreOdds(matches, capturedAt) {
+  const scores = [
+    ["0-0", 7.5], ["1-0", 6.6], ["1-1", 5.8], ["2-1", 6.2],
+    ["2-0", 7.1], ["3-1", 9.5], ["0-1", 10.5], ["1-2", 11.5], ["3-0", 12.0]
+  ];
+
+  return matches.flatMap((match) => scores.map(([score, price]) => ({
+    id: `odds_${match.id}_CORRECT_SCORE_${score.replace(/\W/g, "_")}`,
+    tournamentMatchId: match.id,
+    provider: "mock",
+    marketKey: "CORRECT_SCORE",
+    bookmaker: "MockBook",
+    outcomeName: score,
+    priceDecimal: price,
+    priceAmerican: null,
+    impliedProbability: Number((1 / price).toFixed(4)),
+    rawData: { seed: "today" },
+    capturedAt
+  })));
+}
+
+function ensureDemoMatchdayHistory(data) {
+  if (data.matchdays.some((matchday) => matchday.id === "md_11")) return;
+
+  const now = new Date().toISOString();
+  data.matchdays.push({
+    id: "md_11",
+    name: "Matchday 11",
+    date: "2026-06-10",
+    lockAt: "2026-06-10T20:00:00.000Z",
+    status: "FINAL",
+    createdAt: now,
+    updatedAt: now
+  });
+
+  const historyMatches = [
+    {
+      id: "match_fra_mex",
+      externalProvider: "mock",
+      externalId: "fix_fra_mex",
+      matchDayId: "md_11",
+      homeTeam: "France",
+      awayTeam: "Mexico",
+      homeTeamCode: "FRA",
+      awayTeamCode: "MEX",
+      kickoffAt: "2026-06-10T20:00:00.000Z",
+      status: "FINISHED",
+      homeScore: 2,
+      awayScore: 0,
+      firstGoalMinute: 22,
+      rawData: { seed: "history" },
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: "match_eng_usa",
+      externalProvider: "mock",
+      externalId: "fix_eng_usa",
+      matchDayId: "md_11",
+      homeTeam: "England",
+      awayTeam: "United States",
+      homeTeamCode: "ENG",
+      awayTeamCode: "USA",
+      kickoffAt: "2026-06-10T23:00:00.000Z",
+      status: "FINISHED",
+      homeScore: 1,
+      awayScore: 1,
+      firstGoalMinute: 39,
+      rawData: { seed: "history" },
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+  data.tournamentMatches.push(...historyMatches);
+
+  const historyOdds = [
+    ["0-0", 7.4], ["1-0", 6.1], ["1-1", 5.8], ["2-0", 7.1],
+    ["2-1", 6.5], ["3-1", 9.6], ["0-1", 10.2], ["1-2", 11.2], ["3-0", 12.5]
+  ].map(([score, price]) => ({
+    id: `odds_match_fra_mex_CORRECT_SCORE_${score.replace(/\W/g, "_")}`,
+    tournamentMatchId: "match_fra_mex",
+    provider: "mock",
+    marketKey: "CORRECT_SCORE",
+    bookmaker: "MockBook",
+    outcomeName: score,
+    priceDecimal: price,
+    priceAmerican: null,
+    impliedProbability: Number((1 / price).toFixed(4)),
+    rawData: { seed: "history" },
+    capturedAt: now
+  }));
+  data.oddsSnapshots.push(...historyOdds);
+
+  const historyCards = [
+    historyCard(1, "TOTAL_GOALS_OVER", "Over 1.5 Goals", "Will France vs Mexico have over 1.5 total goals?", "match_fra_mex", { threshold: 1.5 }),
+    historyCard(2, "CLEAN_SHEET", "France Clean Sheet", "Will France keep a clean sheet?", "match_fra_mex", {}),
+    historyCard(3, "FIRST_GOAL_BEFORE", "First Goal Before 30", "Will the first goal happen before minute 30?", "match_fra_mex", { minute: 30 }),
+    historyCard(4, "BOTH_TEAMS_SCORE", "Both Teams Score", "Will both teams score in England vs USA?", "match_eng_usa", {}),
+    historyCard(5, "TOTAL_GOALS_UNDER", "Under 3.5 Goals", "Will England vs USA have under 3.5 goals?", "match_eng_usa", { threshold: 3.5 }),
+    historyCard(6, "WIN_MARGIN", "France by 2+", "Will France win by 2 or more goals?", "match_fra_mex", { team: "HOME", marginAtLeast: 2 }),
+    historyCard(7, "WEAKER_TEAM_SCORES", "Mexico Scores", "Will Mexico score at least 1 goal?", "match_fra_mex", { weakerTeam: "AWAY", scoresAtLeast: 1 }),
+    historyCard(8, "TOTAL_GOALS_OVER", "England vs USA Over 2.5", "Will England vs USA have over 2.5 goals?", "match_eng_usa", { threshold: 2.5 }),
+    historyCard(9, "BOTH_TEAMS_SCORE", "France-Mexico BTTS", "Will France and Mexico both score?", "match_fra_mex", {})
+  ];
+  data.predictionCards.push(...historyCards);
+
+  const historySet = {
+    id: "set_md_11_user_you",
+    matchDayId: "md_11",
+    userId: "user_you",
+    generatedAt: now
+  };
+  data.playerCardSets.push(historySet);
+  const selectedHistoryCardIds = new Set(["old_card_1", "old_card_2", "old_card_3", "old_card_4", "old_card_6"]);
+  data.playerCards.push(...historyCards.map((card) => {
+    const selected = selectedHistoryCardIds.has(card.id);
+    const correct = selected && card.id !== "old_card_4";
+    return {
+      id: `pc_${historySet.id}_${card.id}`,
+      playerCardSetId: historySet.id,
+      predictionCardId: card.id,
+      selected,
+      playerAnswer: selected ? "YES" : null,
+      isCorrect: selected ? correct : null,
+      pointsAwarded: correct ? 10 : 0,
+      answeredAt: selected ? now : null
+    };
+  }));
+
+  data.scorePredictions.push({
+    id: "score_md_11_user_you",
+    matchDayId: "md_11",
+    userId: "user_you",
+    tournamentMatchId: "match_fra_mex",
+    predictedHomeScore: 2,
+    predictedAwayScore: 0,
+    oddsMultiplier: 7.1,
+    isExact: true,
+    pointsAwarded: 35.5,
+    submittedAt: now
+  });
+
+  data.headToHeadContests.push({
+    id: "contest_md_11_1",
+    leagueId: "league_1",
+    matchDayId: "md_11",
+    mode: "SOLO",
+    status: "FINAL",
+    participantAName: "user_you",
+    participantBName: "user_maya",
+    participantAScore: 75.5,
+    participantBScore: 58,
+    result: "A_WIN",
+    participants: [
+      { id: "part_md_11_1_a", side: "A", userId: "user_you" },
+      { id: "part_md_11_1_b", side: "B", userId: "user_maya" }
+    ],
+    createdAt: now,
+    updatedAt: now
+  });
+
+  data.syncLogs.unshift(log("SEED_HISTORY", "SUCCESS", "Added historical Matchday 11 results."));
+}
+
+function historyCard(index, cardType, title, questionText, tournamentMatchId, gradingRule) {
+  return {
+    id: `old_card_${index}`,
+    matchDayId: "md_11",
+    tournamentMatchId,
+    cardType,
+    title,
+    questionText,
+    expectedAnswer: "YES",
+    gradingRule,
+    estimatedProbability: index % 2 === 0 ? 0.49 : 0.52,
+    difficultyLabel: "Balanced",
+    sourceOddsSnapshotIds: [],
+    status: "ACTIVE",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function mustFind(items, id, label) {
+  const item = items.find((candidate) => candidate.id === id);
+  if (!item) throw new Error(`${label} not found.`);
+  return item;
+}
+
+function isLocked(matchday) {
+  return ["LOCKED", "SCORING", "FINAL"].includes(matchday.status) || new Date(matchday.lockAt) <= new Date();
+}
+
+function clampScore(value) {
+  const score = Number(value);
+  if (!Number.isInteger(score) || score < 0 || score > 12) throw new Error("Exact score must be a whole number from 0 to 12.");
+  return score;
+}
+
+function log(type, status, message) {
+  return {
+    id: `log_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    type,
+    status,
+    message,
+    rawData: {},
+    createdAt: new Date().toISOString()
+  };
+}
+
+function slugify(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}

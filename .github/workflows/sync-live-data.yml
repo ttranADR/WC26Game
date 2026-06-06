@@ -1,0 +1,19 @@
+name: Sync Live Data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  sync-live-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call PitchPick sync endpoint
+        run: |
+          curl --fail-with-body \
+            --request POST \
+            --header "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --header "Content-Type: application/json" \
+            --data '{}' \
+            "${{ secrets.APP_URL }}/api/jobs/sync-live-data"

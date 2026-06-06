@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: pitchpick
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: DATA_PROVIDER
+        value: mock
+      - key: DATABASE_URL
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: API_FOOTBALL_KEY
+        sync: false
+      - key: SPORTMONKS_KEY
+        sync: false
+      - key: ODDS_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: INVITE_FROM_EMAIL
+        sync: false

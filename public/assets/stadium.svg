@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-label="Night soccer stadium">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0d1519"/>
+      <stop offset=".45" stop-color="#263338"/>
+      <stop offset="1" stop-color="#07110f"/>
+    </linearGradient>
+    <linearGradient id="pitch" x1="0" x2="1">
+      <stop offset="0" stop-color="#0b4d2a"/>
+      <stop offset=".5" stop-color="#148443"/>
+      <stop offset="1" stop-color="#0b4d2a"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="420" fill="url(#sky)"/>
+  <path d="M20 150 C200 40 1000 40 1180 150 L1180 220 C930 150 270 150 20 220 Z" fill="#1e2a2f"/>
+  <path d="M45 175 C250 95 950 95 1155 175" fill="none" stroke="#526269" stroke-width="18" opacity=".6"/>
+  <g filter="url(#glow)" opacity=".95">
+    <circle cx="138" cy="122" r="9" fill="#f6f1d0"/>
+    <circle cx="212" cy="102" r="9" fill="#f6f1d0"/>
+    <circle cx="296" cy="88" r="9" fill="#f6f1d0"/>
+    <circle cx="388" cy="78" r="9" fill="#f6f1d0"/>
+    <circle cx="488" cy="72" r="9" fill="#f6f1d0"/>
+    <circle cx="600" cy="70" r="9" fill="#f6f1d0"/>
+    <circle cx="712" cy="72" r="9" fill="#f6f1d0"/>
+    <circle cx="812" cy="78" r="9" fill="#f6f1d0"/>
+    <circle cx="904" cy="88" r="9" fill="#f6f1d0"/>
+    <circle cx="988" cy="102" r="9" fill="#f6f1d0"/>
+    <circle cx="1062" cy="122" r="9" fill="#f6f1d0"/>
+  </g>
+  <g opacity=".36">
+    <rect x="70" y="180" width="1060" height="24" fill="#f2f5ea"/>
+    <rect x="80" y="214" width="1040" height="20" fill="#d94646"/>
+    <rect x="96" y="244" width="1008" height="18" fill="#f7b733"/>
+    <rect x="118" y="272" width="964" height="16" fill="#226be2"/>
+  </g>
+  <path d="M135 405 L320 258 L880 258 L1065 405 Z" fill="url(#pitch)"/>
+  <path d="M320 258 L880 258" stroke="#a7ead0" stroke-width="2" opacity=".45"/>
+  <path d="M600 258 L600 405" stroke="#a7ead0" stroke-width="2" opacity=".35"/>
+  <ellipse cx="600" cy="320" rx="92" ry="35" fill="none" stroke="#a7ead0" stroke-width="2" opacity=".35"/>
+  <path d="M245 405 L385 290 L815 290 L955 405" fill="none" stroke="#a7ead0" stroke-width="2" opacity=".3"/>
+</svg>

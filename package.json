@@ -1,0 +1,19 @@
+{
+  "name": "pitchpick-fullstack",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "reset": "node scripts/reset-data.js",
+    "sync": "node scripts/run-sync-job.js",
+    "test": "node tests/run-tests.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}
