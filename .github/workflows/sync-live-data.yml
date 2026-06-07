@@ -9,9 +9,23 @@ jobs:
   sync-live-data:
     runs-on: ubuntu-latest
     steps:
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "APP_URL GitHub secret is missing."
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "CRON_SECRET GitHub secret is missing."
+            exit 1
+          fi
+
       - name: Call PitchPick sync endpoint
         run: |
-          curl --fail-with-body \
+          curl --fail-with-body --show-error --location \
+            --retry 5 \
+            --retry-delay 20 \
+            --retry-all-errors \
             --request POST \
             --header "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             --header "Content-Type: application/json" \
