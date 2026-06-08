@@ -770,7 +770,14 @@ export async function generateCardsForMatchday(store, input) {
     const matchDayId = input.matchDayId || "md_12";
     const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
     const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
-    const cards = createCardsFromOdds(matchDayId, matches, data.oddsSnapshots);
+    const scopedCards = createCardsFromOdds(matchDayId, matches, data.oddsSnapshots, `${matchDayId}_scoped_${Date.now()}`);
+    const allOddsCards = scopedCards.length < CARD_SET_SIZE
+      ? createCardsFromOdds(matchDayId, data.tournamentMatches, data.oddsSnapshots, `${matchDayId}_all_${Date.now()}`)
+      : [];
+    const templateCards = scopedCards.length + allOddsCards.length < CARD_SET_SIZE
+      ? createCardPool(matchDayId, matches.length ? matches : data.tournamentMatches, data.oddsSnapshots)
+      : [];
+    const cards = normalizeGeneratedCards(matchDayId, mergeGeneratedCards(scopedCards, allOddsCards, templateCards));
     if (!cards.length) throw new Error(`No odds-backed card data found for ${matchday.name}. Sync odds before generating cards.`);
     data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchDayId);
     data.predictionCards.push(...cards);
@@ -778,6 +785,40 @@ export async function generateCardsForMatchday(store, input) {
     data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} cards from stored odds for ${matchday.name}.`));
     return { ok: true, message: `Generated ${cards.length} odds-backed cards.`, state: hydrateState(data, input.currentUserId) };
   });
+}
+
+function mergeGeneratedCards(...cardLists) {
+  const seen = new Set();
+  const cards = [];
+  cardLists.flat().forEach((card) => {
+    const key = generatedCardKey(card);
+    if (seen.has(key) || cards.length >= CARD_SET_SIZE) return;
+    seen.add(key);
+    cards.push(card);
+  });
+  return cards;
+}
+
+function normalizeGeneratedCards(matchDayId, cards) {
+  const now = new Date().toISOString();
+  const prefix = matchDayId === "md_12" ? "card" : `card_${matchDayId}`;
+  return cards.slice(0, CARD_SET_SIZE).map((card, index) => ({
+    ...card,
+    id: `${prefix}_${index + 1}`,
+    matchDayId,
+    displayIndex: index + 1,
+    createdAt: card.createdAt || now,
+    updatedAt: now
+  }));
+}
+
+function generatedCardKey(card) {
+  return [
+    card.tournamentMatchId,
+    card.cardType,
+    card.expectedAnswer,
+    JSON.stringify(card.gradingRule)
+  ].join("::");
 }
 
 export async function generatePairingsForMatchday(store, input) {

@@ -621,6 +621,16 @@ select:focus-visible {
   margin-top: 16px;
 }
 
+.empty-state {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .prediction-card {
   display: grid;
   min-height: 176px;

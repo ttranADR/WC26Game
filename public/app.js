@@ -170,8 +170,11 @@ function renderPlayer() {
     return;
   }
 
-  const selected = [...state.dirtyCards.values()].filter((card) => card.selected).length;
+  const visibleCards = visiblePredictionCards(summary);
+  const hasAssignedCards = summary.playerCards.length > 0;
+  const selected = hasAssignedCards ? [...state.dirtyCards.values()].filter((card) => card.selected).length : 0;
   const locked = isMatchdayLocked(summary);
+  const readOnlyCards = locked || !hasAssignedCards;
   const selectedMatch = summary.matches.find((match) => match.id === state.selectedMatchId) || summary.matches[0];
   const exactOdds = getExactOdds(selectedMatch.id);
   const activeOdd = exactOdds.find((odd) => odd.outcomeName === `${state.score.home}-${state.score.away}`);
@@ -211,11 +214,13 @@ function renderPlayer() {
             <div>
               <p class="label">Pick ${MIN_SELECTED_CARDS}-${MAX_SELECTED_CARDS} of ${CARD_SET_SIZE}</p>
               <h2>Prediction cards</h2>
-              <span class="muted">${locked ? "This matchday is read-only after first kickoff." : "Correct picks score +10. Incorrect picks score -10."}</span>
+              <span class="muted">${cardPanelMessage(summary, hasAssignedCards, locked)}</span>
             </div>
             <div class="meter"><span>${selected} Selected</span><strong>${selected} / ${MAX_SELECTED_CARDS}</strong></div>
           </div>
-          <div class="cards-grid">${summary.playerCards.map(renderCard).join("")}</div>
+          ${visibleCards.length
+            ? `<div class="cards-grid">${visibleCards.map((playerCard) => renderCard(playerCard, { locked: readOnlyCards })).join("")}</div>`
+            : `<div class="empty-state">No prediction cards have been generated for this matchday yet.</div>`}
         </section>
 
         <aside class="right-rail">
@@ -231,15 +236,15 @@ function renderPlayer() {
             </div>
             <div class="score-controls">
               <div class="score-stack">
-                <button class="score-step" data-score-team="home" data-delta="1" ${locked ? "disabled" : ""}>+</button>
+                <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
                 <strong>${state.score.home}</strong>
-                <button class="score-step" data-score-team="home" data-delta="-1" ${locked ? "disabled" : ""}>-</button>
+                <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
               </div>
               <span> - </span>
               <div class="score-stack">
-                <button class="score-step" data-score-team="away" data-delta="1" ${locked ? "disabled" : ""}>+</button>
+                <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
                 <strong>${state.score.away}</strong>
-                <button class="score-step" data-score-team="away" data-delta="-1" ${locked ? "disabled" : ""}>-</button>
+                <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
               </div>
             </div>
             <div class="score-odds">
@@ -248,7 +253,7 @@ function renderPlayer() {
               <em>${potential} pts</em>
             </div>
             <div class="chips">${exactOdds.map((odd) => `
-              <button class="chip ${odd.outcomeName === `${state.score.home}-${state.score.away}` ? "active" : ""}" data-score-chip="${odd.outcomeName}" ${locked ? "disabled" : ""}>
+              <button class="chip ${odd.outcomeName === `${state.score.home}-${state.score.away}` ? "active" : ""}" data-score-chip="${odd.outcomeName}" ${readOnlyCards ? "disabled" : ""}>
                 ${odd.outcomeName}<small>${odd.priceDecimal.toFixed(1)}x</small>
               </button>
             `).join("")}</div>
@@ -273,7 +278,7 @@ function renderPlayer() {
             <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)}</em>
           </button>
         `).join("")}
-        <button class="submit-button" id="submitPicks" ${!locked && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
+        <button class="submit-button" id="submitPicks" ${!readOnlyCards && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
       </div>
     </section>
   `;
@@ -399,11 +404,11 @@ function renderResultCard(playerCard) {
   `;
 }
 
-function renderCard(playerCard) {
+function renderCard(playerCard, options = {}) {
   const dirty = state.dirtyCards.get(playerCard.predictionCardId) || { selected: false, answer: null };
   const selectedCount = [...state.dirtyCards.values()].filter((card) => card.selected).length;
   const lockedOut = !dirty.selected && selectedCount >= MAX_SELECTED_CARDS;
-  const locked = isMatchdayLocked(selectedMatchday());
+  const locked = options.locked ?? isMatchdayLocked(selectedMatchday());
   return `
     <article class="prediction-card ${dirty.selected ? "selected" : ""} ${lockedOut || locked ? "locked" : ""}" data-card-id="${playerCard.predictionCardId}">
       <div class="card-top">
@@ -418,6 +423,30 @@ function renderCard(playerCard) {
       <div class="card-foot"><strong>${playerCard.card.estimatedProbability.toFixed(2)} prob</strong><span>+10 / -10</span></div>
     </article>
   `;
+}
+
+function visiblePredictionCards(summary) {
+  if (summary.playerCards.length) return summary.playerCards;
+  return (summary.predictionCards || []).map((card) => ({
+    id: `preview_${card.id}`,
+    playerCardSetId: null,
+    predictionCardId: card.id,
+    selected: false,
+    playerAnswer: null,
+    isCorrect: null,
+    pointsAwarded: 0,
+    answeredAt: null,
+    card
+  }));
+}
+
+function cardPanelMessage(summary, hasAssignedCards, locked) {
+  if (!hasAssignedCards && summary.predictionCardCount > 0) {
+    return "Generated card preview. Active players receive selectable cards.";
+  }
+  if (!hasAssignedCards) return "No player card set is assigned yet.";
+  if (locked) return "This matchday is read-only after first kickoff.";
+  return "Correct picks score +10. Incorrect picks score -10.";
 }
 
 function renderAdmin() {

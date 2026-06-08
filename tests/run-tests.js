@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createCardsFromOdds, createSeedData } from "../src/seed.js";
 import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
-import { syncDailyTournamentData, syncOdds } from "../src/services.js";
+import { generateCardsForMatchday, syncDailyTournamentData, syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
 const data = createSeedData();
@@ -26,6 +26,43 @@ const oddsGeneratedCards = createCardsFromOdds("md_12", data.tournamentMatches, 
 assert.equal(oddsGeneratedCards.length, 12);
 assert.ok(oddsGeneratedCards.every((card) => card.sourceOddsSnapshotIds.length === 1));
 assert.ok(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"));
+
+const fallbackData = createSeedData();
+fallbackData.matchdays.push({
+  id: "md_no_direct_odds",
+  name: "No Direct Odds",
+  date: "2026-06-14",
+  lockAt: "2026-06-14T20:00:00.000Z",
+  status: "SCHEDULED",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+fallbackData.tournamentMatches.push({
+  id: "match_no_direct_odds",
+  externalProvider: "mock",
+  externalId: "fix_no_direct_odds",
+  matchDayId: "md_no_direct_odds",
+  homeTeam: "Portugal",
+  awayTeam: "Senegal",
+  homeTeamCode: "POR",
+  awayTeamCode: "SEN",
+  kickoffAt: "2026-06-14T20:00:00.000Z",
+  status: "SCHEDULED",
+  homeScore: null,
+  awayScore: null,
+  firstGoalMinute: null,
+  rawData: { test: true },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+const fallbackStore = createMemoryStore(fallbackData);
+const fallbackResult = await generateCardsForMatchday(fallbackStore, {
+  matchDayId: "md_no_direct_odds",
+  currentUserId: "user_you"
+});
+const fallbackSummary = fallbackResult.state.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
+assert.equal(fallbackSummary.predictionCardCount, 12);
+assert.equal(fallbackSummary.playerCards.length, 12);
 
 const exact = gradeExactPrediction({
   predictedHomeScore: 2,
