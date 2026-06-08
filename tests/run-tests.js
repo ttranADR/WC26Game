@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createCardsFromOdds, createSeedData } from "../src/seed.js";
 import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
-import { generateCardsForMatchday, syncDailyTournamentData, syncOdds } from "../src/services.js";
+import { generateCardsForMatchday, submitPicks, syncDailyTournamentData, syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
 const data = createSeedData();
@@ -63,6 +63,18 @@ const fallbackResult = await generateCardsForMatchday(fallbackStore, {
 const fallbackSummary = fallbackResult.state.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
 assert.equal(fallbackSummary.predictionCardCount, 12);
 assert.equal(fallbackSummary.playerCards.length, 12);
+const futureSubmitResult = await submitPicks(fallbackStore, {
+  userId: "user_you",
+  matchDayId: "md_no_direct_odds",
+  selectedCardIds: fallbackSummary.playerCards.slice(0, 5).map((card) => card.predictionCardId),
+  answers: Object.fromEntries(fallbackSummary.playerCards.slice(0, 5).map((card) => [card.predictionCardId, "YES"])),
+  scorePrediction: {
+    tournamentMatchId: "match_no_direct_odds",
+    predictedHomeScore: 1,
+    predictedAwayScore: 0
+  }
+});
+assert.equal(futureSubmitResult.message, "Picks submitted.");
 
 const exact = gradeExactPrediction({
   predictedHomeScore: 2,

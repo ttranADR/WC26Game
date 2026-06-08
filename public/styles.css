@@ -313,12 +313,117 @@ select:focus-visible {
   margin-top: 3px;
 }
 
-.matchday-list {
+.calendar-summary {
   display: grid;
-  gap: 8px;
-  max-height: 258px;
+  align-content: start;
+  gap: 3px;
+}
+
+.matchday-calendar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  max-height: 360px;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+.calendar-month {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.calendar-month-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-month-head strong {
+  margin: 0;
+  font-size: 14px;
+}
+
+.calendar-month-head span,
+.calendar-weekdays span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays span {
+  text-align: center;
+}
+
+.calendar-day {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  min-width: 0;
+  min-height: 76px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.calendar-day.empty {
+  border-style: dashed;
+  opacity: 0.38;
+}
+
+.calendar-day.active {
+  border-color: var(--green);
+  background: var(--selected);
+}
+
+.calendar-day.today {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 13%, var(--surface-2));
+}
+
+.calendar-day span {
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.calendar-day strong,
+.calendar-day small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-day strong {
+  color: var(--green);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.calendar-day.final strong,
+.calendar-day.locked strong {
+  color: var(--muted);
+}
+
+.calendar-day small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .phase-group {
@@ -633,7 +738,8 @@ select:focus-visible {
 
 .prediction-card {
   display: grid;
-  min-height: 176px;
+  grid-template-rows: auto minmax(48px, 1fr) auto auto;
+  min-height: 190px;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -660,9 +766,11 @@ select:focus-visible {
 }
 
 .card-top {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
+  min-width: 0;
 }
 
 .card-number {
@@ -670,9 +778,11 @@ select:focus-visible {
   place-items: center;
   width: 28px;
   height: 28px;
+  min-width: 28px;
   border-radius: 50%;
   background: var(--surface-3);
   color: var(--muted);
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -684,13 +794,15 @@ select:focus-visible {
 .card-top h3 {
   margin: 0;
   font-size: 15px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .card-question {
-  min-height: 42px;
   margin: 10px 0;
   font-size: 13px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .answer-row {
@@ -1262,10 +1374,16 @@ th {
     grid-template-columns: 1fr;
   }
 
-  .matchday-list {
+  .matchday-calendar {
+    grid-template-columns: 1fr;
     max-height: none;
     overflow-y: visible;
     padding-right: 0;
+  }
+
+  .calendar-day {
+    min-height: 68px;
+    padding: 7px;
   }
 
   .result-breakdown {

@@ -285,27 +285,35 @@ function renderPlayer() {
 }
 
 function renderMatchdayList(activeId) {
-  const groups = groupMatchdaysByPhase(state.data.matchdaySummaries);
+  const months = groupMatchdaysByCalendarMonth(state.data.matchdaySummaries);
+  const today = state.data.todayDate || todayKey();
+  const upcomingCount = state.data.matchdaySummaries.filter((matchday) => matchday.date >= today && matchday.status !== "FINAL").length;
   return `
     <section class="matchday-strip">
-      <div>
+      <div class="calendar-summary">
         <p class="label">All matchdays</p>
         <strong>${state.data.matchdaySummaries.length} days</strong>
+        <span class="muted">${upcomingCount} upcoming</span>
       </div>
-      <div class="matchday-list">
-        ${groups.map((group) => `
-          <div class="phase-group">
-            <div class="phase-label">
-              <span>${group.label}</span>
-              <small>${group.matchdays.length} day${group.matchdays.length === 1 ? "" : "s"}</small>
+      <div class="matchday-calendar">
+        ${months.map((month) => `
+          <div class="calendar-month">
+            <div class="calendar-month-head">
+              <strong>${month.label}</strong>
+              <span>${month.matchdays.length} matchday${month.matchdays.length === 1 ? "" : "s"}</span>
             </div>
-            <div class="phase-days">
-              ${group.matchdays.map((matchday) => `
-                <button class="matchday-chip ${matchday.id === activeId ? "active" : ""} ${matchday.isToday ? "today" : ""}" data-matchday-id="${matchday.id}">
-                  <span>${formatDate(matchday.date)}</span>
-                  <small>${matchday.isToday ? "Today" : matchday.status}</small>
-                  <em>${matchday.matches.length} matches</em>
+            <div class="calendar-weekdays">
+              ${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}
+            </div>
+            <div class="calendar-grid">
+              ${month.days.map((day) => day.matchday ? `
+                <button class="calendar-day ${day.matchday.id === activeId ? "active" : ""} ${day.matchday.isToday ? "today" : ""} ${day.matchday.status.toLowerCase()}" data-matchday-id="${day.matchday.id}">
+                  <span>${day.dayOfMonth}</span>
+                  <strong>${day.matchday.isToday ? "Today" : day.matchday.status}</strong>
+                  <small>${day.matchday.matches.length} games</small>
                 </button>
+              ` : `
+                <span class="calendar-day empty">${day.dayOfMonth || ""}</span>
               `).join("")}
             </div>
           </div>
@@ -394,7 +402,7 @@ function renderResultCard(playerCard) {
   return `
     <article class="prediction-card ${selected ? "selected" : ""} ${resultClass}">
       <div class="card-top">
-        <span class="card-number">${playerCard.card.id.replace(/\D+/g, "") || "-"}</span>
+        <span class="card-number">${cardDisplayNumber(playerCard.card)}</span>
         <h3>${playerCard.card.title}</h3>
       </div>
       <p class="card-question">${playerCard.card.questionText}</p>
@@ -412,7 +420,7 @@ function renderCard(playerCard, options = {}) {
   return `
     <article class="prediction-card ${dirty.selected ? "selected" : ""} ${lockedOut || locked ? "locked" : ""}" data-card-id="${playerCard.predictionCardId}">
       <div class="card-top">
-        <span class="card-number">${playerCard.card.id.replace("card_", "")}</span>
+        <span class="card-number">${cardDisplayNumber(playerCard.card)}</span>
         <h3>${playerCard.card.title}</h3>
       </div>
       <p class="card-question">${playerCard.card.questionText}</p>
@@ -719,6 +727,48 @@ function getExactOdds(matchId) {
     .sort((a, b) => a.priceDecimal - b.priceDecimal);
 }
 
+function groupMatchdaysByCalendarMonth(matchdays) {
+  const months = new Map();
+  matchdays.forEach((matchday) => {
+    const date = new Date(`${matchday.date}T00:00:00`);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    if (!months.has(key)) {
+      months.set(key, {
+        key,
+        label: date.toLocaleDateString([], { month: "long", year: "numeric" }),
+        date,
+        matchdays: []
+      });
+    }
+    months.get(key).matchdays.push(matchday);
+  });
+
+  return [...months.values()]
+    .sort((a, b) => a.date - b.date)
+    .map((month) => {
+      const byDate = new Map(month.matchdays.map((matchday) => [matchday.date, matchday]));
+      const year = month.date.getFullYear();
+      const monthIndex = month.date.getMonth();
+      const first = new Date(year, monthIndex, 1);
+      const last = new Date(year, monthIndex + 1, 0);
+      const days = [];
+
+      for (let i = 0; i < first.getDay(); i += 1) {
+        days.push({ dayOfMonth: "", matchday: null });
+      }
+
+      for (let day = 1; day <= last.getDate(); day += 1) {
+        const dateKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        days.push({
+          dayOfMonth: day,
+          matchday: byDate.get(dateKey) || null
+        });
+      }
+
+      return { ...month, days };
+    });
+}
+
 function groupMatchdaysByPhase(matchdays) {
   const groups = new Map();
   matchdays.forEach((matchday) => {
@@ -740,6 +790,12 @@ function groupMatchdaysByPhase(matchdays) {
       ...group,
       matchdays: group.matchdays.slice().sort((a, b) => new Date(a.date) - new Date(b.date))
     }));
+}
+
+function cardDisplayNumber(card) {
+  if (Number.isFinite(Number(card.displayIndex))) return Number(card.displayIndex);
+  const match = String(card.id || "").match(/_(\d+)$/);
+  return match ? Number(match[1]) : "-";
 }
 
 function estimateMultiplier() {
