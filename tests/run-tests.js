@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createSeedData } from "../src/seed.js";
 import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
-import { syncOdds } from "../src/services.js";
+import { syncDailyTournamentData, syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
 const data = createSeedData();
@@ -86,6 +86,43 @@ assert.ok(brazilCorrectScoreOdds.some((odd) => (
   odd.provider === "pitchpick-generated" &&
   odd.priceDecimal > 1
 )));
+
+const dailyData = createSeedData();
+const dailyStore = createMemoryStore(dailyData);
+const fixtureDates = [];
+const dailyOddsDates = [];
+const daily = await syncDailyTournamentData(dailyStore, {
+  fixtureProvider: {
+    async getFixturesByDate(date) {
+      fixtureDates.push(date);
+      return dailyData.tournamentMatches
+        .filter((item) => item.matchDayId === "md_12")
+        .map((item) => ({
+          externalProvider: item.externalProvider,
+          externalId: item.externalId,
+          homeTeam: item.homeTeam,
+          awayTeam: item.awayTeam,
+          homeTeamCode: item.homeTeamCode,
+          awayTeamCode: item.awayTeamCode,
+          kickoffAt: item.kickoffAt,
+          status: item.status,
+          homeScore: item.homeScore,
+          awayScore: item.awayScore,
+          firstGoalMinute: item.firstGoalMinute,
+          rawData: { test: true }
+        }));
+    }
+  },
+  oddsProvider: {
+    async getOddsByDate(date) {
+      dailyOddsDates.push(date);
+      return [];
+    }
+  }
+}, { date: "2026-06-12" });
+assert.equal(daily.message, "Daily tournament data updated for 2026-06-12.");
+assert.deepEqual(fixtureDates, ["2026-06-12"]);
+assert.deepEqual(dailyOddsDates, ["2026-06-12", "2026-06-13"]);
 
 console.log("All tests passed.");
 

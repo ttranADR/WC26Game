@@ -323,6 +323,76 @@ export async function syncOdds(store, provider, input = {}) {
   });
 }
 
+export async function initializeTournamentData(store, providers, input = {}) {
+  const fixtureProvider = providers.fixtureProvider || providers;
+  const oddsProvider = providers.oddsProvider || providers;
+
+  await syncFixtures(store, fixtureProvider, { ...input, scope: "all" });
+  await syncOdds(store, oddsProvider, { ...input, scope: "all" });
+
+  return store.update((data) => {
+    const summary = summarizeTournamentData(data);
+    data.syncLogs.unshift(log(
+      "INITIAL_DATA_LOAD",
+      "SUCCESS",
+      `Initial database loaded with ${summary.matchdays} matchdays, ${summary.matches} matches, and ${summary.oddsSnapshots} odds snapshots.`
+    ));
+    return {
+      ok: true,
+      message: "Initial tournament database loaded.",
+      summary,
+      state: hydrateState(data, input.currentUserId)
+    };
+  });
+}
+
+export async function syncDailyTournamentData(store, providers, input = {}) {
+  const fixtureProvider = providers.fixtureProvider || providers;
+  const oddsProvider = providers.oddsProvider || providers;
+  const date = input.date || new Date().toISOString().slice(0, 10);
+  const target = await store.update((data) => {
+    ensureDemoScaffold(data);
+    if (!data.tournamentMatches.length) {
+      throw new Error("Run the initial database load before running a daily update.");
+    }
+    const matchday = data.matchdays.find((item) => item.date === date);
+    if (!matchday) return { date, matchDayId: null };
+    const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+    return { date, matchDayId: matchday.id, matchCount: matches.length };
+  });
+
+  if (!target.matchDayId) {
+    return store.update((data) => {
+      data.syncLogs.unshift(log("DAILY_DATA_UPDATE", "SUCCESS", `No stored World Cup matches found for ${target.date}.`));
+      return {
+        ok: true,
+        skipped: true,
+        message: `No stored World Cup matches found for ${target.date}.`,
+        summary: summarizeTournamentData(data),
+        state: hydrateState(data, input.currentUserId)
+      };
+    });
+  }
+
+  await syncFixtures(store, fixtureProvider, { ...input, matchDayId: target.matchDayId });
+  await syncOdds(store, oddsProvider, { ...input, matchDayId: target.matchDayId });
+
+  return store.update((data) => {
+    const summary = summarizeTournamentData(data);
+    data.syncLogs.unshift(log(
+      "DAILY_DATA_UPDATE",
+      "SUCCESS",
+      `Updated ${target.matchCount} stored matches for ${target.date}.`
+    ));
+    return {
+      ok: true,
+      message: `Daily tournament data updated for ${target.date}.`,
+      summary,
+      state: hydrateState(data, input.currentUserId)
+    };
+  });
+}
+
 export async function syncLiveData(store, providers, input = {}) {
   const fixtureProvider = providers.fixtureProvider || providers;
   const oddsProvider = providers.oddsProvider || providers;
@@ -517,6 +587,17 @@ function correctScoreOutcomeKey(odd) {
 function normalizeScoreOutcomeName(value) {
   const match = String(value || "").match(/(\d+)\s*-\s*(\d+)/);
   return match ? `${Number(match[1])}-${Number(match[2])}` : String(value || "").trim();
+}
+
+function summarizeTournamentData(data) {
+  const correctScoreOdds = data.oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE");
+  return {
+    matchdays: data.matchdays.length,
+    matches: data.tournamentMatches.length,
+    oddsSnapshots: data.oddsSnapshots.length,
+    correctScoreOdds: correctScoreOdds.length,
+    generatedCorrectScoreOdds: correctScoreOdds.filter((odd) => odd.provider === "pitchpick-generated").length
+  };
 }
 
 function ensureMatchdayForFixtures(data, date, fixtures) {
@@ -888,6 +969,7 @@ function hydrateState(data, currentUserId = "user_you") {
     matchdaySummaries: hydrateMatchdaySummaries(data, league.id, currentUser.id),
     matchday,
     matches,
+    tournamentMatches: data.tournamentMatches,
     oddsSnapshots: data.oddsSnapshots,
     correctScoreOdds: data.oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE"),
     playerCards,

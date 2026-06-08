@@ -182,6 +182,15 @@ ODDS_API_KEY=your_key
 
 API keys stay server-side in Node. Sync routes and scheduled jobs are the only places that call external sports APIs. Player/admin screens load the stored state from Neon through `/api/state` and mutation responses.
 
+## Admin Live Data Workflow
+
+Use the Admin tab's **Live Data** panel:
+
+1. Click **Initial Load** one time after deployment. It imports all available World Cup fixtures from football-data, stores them in Neon, then imports odds for the stored games from odds-api.
+2. Use **Update Date** each matchday before the first match starts. It updates fixture status/results and odds only for the selected date.
+
+Both actions run through the Render backend. The browser calls PitchPick admin endpoints; it never calls football-data or odds-api directly.
+
 ## Render + Neon Deployment
 
 1. Push this `pitchpick-fullstack` folder to a GitHub repo.

@@ -17,6 +17,8 @@ Fixture sync imports the World Cup game list from the configured fixture provide
 
 For the current live setup, `FIXTURES_PROVIDER=football-data` can read the whole competition schedule through `getCompetitionFixtures()`.
 
+The Admin **Initial Load** action runs this full-competition fixture import one time to create the initial Neon database, then immediately loads odds for the stored games.
+
 Each fixture is normalized before storage:
 
 - `date/time`: `kickoffAt`
@@ -49,6 +51,15 @@ Odds sync is based on the stored fixture list, not on whatever games the odds AP
 7. Keep unmatched provider rows out of app state and log the unmatched count.
 
 Cards, exact-score boosts, player screens, and admin screens then read odds from stored `oddsSnapshots`.
+
+## Admin Operations
+
+Use the Admin **Live Data** panel for normal operations:
+
+1. `Initial Load`: one-time setup. Read all World Cup matches from football-data, store as much fixture data as available in Neon, read odds for the stored games, then store odds snapshots in Neon.
+2. `Update Date`: daily update. Read the selected stored match date, update fixture status/results for that date, then refresh odds for only those stored games.
+
+The initial load is idempotent, but it is intended to be used as the database bootstrap rather than a daily task.
 
 ## Correct Score Odds
 

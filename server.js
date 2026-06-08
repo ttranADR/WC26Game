@@ -20,11 +20,13 @@ import {
   generateCardsForMatchday,
   generatePairingsForMatchday,
   getAppState,
+  initializeTournamentData,
   invitePlayer,
   loginUser,
   lockMatchday,
   rescoreMatchday,
   submitPicks,
+  syncDailyTournamentData,
   syncFixtures,
   syncLiveData,
   syncOdds,
@@ -187,6 +189,18 @@ async function handleApi(req, res) {
     if (method === "POST" && url.pathname === "/api/admin/sync-odds") {
       await requireAdmin(req);
       sendJson(res, 200, await syncOdds(store, oddsProvider, await readJsonWithUser(req)));
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/admin/initialize-tournament-data") {
+      await requireAdmin(req);
+      sendJson(res, 200, await initializeTournamentData(store, { fixtureProvider, oddsProvider }, await readJsonWithUser(req)));
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/admin/sync-daily-tournament-data") {
+      await requireAdmin(req);
+      sendJson(res, 200, await syncDailyTournamentData(store, { fixtureProvider, oddsProvider }, await readJsonWithUser(req)));
       return;
     }
 

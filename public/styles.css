@@ -1012,6 +1012,44 @@ th {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.live-data-panel {
+  grid-column: 1 / -1;
+}
+
+.live-data-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.live-data-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.live-data-actions strong,
+.daily-sync-date span {
+  display: block;
+}
+
+.daily-sync-date {
+  display: grid;
+  gap: 6px;
+}
+
+.daily-sync-date input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
 .admin-form input,
 .admin-form select {
   width: 100%;
@@ -1202,6 +1240,8 @@ th {
   .bottom-fixtures,
   .admin-grid,
   .league-summary,
+  .live-data-summary,
+  .live-data-actions,
   .member-row {
     grid-template-columns: 1fr;
   }

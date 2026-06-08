@@ -421,9 +421,12 @@ function renderAdmin() {
   const opsMatchday = selectedMatchday() || data.matchday;
   const leagueMembers = membersForLeague(league.id);
   const availableUsers = availableUsersForLeague(league.id);
+  const emailOutbox = data.emailOutbox || [];
   root.innerHTML = `
     <section class="admin-layout">
       <div class="admin-grid">
+        ${renderLiveDataPanel(data)}
+
         <section class="panel">
           <div class="panel-head"><h2>Manage Leagues</h2><span class="label">${data.leagues.length} leagues</span></div>
           <form class="admin-form" id="updateLeagueForm">
@@ -450,8 +453,8 @@ function renderAdmin() {
           <div class="panel-head"><h2>Matchday Ops</h2><span class="label">${opsMatchday.status}</span></div>
           <p class="muted">Sync imports tournament data. Card, pairing, lock, score, and finalize target <strong>${opsMatchday.name}</strong> for <strong>${league.name}</strong>.</p>
           <div class="actions">
-            <button class="panel-button primary" data-admin-action="sync-fixtures">Sync Fixtures</button>
-            <button class="panel-button primary" data-admin-action="sync-odds">Sync Odds</button>
+            <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
+            <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
             <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
             <button class="panel-button" data-admin-action="generate-pairings">Generate Pairings</button>
             <button class="panel-button danger" data-admin-action="lock-matchday">Lock</button>
@@ -517,8 +520,8 @@ function renderAdmin() {
 
       <aside class="right-rail">
         <section class="panel">
-          <div class="panel-head"><h2>Email Outbox</h2><span class="label">${data.emailOutbox.length} emails</span></div>
-          <div class="contest-list">${data.emailOutbox.length ? data.emailOutbox.map((email) => `
+          <div class="panel-head"><h2>Email Outbox</h2><span class="label">${emailOutbox.length} emails</span></div>
+          <div class="contest-list">${emailOutbox.length ? emailOutbox.map((email) => `
             <div class="log-row">
               <strong>${email.status} · ${email.to}</strong>
               <span class="muted">${email.subject}</span>
@@ -537,6 +540,55 @@ function renderAdmin() {
           `).join("")}</div>
         </section>
       </aside>
+    </section>
+  `;
+}
+
+function renderLiveDataPanel(data) {
+  const today = new Date().toISOString().slice(0, 10);
+  const matchdays = data.matchdays || [];
+  const tournamentMatches = data.tournamentMatches || [];
+  const oddsSnapshots = data.oddsSnapshots || [];
+  const syncLogs = data.syncLogs || [];
+  const correctScoreOdds = oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE");
+  const generatedCorrectScoreOdds = correctScoreOdds.filter((odd) => odd.provider === "pitchpick-generated");
+  const lastInitial = syncLogs.find((item) => item.type === "INITIAL_DATA_LOAD");
+  const lastDaily = syncLogs.find((item) => item.type === "DAILY_DATA_UPDATE");
+  const todayMatchday = matchdays.find((matchday) => matchday.date === today);
+  const todayMatches = todayMatchday
+    ? tournamentMatches.filter((match) => match.matchDayId === todayMatchday.id)
+    : [];
+
+  return `
+    <section class="panel live-data-panel">
+      <div class="panel-head">
+        <h2>Live Data</h2>
+        <span class="label">${tournamentMatches.length} matches</span>
+      </div>
+      <div class="league-summary live-data-summary">
+        <span><strong>${matchdays.length}</strong> matchdays</span>
+        <span><strong>${tournamentMatches.length}</strong> games</span>
+        <span><strong>${oddsSnapshots.length}</strong> odds</span>
+        <span><strong>${correctScoreOdds.length}</strong> score odds</span>
+      </div>
+      <div class="live-data-actions">
+        <div>
+          <strong>Initial database</strong>
+          <span class="muted">${lastInitial ? new Date(lastInitial.createdAt).toLocaleString() : "Not loaded from admin yet"}</span>
+        </div>
+        <button class="panel-button primary" data-admin-action="initialize-tournament-data">Initial Load</button>
+      </div>
+      <div class="live-data-actions">
+        <label class="daily-sync-date">
+          <span>Daily date</span>
+          <input id="dailySyncDate" type="date" value="${today}" />
+        </label>
+        <div>
+          <strong>${todayMatches.length} games today</strong>
+          <span class="muted">${lastDaily ? new Date(lastDaily.createdAt).toLocaleString() : "No daily update yet"} · ${generatedCorrectScoreOdds.length} generated score odds</span>
+        </div>
+        <button class="panel-button" data-admin-action="sync-daily-tournament-data">Update Date</button>
+      </div>
     </section>
   `;
 }
@@ -926,11 +978,15 @@ async function submitPicks() {
 async function runAdminAction(action) {
   const summary = selectedMatchday();
   const syncScope = action === "sync-fixtures" || action === "sync-odds" ? "all" : undefined;
-  await mutate(`/api/admin/${action}`, {
+  const body = {
     leagueId: managedLeague().id,
     matchDayId: summary?.id || state.data.matchday.id,
     scope: syncScope
-  }, action.replaceAll("-", " ") + " complete.");
+  };
+  if (action === "sync-daily-tournament-data") {
+    body.date = document.querySelector("#dailySyncDate")?.value || new Date().toISOString().slice(0, 10);
+  }
+  await mutate(`/api/admin/${action}`, body, action.replaceAll("-", " ") + " complete.");
 }
 
 async function mutate(path, body, message, after) {
