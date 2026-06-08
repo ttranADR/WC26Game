@@ -37,11 +37,12 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 
 ## Implemented Features
 
-- Player matchday screen with 9 prediction cards.
-- Select exactly 5 cards.
+- Player matchday screen with 12 prediction cards.
+- Select at least 5 and up to 12 cards.
 - Yes is green, No is red.
-- All prediction cards are worth 10 points.
+- Correct selected cards score +10; incorrect selected cards score -10.
 - Exact Score Boost reads all correct-score ratios from backend odds snapshots.
+- All matchdays are grouped by World Cup phase and the current/today matchday is highlighted.
 - Submit card answers and exact score prediction.
 - Lock-time validation on the backend.
 - Admin dashboard for league ops.
@@ -107,11 +108,25 @@ For a later production hardening pass, split the JSON document into relational t
 
 ## Live Data Providers
 
-Default:
+Default demo mode:
 
 ```text
 DATA_PROVIDER=mock
 ```
+
+Split live mode for fixtures plus odds:
+
+```text
+DATA_PROVIDER=mock
+FIXTURES_PROVIDER=football-data
+FOOTBALL_DATA_TOKEN=your_football_data_token
+FOOTBALL_DATA_COMPETITION=WC
+FOOTBALL_DATA_SEASON=2026
+ODDS_PROVIDER=odds-api
+ODDS_API_KEY=your_odds_api_key
+```
+
+`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports h2h, totals, BTTS, and correct-score odds when the market is available for the selected sport/account.
 
 API-Football:
 
@@ -157,21 +172,29 @@ APP_URL=https://your-render-service.onrender.com
 DATA_PROVIDER=mock
 ```
 
-For live APIs, change `DATA_PROVIDER` and add the matching key:
+For your two-provider live setup, keep the default provider as mock fallback and add split providers:
+
+```text
+DATA_PROVIDER=mock
+FIXTURES_PROVIDER=football-data
+FOOTBALL_DATA_TOKEN=your_football_data_token
+FOOTBALL_DATA_COMPETITION=WC
+FOOTBALL_DATA_SEASON=2026
+ODDS_PROVIDER=odds-api
+ODDS_API_KEY=your_odds_api_key
+```
+
+Alternative single-provider modes are still supported:
 
 ```text
 DATA_PROVIDER=api-football
 API_FOOTBALL_KEY=your_key
 ```
 
-or:
-
 ```text
 DATA_PROVIDER=sportmonks
 SPORTMONKS_KEY=your_key
 ```
-
-or:
 
 ```text
 DATA_PROVIDER=odds-api
@@ -192,7 +215,21 @@ POST /api/jobs/sync-live-data
 Authorization: Bearer {CRON_SECRET}
 ```
 
-The endpoint syncs fixtures and odds for open/locked/scoring matchdays, then writes the updated state to Neon.
+The endpoint accepts an optional sync mode:
+
+```json
+{ "sync": "fixtures" }
+```
+
+```json
+{ "sync": "odds" }
+```
+
+```json
+{ "sync": "both" }
+```
+
+Fixture sync can import the whole World Cup schedule from football-data.org. Odds sync maps provider events back to local matches by team/date and writes odds snapshots to Neon.
 
 For a free-friendly schedule, use the included GitHub Actions workflow:
 
@@ -207,7 +244,11 @@ APP_URL=https://your-render-service.onrender.com
 CRON_SECRET=same_value_as_render
 ```
 
-The workflow runs every 15 minutes and can also be run manually from the GitHub Actions tab.
+The workflow is quota-friendly:
+
+- Fixtures sync twice daily: once before the early match window and once after the late match window.
+- Odds sync once daily.
+- Manual runs from GitHub Actions can choose `both`, `fixtures`, or `odds`.
 
 ## Tests
 

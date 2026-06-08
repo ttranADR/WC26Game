@@ -1,5 +1,6 @@
 import { shuffle } from "./random.js";
 import { hashPassword } from "./auth.js";
+import { CARD_SET_SIZE, MIN_SELECTED_CARDS } from "./config.js";
 
 export function createSeedData() {
   const now = new Date().toISOString();
@@ -135,11 +136,6 @@ function match(id, externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, k
 }
 
 function createOdds(matches) {
-  const scores = [
-    ["0-0", 7.5], ["1-0", 6.6], ["1-1", 5.8], ["2-1", 6.2],
-    ["2-0", 7.1], ["3-1", 9.5], ["0-1", 10.5], ["1-2", 11.5], ["3-0", 12.0]
-  ];
-
   return matches.flatMap((matchItem) => [
     odd(matchItem.id, "MATCH_WINNER", matchItem.homeTeam, 1.7),
     odd(matchItem.id, "MATCH_WINNER", "Draw", 3.4),
@@ -148,8 +144,21 @@ function createOdds(matches) {
     odd(matchItem.id, "TOTAL_GOALS", "Under 2.5", 2.2),
     odd(matchItem.id, "BOTH_TEAMS_SCORE", "Yes", 1.7),
     odd(matchItem.id, "BOTH_TEAMS_SCORE", "No", 2.0),
-    ...scores.map(([score, price]) => odd(matchItem.id, "CORRECT_SCORE", score, price))
+    ...createCorrectScorePrices().map(([score, price]) => odd(matchItem.id, "CORRECT_SCORE", score, price))
   ]);
+}
+
+function createCorrectScorePrices() {
+  const scores = [];
+  for (let home = 0; home <= 5; home += 1) {
+    for (let away = 0; away <= 5; away += 1) {
+      const total = home + away;
+      const drawPenalty = home === away ? 1.2 : 0;
+      const blowoutPenalty = Math.abs(home - away) * 1.35;
+      scores.push([`${home}-${away}`, Number((5.8 + total * 1.25 + drawPenalty + blowoutPenalty).toFixed(1))]);
+    }
+  }
+  return scores;
 }
 
 function odd(tournamentMatchId, marketKey, outcomeName, priceDecimal) {
@@ -168,48 +177,99 @@ function odd(tournamentMatchId, marketKey, outcomeName, priceDecimal) {
   };
 }
 
-export function createCardPool(matchDayId, matches) {
-  const primary = matches[0] || {
+export function createCardPool(matchDayId, matches, oddsSnapshots = []) {
+  const fallbackMatch = {
     id: "match_bra_mar",
     homeTeam: "Brazil",
     awayTeam: "Morocco",
     homeTeamCode: "BRA",
     awayTeamCode: "MAR"
   };
-  const secondary = matches[1] || primary;
-  const primaryLabel = `${primary.homeTeam} vs ${primary.awayTeam}`;
-  const secondaryLabel = `${secondary.homeTeam} vs ${secondary.awayTeam}`;
-  const homeTeam = primary.homeTeam;
-  const awayTeam = primary.awayTeam;
+  const activeMatches = matches.length ? matches : [fallbackMatch];
   const cardIdPrefix = matchDayId === "md_12" ? "card" : `card_${matchDayId}`;
-  const base = [
-    ["TOTAL_GOALS_OVER", "Over 2.5 Goals", `Will ${primaryLabel} have over 2.5 total goals?`, primary.id, { threshold: 2.5 }],
-    ["WEAKER_TEAM_SCORES", `${awayTeam} Scores`, `Will ${awayTeam} score at least 1 goal?`, primary.id, { weakerTeam: "AWAY", scoresAtLeast: 1 }],
-    ["FIRST_GOAL_BEFORE", "First Goal Before 30", `Will the first goal in ${primaryLabel} happen before minute 30?`, primary.id, { minute: 30 }],
-    ["BOTH_TEAMS_SCORE", "Both Teams Score", `Will both teams score in ${primaryLabel}?`, primary.id, {}],
-    ["CLEAN_SHEET", "Clean Sheet", `Will either team keep a clean sheet in ${primaryLabel}?`, primary.id, {}],
-    ["TOTAL_GOALS_OVER", `${primary.homeTeamCode}-${primary.awayTeamCode} Over 1.5`, `Will ${primaryLabel} have over 1.5 total goals?`, primary.id, { threshold: 1.5 }],
-    ["WIN_MARGIN", `${homeTeam} by 2+`, `Will ${homeTeam} win by 2 or more goals?`, primary.id, { team: "HOME", marginAtLeast: 2 }],
-    ["TOTAL_GOALS_UNDER", "Under 3.5 Goals", `Will ${secondaryLabel} have under 3.5 goals?`, secondary.id, { threshold: 3.5 }],
-    ["WEAKER_TEAM_SCORES", "Underdog Scores", `Will ${awayTeam} score at least 1 goal?`, primary.id, { weakerTeam: "AWAY", scoresAtLeast: 1 }]
-  ];
+  const perMatch = activeMatches.map((matchItem) => createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots));
+  const cards = [];
 
-  return base.map(([cardType, title, questionText, tournamentMatchId, gradingRule], index) => ({
+  for (let round = 0; cards.length < CARD_SET_SIZE && round < 12; round += 1) {
+    perMatch.forEach((candidates, matchIndex) => {
+      const candidate = candidates[(round + matchIndex * 3) % candidates.length];
+      if (cards.length < CARD_SET_SIZE && candidate) cards.push(candidate);
+    });
+  }
+
+  return cards.slice(0, CARD_SET_SIZE).map((card, index) => ({
+    ...card,
     id: `${cardIdPrefix}_${index + 1}`,
-    matchDayId,
-    tournamentMatchId,
-    cardType,
-    title,
-    questionText,
-    expectedAnswer: "YES",
-    gradingRule,
-    estimatedProbability: index % 2 === 0 ? 0.51 : 0.48,
-    difficultyLabel: "Balanced",
-    sourceOddsSnapshotIds: [],
-    status: "ACTIVE",
+    displayIndex: index + 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }));
+}
+
+function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
+  const label = `${matchItem.homeTeam} vs ${matchItem.awayTeam}`;
+  const homeCode = matchItem.homeTeamCode || matchItem.homeTeam.slice(0, 3).toUpperCase();
+  const awayCode = matchItem.awayTeamCode || matchItem.awayTeam.slice(0, 3).toUpperCase();
+  const weakerSide = findWeakerSide(matchItem, oddsSnapshots);
+  const weakerName = weakerSide === "HOME" ? matchItem.homeTeam : matchItem.awayTeam;
+  const candidates = [
+    ["WIN_MARGIN", `${homeCode} Win`, `Will ${matchItem.homeTeam} beat ${matchItem.awayTeam}?`, { team: "HOME", marginAtLeast: 1 }, "MATCH_WINNER", matchItem.homeTeam],
+    ["WIN_MARGIN", `${awayCode} Win`, `Will ${matchItem.awayTeam} beat ${matchItem.homeTeam}?`, { team: "AWAY", marginAtLeast: 1 }, "MATCH_WINNER", matchItem.awayTeam],
+    ["DRAW", `${homeCode}-${awayCode} Draw`, `Will ${label} finish level after regulation?`, {}, "MATCH_WINNER", "Draw"],
+    ["TOTAL_GOALS_OVER", "Over 1.5 Goals", `Will ${label} have over 1.5 total goals?`, { threshold: 1.5 }, "TOTAL_GOALS", "Over 1.5"],
+    ["TOTAL_GOALS_OVER", "Over 2.5 Goals", `Will ${label} have over 2.5 total goals?`, { threshold: 2.5 }, "TOTAL_GOALS", "Over 2.5"],
+    ["TOTAL_GOALS_UNDER", "Under 2.5 Goals", `Will ${label} have under 2.5 total goals?`, { threshold: 2.5 }, "TOTAL_GOALS", "Under 2.5"],
+    ["TOTAL_GOALS_UNDER", "Under 3.5 Goals", `Will ${label} have under 3.5 total goals?`, { threshold: 3.5 }, "TOTAL_GOALS", "Under 3.5"],
+    ["BOTH_TEAMS_SCORE", "Both Teams Score", `Will both teams score in ${label}?`, {}, "BOTH_TEAMS_SCORE", "Yes"],
+    ["CLEAN_SHEET", "Clean Sheet", `Will either team keep a clean sheet in ${label}?`, {}, "BOTH_TEAMS_SCORE", "No"],
+    ["WIN_MARGIN", `${homeCode} by 2+`, `Will ${matchItem.homeTeam} win by 2 or more goals?`, { team: "HOME", marginAtLeast: 2 }, "MATCH_WINNER", matchItem.homeTeam],
+    ["WEAKER_TEAM_SCORES", `${weakerName} Scores`, `Will ${weakerName} score at least 1 goal?`, { weakerTeam: weakerSide, scoresAtLeast: 1 }, null, null],
+    ["FIRST_GOAL_BEFORE", "Early First Goal", `Will the first goal in ${label} happen before minute 30?`, { minute: 30 }, null, null]
+  ];
+
+  return candidates.map(([cardType, title, questionText, gradingRule, marketKey, outcomeName], index) => {
+    const sourceOdd = marketKey ? findBestOdd(oddsSnapshots, matchItem.id, marketKey, outcomeName) : null;
+    return {
+      matchDayId,
+      tournamentMatchId: matchItem.id,
+      cardType,
+      title,
+      questionText,
+      expectedAnswer: "YES",
+      gradingRule,
+      estimatedProbability: sourceOdd?.impliedProbability || (index % 2 === 0 ? 0.51 : 0.48),
+      difficultyLabel: sourceOdd ? difficultyFromProbability(sourceOdd.impliedProbability) : "Balanced",
+      sourceOddsSnapshotIds: sourceOdd?.id ? [sourceOdd.id] : [],
+      status: "ACTIVE"
+    };
+  });
+}
+
+function findBestOdd(oddsSnapshots, tournamentMatchId, marketKey, outcomeName) {
+  return oddsSnapshots
+    .filter((odd) => (
+      odd.tournamentMatchId === tournamentMatchId &&
+      odd.marketKey === marketKey &&
+      normalizeOddOutcome(odd.outcomeName) === normalizeOddOutcome(outcomeName)
+    ))
+    .sort((a, b) => Number(a.priceDecimal) - Number(b.priceDecimal))[0];
+}
+
+function normalizeOddOutcome(value) {
+  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function findWeakerSide(matchItem, oddsSnapshots) {
+  const homeOdd = findBestOdd(oddsSnapshots, matchItem.id, "MATCH_WINNER", matchItem.homeTeam);
+  const awayOdd = findBestOdd(oddsSnapshots, matchItem.id, "MATCH_WINNER", matchItem.awayTeam);
+  if (homeOdd && awayOdd) return Number(homeOdd.priceDecimal) > Number(awayOdd.priceDecimal) ? "HOME" : "AWAY";
+  return "AWAY";
+}
+
+function difficultyFromProbability(probability) {
+  if (probability >= 0.58) return "Likely";
+  if (probability <= 0.36) return "Bold";
+  return "Balanced";
 }
 
 function createCardSets(matchDayId, userIds, cards) {
@@ -220,8 +280,8 @@ function createCardSets(matchDayId, userIds, cards) {
     const playerCardSetId = `set_${matchDayId}_${userId}`;
     sets.push({ id: playerCardSetId, matchDayId, userId, generatedAt: new Date().toISOString() });
 
-    shuffle(cards, `${matchDayId}_${userId}`).slice(0, 9).forEach((card, index) => {
-      const selected = userId === "user_you" ? [0, 1, 3, 5, 8].includes(index) : index < 5;
+    shuffle(cards, `${matchDayId}_${userId}`).slice(0, CARD_SET_SIZE).forEach((card, index) => {
+      const selected = index < MIN_SELECTED_CARDS;
       playerCards.push({
         id: `pc_${playerCardSetId}_${card.id}`,
         playerCardSetId,

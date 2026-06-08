@@ -2,8 +2,23 @@ name: Sync Live Data
 
 on:
   workflow_dispatch:
+    inputs:
+      sync:
+        description: "Which data to sync"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - fixtures
+          - odds
   schedule:
-    - cron: "*/15 * * * *"
+    # Fixture refresh before the first match window.
+    - cron: "0 11 * * *"
+    # Odds refresh once per day.
+    - cron: "30 10 * * *"
+    # Fixture refresh after the late match window.
+    - cron: "30 5 * * *"
 
 jobs:
   sync-live-data:
@@ -22,6 +37,14 @@ jobs:
 
       - name: Call PitchPick sync endpoint
         run: |
+          SYNC_MODE="${{ github.event.inputs.sync }}"
+          if [ -z "$SYNC_MODE" ]; then
+            case "${{ github.event.schedule }}" in
+              "30 10 * * *") SYNC_MODE="odds" ;;
+              *) SYNC_MODE="fixtures" ;;
+            esac
+          fi
+
           curl --fail-with-body --show-error --location \
             --retry 5 \
             --retry-delay 20 \
@@ -29,5 +52,5 @@ jobs:
             --request POST \
             --header "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             --header "Content-Type: application/json" \
-            --data '{}' \
+            --data "{\"sync\":\"${SYNC_MODE}\"}" \
             "${{ secrets.APP_URL }}/api/jobs/sync-live-data"

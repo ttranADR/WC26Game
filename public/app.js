@@ -13,6 +13,10 @@ const api = {
   }
 };
 
+const MIN_SELECTED_CARDS = 5;
+const MAX_SELECTED_CARDS = 12;
+const CARD_SET_SIZE = 12;
+
 async function request(path, options = {}) {
   const headers = { "content-type": "application/json" };
   if (state.userId) headers["x-user-id"] = state.userId;
@@ -180,9 +184,9 @@ function renderPlayer() {
       ${renderMatchdayList(summary.id)}
       <div class="hero">
         <div>
-          <p class="label">Today · ${summary.status}</p>
-          <h1>${summary.name}</h1>
-          <span class="muted">${summary.matches.length} matches today</span>
+              <p class="label">${summary.isToday ? "Today" : summary.phaseLabel || "Matchday"} · ${summary.status}</p>
+              <h1>${summary.name}</h1>
+              <span class="muted">${summary.matches.length} matches · ${formatDate(summary.date)}</span>
         </div>
         <div class="avatar-score">
           <span class="avatar">${initials(data.currentUser.displayName)}</span>
@@ -204,11 +208,11 @@ function renderPlayer() {
         <section class="picks-panel">
           <div class="section-head">
             <div>
-              <p class="label">Pick 5 of 9</p>
+              <p class="label">Pick ${MIN_SELECTED_CARDS}-${MAX_SELECTED_CARDS} of ${CARD_SET_SIZE}</p>
               <h2>Prediction cards</h2>
-              <span class="muted">Every prediction card is worth 10 points.</span>
+              <span class="muted">Correct picks score +10. Incorrect picks score -10.</span>
             </div>
-            <div class="meter"><span>${selected} Selected</span><strong>${selected} / 5</strong></div>
+            <div class="meter"><span>${selected} Selected</span><strong>${selected} / ${MAX_SELECTED_CARDS}</strong></div>
           </div>
           <div class="cards-grid">${summary.playerCards.map(renderCard).join("")}</div>
         </section>
@@ -262,32 +266,40 @@ function renderPlayer() {
       </div>
 
       <div class="bottom-fixtures">
-        <div><p class="label">Today's matches</p><strong>${summary.matches.length} matches</strong></div>
+        <div><p class="label">${summary.isToday ? "Today's matches" : "Selected matches"}</p><strong>${summary.matches.length} matches</strong></div>
         ${summary.matches.map((match) => `
           <button class="fixture-button ${match.id === selectedMatch.id ? "active" : ""}" data-match-id="${match.id}">
             <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)}</em>
           </button>
         `).join("")}
-        <button class="submit-button" id="submitPicks" ${selected === 5 ? "" : "disabled"}>Submit Picks</button>
+        <button class="submit-button" id="submitPicks" ${selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
       </div>
     </section>
   `;
 }
 
 function renderMatchdayList(activeId) {
+  const groups = groupMatchdaysByPhase(state.data.matchdaySummaries);
   return `
     <section class="matchday-strip">
       <div>
         <p class="label">All matchdays</p>
-        <strong>${state.data.matchdaySummaries.length} rounds</strong>
+        <strong>${state.data.matchdaySummaries.length} days</strong>
       </div>
       <div class="matchday-list">
-        ${state.data.matchdaySummaries.map((matchday) => `
-          <button class="matchday-chip ${matchday.id === activeId ? "active" : ""}" data-matchday-id="${matchday.id}">
-            <span>${matchday.name}</span>
-            <small>${matchday.isToday ? "Today" : matchday.status}</small>
-            <em>${formatDate(matchday.date)}</em>
-          </button>
+        ${groups.map((group) => `
+          <div class="phase-group">
+            <span>${group.label}</span>
+            <div class="phase-days">
+              ${group.matchdays.map((matchday) => `
+                <button class="matchday-chip ${matchday.id === activeId ? "active" : ""} ${matchday.isToday ? "today" : ""}" data-matchday-id="${matchday.id}">
+                  <span>${formatDate(matchday.date)}</span>
+                  <small>${matchday.isToday ? "Today" : matchday.status}</small>
+                  <em>${matchday.matches.length} matches</em>
+                </button>
+              `).join("")}
+            </div>
+          </div>
         `).join("")}
       </div>
     </section>
@@ -386,7 +398,7 @@ function renderResultCard(playerCard) {
 function renderCard(playerCard) {
   const dirty = state.dirtyCards.get(playerCard.predictionCardId) || { selected: false, answer: null };
   const selectedCount = [...state.dirtyCards.values()].filter((card) => card.selected).length;
-  const lockedOut = !dirty.selected && selectedCount >= 5;
+  const lockedOut = !dirty.selected && selectedCount >= MAX_SELECTED_CARDS;
   return `
     <article class="prediction-card ${dirty.selected ? "selected" : ""} ${lockedOut ? "locked" : ""}" data-card-id="${playerCard.predictionCardId}">
       <div class="card-top">
@@ -398,7 +410,7 @@ function renderCard(playerCard) {
         <button class="answer-button ${dirty.answer === "YES" ? "yes-active" : ""}" data-answer="YES">Yes</button>
         <button class="answer-button ${dirty.answer === "NO" ? "no-active" : ""}" data-answer="NO">No</button>
       </div>
-      <div class="card-foot"><strong>${playerCard.card.estimatedProbability.toFixed(2)} prob</strong><span>10 pts</span></div>
+      <div class="card-foot"><strong>${playerCard.card.estimatedProbability.toFixed(2)} prob</strong><span>+10 / -10</span></div>
     </article>
   `;
 }
@@ -406,6 +418,7 @@ function renderCard(playerCard) {
 function renderAdmin() {
   const data = state.data;
   const league = managedLeague();
+  const opsMatchday = selectedMatchday() || data.matchday;
   const leagueMembers = membersForLeague(league.id);
   const availableUsers = availableUsersForLeague(league.id);
   root.innerHTML = `
@@ -434,8 +447,8 @@ function renderAdmin() {
         </section>
 
         <section class="panel">
-          <div class="panel-head"><h2>Matchday Ops</h2><span class="label">${data.matchday.status}</span></div>
-          <p class="muted">These actions target <strong>${league.name}</strong>.</p>
+          <div class="panel-head"><h2>Matchday Ops</h2><span class="label">${opsMatchday.status}</span></div>
+          <p class="muted">Sync imports tournament data. Card, pairing, lock, score, and finalize target <strong>${opsMatchday.name}</strong> for <strong>${league.name}</strong>.</p>
           <div class="actions">
             <button class="panel-button primary" data-admin-action="sync-fixtures">Sync Fixtures</button>
             <button class="panel-button primary" data-admin-action="sync-odds">Sync Odds</button>
@@ -571,7 +584,8 @@ function renderRules() {
   root.innerHTML = `
     <section class="panel">
       <div class="panel-head"><h2>Game Rules</h2><span class="label">World Cup friends league</span></div>
-      <p>Each player receives 9 prediction cards and must select exactly 5. Every selected card is worth 10 fantasy points when correct.</p>
+      <p>Each player receives 12 prediction cards each matchday and must select at least 5, up to all 12.</p>
+      <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect.</p>
       <p>Players also submit one exact final score. If it is correct, exact-score points equal <strong>5 x odds multiplier</strong>.</p>
       <p>Admin can sync fixtures and odds, generate cards, generate deterministic pairings, lock submissions, score, finalize, void cards, and export standings.</p>
     </section>
@@ -608,6 +622,29 @@ function getExactOdds(matchId) {
   return state.data.correctScoreOdds
     .filter((odd) => odd.tournamentMatchId === matchId)
     .sort((a, b) => a.priceDecimal - b.priceDecimal);
+}
+
+function groupMatchdaysByPhase(matchdays) {
+  const groups = new Map();
+  matchdays.forEach((matchday) => {
+    const key = matchday.phase || matchday.phaseLabel || "matchdays";
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        label: matchday.phaseLabel || "Matchdays",
+        sort: matchday.phaseSort || 0,
+        matchdays: []
+      });
+    }
+    groups.get(key).matchdays.push(matchday);
+  });
+
+  return [...groups.values()]
+    .sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label))
+    .map((group) => ({
+      ...group,
+      matchdays: group.matchdays.slice().sort((a, b) => new Date(a.date) - new Date(b.date))
+    }));
 }
 
 function estimateMultiplier() {
@@ -738,7 +775,7 @@ root.addEventListener("click", async (event) => {
     const current = state.dirtyCards.get(cardId);
     if (!current.selected) {
       const selectedCount = [...state.dirtyCards.values()].filter((card) => card.selected).length;
-      if (selectedCount >= 5) return showToast("Deselect a card before adding another pick.");
+      if (selectedCount >= MAX_SELECTED_CARDS) return showToast(`You can select up to ${MAX_SELECTED_CARDS} cards.`);
     }
     mutateCard(cardId, { selected: true, answer: answerButton.dataset.answer });
     return;
@@ -750,7 +787,7 @@ root.addEventListener("click", async (event) => {
     if (current.selected) mutateCard(cardId, { selected: false, answer: null });
     else {
       const selectedCount = [...state.dirtyCards.values()].filter((card) => card.selected).length;
-      if (selectedCount >= 5) return showToast("You can select exactly 5 cards.");
+      if (selectedCount >= MAX_SELECTED_CARDS) return showToast(`You can select up to ${MAX_SELECTED_CARDS} cards.`);
       mutateCard(cardId, { selected: true, answer: "YES" });
     }
     return;
@@ -868,6 +905,10 @@ root.addEventListener("submit", async (event) => {
 async function submitPicks() {
   const summary = selectedMatchday();
   const selectedCardIds = [...state.dirtyCards.entries()].filter(([, value]) => value.selected).map(([cardId]) => cardId);
+  if (selectedCardIds.length < MIN_SELECTED_CARDS || selectedCardIds.length > MAX_SELECTED_CARDS) {
+    showToast(`Select ${MIN_SELECTED_CARDS} to ${MAX_SELECTED_CARDS} cards.`);
+    return;
+  }
   const answers = Object.fromEntries([...state.dirtyCards.entries()].map(([cardId, value]) => [cardId, value.answer]));
   await mutate("/api/player/submit-picks", {
     userId: state.data.currentUser.id,
@@ -883,9 +924,12 @@ async function submitPicks() {
 }
 
 async function runAdminAction(action) {
+  const summary = selectedMatchday();
+  const syncScope = action === "sync-fixtures" || action === "sync-odds" ? "all" : undefined;
   await mutate(`/api/admin/${action}`, {
     leagueId: managedLeague().id,
-    matchDayId: state.data.matchday.id
+    matchDayId: summary?.id || state.data.matchday.id,
+    scope: syncScope
   }, action.replaceAll("-", " ") + " complete.");
 }
 

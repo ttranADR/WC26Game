@@ -11,6 +11,10 @@ services:
         value: 20
       - key: DATA_PROVIDER
         value: mock
+      - key: FIXTURES_PROVIDER
+        sync: false
+      - key: ODDS_PROVIDER
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: CRON_SECRET
@@ -19,9 +23,17 @@ services:
         sync: false
       - key: API_FOOTBALL_KEY
         sync: false
+      - key: FOOTBALL_DATA_TOKEN
+        sync: false
+      - key: FOOTBALL_DATA_COMPETITION
+        value: WC
+      - key: FOOTBALL_DATA_SEASON
+        value: 2026
       - key: SPORTMONKS_KEY
         sync: false
       - key: ODDS_API_KEY
+        sync: false
+      - key: ODDS_API_SPORT_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false

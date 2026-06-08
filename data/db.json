@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-06T14:04:01.823Z",
+  "updatedAt": "2026-06-07T22:15:45.425Z",
   "users": [
     {
       "id": "admin_1",
@@ -2735,6 +2735,61 @@
       "status": "ACTIVE",
       "createdAt": "2026-06-06T05:45:02.222Z",
       "updatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_arg_jpn_md_live_20260606_3",
+      "cardType": "TOTAL_GOALS_UNDER",
+      "title": "Under 2.5 Goals",
+      "questionText": "Will Argentina vs Japan have under 2.5 total goals?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "threshold": 2.5
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "id": "card_md_live_20260606_3_10",
+      "displayIndex": 10,
+      "createdAt": "2026-06-07T22:15:45.423Z",
+      "updatedAt": "2026-06-07T22:15:45.423Z"
+    },
+    {
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_ger_can_md_live_20260606_3",
+      "cardType": "CLEAN_SHEET",
+      "title": "Clean Sheet",
+      "questionText": "Will either team keep a clean sheet in Germany vs Canada?",
+      "expectedAnswer": "YES",
+      "gradingRule": {},
+      "estimatedProbability": 0.51,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "id": "card_md_live_20260606_3_11",
+      "displayIndex": 11,
+      "createdAt": "2026-06-07T22:15:45.423Z",
+      "updatedAt": "2026-06-07T22:15:45.423Z"
+    },
+    {
+      "matchDayId": "md_live_20260606_3",
+      "tournamentMatchId": "match_esp_crc_md_live_20260606_3",
+      "cardType": "FIRST_GOAL_BEFORE",
+      "title": "Early First Goal",
+      "questionText": "Will the first goal in Spain vs Costa Rica happen before minute 30?",
+      "expectedAnswer": "YES",
+      "gradingRule": {
+        "minute": 30
+      },
+      "estimatedProbability": 0.48,
+      "difficultyLabel": "Balanced",
+      "sourceOddsSnapshotIds": [],
+      "status": "ACTIVE",
+      "id": "card_md_live_20260606_3_12",
+      "displayIndex": 12,
+      "createdAt": "2026-06-07T22:15:45.423Z",
+      "updatedAt": "2026-06-07T22:15:45.423Z"
     }
   ],
   "playerCardSets": [
@@ -2869,6 +2924,12 @@
       "matchDayId": "md_live_20260606_3",
       "userId": "user_lina",
       "generatedAt": "2026-06-06T05:45:02.222Z"
+    },
+    {
+      "id": "set_md_live_20260606_3_user_1780720001349",
+      "matchDayId": "md_live_20260606_3",
+      "userId": "user_1780720001349",
+      "generatedAt": "2026-06-07T22:15:45.424Z"
     }
   ],
   "playerCards": [
@@ -4846,6 +4907,396 @@
       "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_9",
       "playerCardSetId": "set_md_live_20260606_3_user_lina",
       "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_you_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_you",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_maya_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_maya",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_liam_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_liam",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_noah_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_noah",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ava_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_ava",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_ethan_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_ethan",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_omar_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_omar",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_emma_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_emma",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_lina_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_lina",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_1",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_1",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_9",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_9",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_8",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_8",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_7",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_7",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_6",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_6",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_2",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_2",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_5",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_5",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_4",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_4",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_12",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_12",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_11",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_11",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_10",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_10",
+      "selected": false,
+      "playerAnswer": null,
+      "isCorrect": null,
+      "pointsAwarded": 0,
+      "answeredAt": null
+    },
+    {
+      "id": "pc_set_md_live_20260606_3_user_1780720001349_card_md_live_20260606_3_3",
+      "playerCardSetId": "set_md_live_20260606_3_user_1780720001349",
+      "predictionCardId": "card_md_live_20260606_3_3",
       "selected": false,
       "playerAnswer": null,
       "isCorrect": null,

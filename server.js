@@ -7,6 +7,7 @@ import { createStore } from "./src/store.js";
 import { createNeonStore } from "./src/neonStore.js";
 import { createMockFootballProvider } from "./src/providers/mockFootballProvider.js";
 import { createApiFootballProvider } from "./src/providers/apiFootballProvider.js";
+import { createFootballDataProvider } from "./src/providers/footballDataProvider.js";
 import { createSportmonksProvider } from "./src/providers/sportmonksProvider.js";
 import { createOddsApiProvider } from "./src/providers/oddsApiProvider.js";
 import {
@@ -36,7 +37,9 @@ loadDotEnv(path.join(__dirname, ".env"));
 const publicDir = path.join(__dirname, "public");
 const dataPath = path.join(__dirname, "data", "db.json");
 const store = process.env.DATABASE_URL ? createNeonStore(process.env.DATABASE_URL) : createStore(dataPath);
-const provider = createProvider(process.env.DATA_PROVIDER || "mock");
+const defaultProviderName = process.env.DATA_PROVIDER || "mock";
+const fixtureProvider = createProvider(process.env.FIXTURES_PROVIDER || defaultProviderName);
+const oddsProvider = createProvider(process.env.ODDS_PROVIDER || defaultProviderName);
 const port = Number(process.env.PORT || 4173);
 
 const contentTypes = {
@@ -129,7 +132,7 @@ async function handleApi(req, res) {
 
     if (method === "POST" && url.pathname === "/api/jobs/sync-live-data") {
       requireCronSecret(req);
-      sendJson(res, 200, await syncLiveData(store, provider, await readJsonWithUser(req)));
+      sendJson(res, 200, await syncLiveData(store, { fixtureProvider, oddsProvider }, await readJsonWithUser(req)));
       return;
     }
 
@@ -167,13 +170,13 @@ async function handleApi(req, res) {
 
     if (method === "POST" && url.pathname === "/api/admin/sync-fixtures") {
       await requireAdmin(req);
-      sendJson(res, 200, await syncFixtures(store, provider, await readJsonWithUser(req)));
+      sendJson(res, 200, await syncFixtures(store, fixtureProvider, await readJsonWithUser(req)));
       return;
     }
 
     if (method === "POST" && url.pathname === "/api/admin/sync-odds") {
       await requireAdmin(req);
-      sendJson(res, 200, await syncOdds(store, provider, await readJsonWithUser(req)));
+      sendJson(res, 200, await syncOdds(store, oddsProvider, await readJsonWithUser(req)));
       return;
     }
 
@@ -254,6 +257,7 @@ function requireCronSecret(req) {
 
 function createProvider(name) {
   if (name === "api-football") return createApiFootballProvider();
+  if (name === "football-data") return createFootballDataProvider();
   if (name === "sportmonks") return createSportmonksProvider();
   if (name === "odds-api") return createOddsApiProvider();
   return createMockFootballProvider();

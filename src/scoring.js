@@ -1,3 +1,5 @@
+import { CARD_POINTS_CORRECT, CARD_POINTS_INCORRECT } from "./config.js";
+
 export function gradeCard(card, match) {
   if (card.status === "VOID") {
     return { isCorrect: null, pointsAwarded: 0, voidReason: card.voidReason || "Voided by admin" };
@@ -39,13 +41,16 @@ export function gradeCard(card, match) {
     case "CLEAN_SHEET":
       result = home === 0 || away === 0;
       break;
+    case "DRAW":
+      result = home === away;
+      break;
     default:
       return { isCorrect: null, pointsAwarded: 0, voidReason: "Unsupported grading rule" };
   }
 
   const expectedYes = card.expectedAnswer === "YES";
   const isCorrect = result === expectedYes;
-  return { isCorrect, pointsAwarded: isCorrect ? 10 : 0 };
+  return { isCorrect, pointsAwarded: isCorrect ? CARD_POINTS_CORRECT : CARD_POINTS_INCORRECT };
 }
 
 export function getFallbackExactMultiplier(prediction, match, odds = []) {

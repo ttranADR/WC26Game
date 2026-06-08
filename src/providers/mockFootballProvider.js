@@ -23,8 +23,8 @@ export function createMockFootballProvider() {
         odds(match.id, "TOTAL_GOALS", "Under 2.5", 2.2),
         odds(match.id, "BOTH_TEAMS_SCORE", "Yes", 1.7),
         odds(match.id, "BOTH_TEAMS_SCORE", "No", 2.0),
-        ...["0-0", "1-0", "1-1", "2-1", "2-0", "3-1", "0-1", "1-2", "3-0"].map((score, index) => (
-          odds(match.id, "CORRECT_SCORE", score, [7.5, 6.6, 5.8, 6.2, 7.1, 9.5, 10.5, 11.5, 12.0][index])
+        ...createCorrectScorePrices().map(([score, price]) => (
+          odds(match.id, "CORRECT_SCORE", score, price)
         ))
       ]);
     },
@@ -43,6 +43,20 @@ export function createMockFootballProvider() {
       }));
     }
   };
+}
+
+function createCorrectScorePrices() {
+  const scores = [];
+  for (let home = 0; home <= 5; home += 1) {
+    for (let away = 0; away <= 5; away += 1) {
+      const total = home + away;
+      const drawPenalty = home === away ? 1.2 : 0;
+      const blowoutPenalty = Math.abs(home - away) * 1.35;
+      const price = Number((5.8 + total * 1.25 + drawPenalty + blowoutPenalty).toFixed(1));
+      scores.push([`${home}-${away}`, price]);
+    }
+  }
+  return scores;
 }
 
 function fixture(externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, kickoffAt, homeScore, awayScore, firstGoalMinute) {

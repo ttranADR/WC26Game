@@ -2,6 +2,14 @@ import { createCardPool, createContests, createStandings } from "./seed.js";
 import { gradeCard, gradeExactPrediction, getExactScoreMultiplier } from "./scoring.js";
 import { ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
 import { sendInviteEmail } from "./email.js";
+import { shuffle } from "./random.js";
+import {
+  CARD_POINTS_CORRECT,
+  CARD_POINTS_INCORRECT,
+  CARD_SET_SIZE,
+  MAX_SELECTED_CARDS,
+  MIN_SELECTED_CARDS
+} from "./config.js";
 
 export async function getAppState(store, userId = "user_you") {
   return store.update((data) => {
@@ -37,19 +45,23 @@ export async function submitPicks(store, input) {
 
     const set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId);
     if (!set) throw new Error("No generated card set found for this player.");
-    if (!Array.isArray(selectedCardIds) || selectedCardIds.length !== 5) {
-      throw new Error("Select exactly 5 prediction cards.");
+    const uniqueSelectedCardIds = [...new Set(selectedCardIds || [])];
+    if (!Array.isArray(selectedCardIds) || uniqueSelectedCardIds.length !== selectedCardIds.length) {
+      throw new Error("Selected prediction cards must be unique.");
+    }
+    if (uniqueSelectedCardIds.length < MIN_SELECTED_CARDS || uniqueSelectedCardIds.length > MAX_SELECTED_CARDS) {
+      throw new Error(`Select ${MIN_SELECTED_CARDS} to ${MAX_SELECTED_CARDS} prediction cards.`);
     }
 
     const ownedCards = data.playerCards.filter((card) => card.playerCardSetId === set.id);
     const ownedCardIds = new Set(ownedCards.map((card) => card.predictionCardId));
-    selectedCardIds.forEach((cardId) => {
+    uniqueSelectedCardIds.forEach((cardId) => {
       if (!ownedCardIds.has(cardId)) throw new Error(`Card ${cardId} is not assigned to this player.`);
       if (!["YES", "NO"].includes(answers?.[cardId])) throw new Error(`Card ${cardId} needs a Yes or No answer.`);
     });
 
     ownedCards.forEach((playerCard) => {
-      const selected = selectedCardIds.includes(playerCard.predictionCardId);
+      const selected = uniqueSelectedCardIds.includes(playerCard.predictionCardId);
       playerCard.selected = selected;
       playerCard.playerAnswer = selected ? answers[playerCard.predictionCardId] : null;
       playerCard.answeredAt = selected ? new Date().toISOString() : null;
@@ -242,52 +254,48 @@ export async function updateLeagueMemberStatus(store, input) {
 
 export async function syncFixtures(store, provider, input) {
   return store.update(async (data) => {
-    const matchDayId = input.matchDayId || "md_12";
-    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
-    const fixtures = await provider.getFixturesByDate(matchday.date);
+    const syncAll = input.scope === "all" && typeof provider.getCompetitionFixtures === "function";
+    const fixtures = syncAll
+      ? await provider.getCompetitionFixtures()
+      : await provider.getFixturesByDate(mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday").date);
 
-    fixtures.forEach((fixture) => {
-      const existing = data.tournamentMatches.find((match) => match.externalId === fixture.externalId);
-      const next = {
-        ...fixture,
-        id: existing?.id || `match_${fixture.externalId.replace(/^fix_/, "")}`,
-        matchDayId,
-        createdAt: existing?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      if (existing) Object.assign(existing, next);
-      else data.tournamentMatches.push(next);
-    });
+    if (syncAll) {
+      upsertCompetitionFixtures(data, fixtures);
+    } else {
+      const matchDayId = input.matchDayId || "md_12";
+      fixtures.forEach((fixture) => upsertTournamentMatch(data, fixture, matchDayId));
+      updateMatchdayFromMatches(data, matchDayId);
+    }
 
-    data.syncLogs.unshift(log("SYNC_FIXTURES", "SUCCESS", `Synced ${fixtures.length} fixtures.`));
+    data.syncLogs.unshift(log("SYNC_FIXTURES", "SUCCESS", `Synced ${fixtures.length} fixtures${syncAll ? " across the tournament" : ""}.`));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
 }
 
 export async function syncOdds(store, provider, input) {
   return store.update(async (data) => {
-    const matchDayId = input.matchDayId || "md_12";
-    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
-    const rawOdds = await provider.getOddsByDate(matchday.date);
-    const matchesByExternal = new Map(data.tournamentMatches.map((match) => [match.externalId, match.id]));
-    const matchesById = new Set(data.tournamentMatches.map((match) => match.id));
+    const syncAll = input.scope === "all";
+    const matchday = syncAll ? null : mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday");
+    const rawOdds = await provider.getOddsByDate(matchday?.date);
+    const resolver = createMatchResolver(data.tournamentMatches, matchday?.id);
     const nextOdds = rawOdds.map((odd, index) => {
-      const tournamentMatchId = matchesById.has(odd.tournamentMatchId)
-        ? odd.tournamentMatchId
-        : matchesByExternal.get(odd.tournamentMatchId) || odd.tournamentMatchId;
+      const tournamentMatchId = resolver(odd);
       return { ...odd, id: `odds_${tournamentMatchId}_${odd.marketKey}_${index}_${Date.now()}`, tournamentMatchId };
-    });
+    }).filter((odd) => odd.tournamentMatchId);
 
     data.oddsSnapshots = data.oddsSnapshots.filter((odd) => !nextOdds.some((next) => (
       next.tournamentMatchId === odd.tournamentMatchId && next.marketKey === odd.marketKey && next.outcomeName === odd.outcomeName
     )));
     data.oddsSnapshots.push(...nextOdds);
-    data.syncLogs.unshift(log("SYNC_ODDS", "SUCCESS", `Synced ${nextOdds.length} odds snapshots.`));
+    data.syncLogs.unshift(log("SYNC_ODDS", "SUCCESS", `Synced ${nextOdds.length} odds snapshots${rawOdds.length > nextOdds.length ? ` (${rawOdds.length - nextOdds.length} unmatched)` : ""}.`));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
 }
 
-export async function syncLiveData(store, provider, input = {}) {
+export async function syncLiveData(store, providers, input = {}) {
+  const fixtureProvider = providers.fixtureProvider || providers;
+  const oddsProvider = providers.oddsProvider || providers;
+  const syncMode = input.sync || "both";
   const matchDayIds = await store.update((data) => {
     ensureDemoScaffold(data);
     if (input.matchDayId) return [input.matchDayId];
@@ -297,19 +305,35 @@ export async function syncLiveData(store, provider, input = {}) {
   });
 
   const results = [];
-  for (const matchDayId of matchDayIds) {
+  if (["fixtures", "both"].includes(syncMode)) {
     try {
-      await syncFixtures(store, provider, { ...input, matchDayId });
-      results.push({ matchDayId, type: "fixtures", status: "SUCCESS" });
+      if (!input.matchDayId && typeof fixtureProvider.getCompetitionFixtures === "function") {
+        await syncFixtures(store, fixtureProvider, { ...input, scope: "all" });
+        results.push({ matchDayId: "all", type: "fixtures", status: "SUCCESS" });
+      } else {
+        for (const matchDayId of matchDayIds) {
+          await syncFixtures(store, fixtureProvider, { ...input, matchDayId });
+          results.push({ matchDayId, type: "fixtures", status: "SUCCESS" });
+        }
+      }
     } catch (error) {
-      results.push({ matchDayId, type: "fixtures", status: "ERROR", message: error.message });
+      results.push({ matchDayId: input.matchDayId || "all", type: "fixtures", status: "ERROR", message: error.message });
     }
+  }
 
+  if (["odds", "both"].includes(syncMode)) {
     try {
-      await syncOdds(store, provider, { ...input, matchDayId });
-      results.push({ matchDayId, type: "odds", status: "SUCCESS" });
+      if (!input.matchDayId) {
+        await syncOdds(store, oddsProvider, { ...input, scope: "all" });
+        results.push({ matchDayId: "all", type: "odds", status: "SUCCESS" });
+      } else {
+        for (const matchDayId of matchDayIds) {
+          await syncOdds(store, oddsProvider, { ...input, matchDayId });
+          results.push({ matchDayId, type: "odds", status: "SUCCESS" });
+        }
+      }
     } catch (error) {
-      results.push({ matchDayId, type: "odds", status: "ERROR", message: error.message });
+      results.push({ matchDayId: input.matchDayId || "all", type: "odds", status: "ERROR", message: error.message });
     }
   }
 
@@ -326,13 +350,182 @@ export async function syncLiveData(store, provider, input = {}) {
   };
 }
 
+function upsertCompetitionFixtures(data, fixtures) {
+  const byDate = new Map();
+  fixtures
+    .filter((fixture) => fixture.kickoffAt)
+    .forEach((fixture) => {
+      const date = fixture.kickoffAt.slice(0, 10);
+      if (!byDate.has(date)) byDate.set(date, []);
+      byDate.get(date).push(fixture);
+    });
+
+  [...byDate.entries()]
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+    .forEach(([date, dayFixtures]) => {
+      const matchday = ensureMatchdayForFixtures(data, date, dayFixtures);
+      dayFixtures.forEach((fixture) => upsertTournamentMatch(data, fixture, matchday.id));
+      updateMatchdayFromMatches(data, matchday.id);
+    });
+}
+
+function ensureMatchdayForFixtures(data, date, fixtures) {
+  const stage = getStageInfo(fixtures);
+  const firstKickoff = fixtures
+    .map((fixture) => new Date(fixture.kickoffAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b)[0];
+  const lockAt = firstKickoff
+    ? new Date(firstKickoff - 15 * 60 * 1000).toISOString()
+    : `${date}T00:00:00.000Z`;
+  const existing = data.matchdays.find((matchday) => matchday.date === date && matchday.externalProvider === "football-data") ||
+    data.matchdays.find((matchday) => matchday.date === date);
+  const matchday = existing || {
+    id: `md_${date.replaceAll("-", "")}`,
+    createdAt: new Date().toISOString()
+  };
+
+  Object.assign(matchday, {
+    name: `${stage.label} · ${formatShortDate(date)}`,
+    date,
+    lockAt,
+    status: matchday.status || "SCHEDULED",
+    phase: stage.key,
+    phaseLabel: stage.label,
+    phaseSort: stage.sort,
+    externalProvider: "football-data",
+    updatedAt: new Date().toISOString()
+  });
+
+  if (!existing) data.matchdays.push(matchday);
+  return matchday;
+}
+
+function upsertTournamentMatch(data, fixture, matchDayId) {
+  const existing = data.tournamentMatches.find((match) => (
+    match.externalProvider === fixture.externalProvider &&
+    match.externalId === fixture.externalId
+  )) || data.tournamentMatches.find((match) => match.externalId === fixture.externalId);
+  const id = existing?.id || `match_${cleanId(fixture.externalProvider || "provider")}_${cleanId(fixture.externalId)}`;
+  const next = {
+    ...fixture,
+    id,
+    matchDayId,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  if (existing) Object.assign(existing, next);
+  else data.tournamentMatches.push(next);
+}
+
+function updateMatchdayFromMatches(data, matchDayId) {
+  const matchday = data.matchdays.find((item) => item.id === matchDayId);
+  if (!matchday) return;
+  const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
+  if (!matches.length) return;
+  const stage = getStageInfo(matches);
+  const firstKickoff = matches
+    .map((match) => new Date(match.kickoffAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b)[0];
+  if (firstKickoff) matchday.lockAt = new Date(firstKickoff - 15 * 60 * 1000).toISOString();
+  matchday.phase = stage.key;
+  matchday.phaseLabel = stage.label;
+  matchday.phaseSort = stage.sort;
+  matchday.status = deriveMatchdayStatus(matchday, matches);
+  matchday.updatedAt = new Date().toISOString();
+}
+
+function deriveMatchdayStatus(matchday, matches) {
+  if (matches.every((match) => match.status === "FINISHED")) return "FINAL";
+  if (matches.some((match) => match.status === "LIVE")) return "SCORING";
+  if (new Date(matchday.lockAt) <= new Date()) return "LOCKED";
+  return matchday.date === new Date().toISOString().slice(0, 10) ? "OPEN" : "SCHEDULED";
+}
+
+function getStageInfo(fixtures) {
+  const fixture = fixtures.find((item) => item.stage) || fixtures[0] || {};
+  const stage = String(fixture.stage || "GROUP_STAGE");
+  const round = fixture.matchdayNumber || fixture.matchday || 1;
+  const labels = {
+    GROUP_STAGE: [`group-${round}`, `Group Stage Round ${round}`, 10 + Number(round || 0)],
+    LAST_32: ["round-of-32", "Round of 32", 40],
+    ROUND_OF_32: ["round-of-32", "Round of 32", 40],
+    LAST_16: ["round-of-16", "Round of 16", 50],
+    ROUND_OF_16: ["round-of-16", "Round of 16", 50],
+    QUARTER_FINALS: ["quarterfinals", "Quarterfinals", 60],
+    SEMI_FINALS: ["semifinals", "Semifinals", 70],
+    THIRD_PLACE: ["third-place", "Third Place", 80],
+    FINAL: ["final", "Final", 90]
+  };
+  const [key, label, sort] = labels[stage] || [slugify(stage), titleize(stage), 30];
+  return { key, label, sort };
+}
+
+function createMatchResolver(matches, matchDayId) {
+  const scopedMatches = matchDayId ? matches.filter((match) => match.matchDayId === matchDayId) : matches;
+  const matchesById = new Map(scopedMatches.map((match) => [match.id, match.id]));
+  const matchesByExternal = new Map(scopedMatches.map((match) => [match.externalId, match.id]));
+  const byTeamAndDate = new Map();
+
+  scopedMatches.forEach((match) => {
+    const date = match.kickoffAt?.slice(0, 10);
+    const home = normalizeTeamName(match.homeTeam);
+    const away = normalizeTeamName(match.awayTeam);
+    if (!date || !home || !away) return;
+    byTeamAndDate.set(`${date}:${home}:${away}`, match.id);
+    byTeamAndDate.set(`${date}:${away}:${home}`, match.id);
+  });
+
+  return (odd) => {
+    if (matchesById.has(odd.tournamentMatchId)) return matchesById.get(odd.tournamentMatchId);
+    if (matchesByExternal.has(odd.tournamentMatchId)) return matchesByExternal.get(odd.tournamentMatchId);
+
+    const date = odd.commenceAt?.slice(0, 10);
+    const home = normalizeTeamName(odd.homeTeam);
+    const away = normalizeTeamName(odd.awayTeam);
+    return byTeamAndDate.get(`${date}:${home}:${away}`) || null;
+  };
+}
+
+function normalizeTeamName(value) {
+  const normalized = String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const aliases = {
+    usa: "unitedstates",
+    usmnt: "unitedstates",
+    unitedstatesofamerica: "unitedstates",
+    korearepublic: "southkorea",
+    republicofkorea: "southkorea",
+    iriran: "iran"
+  };
+  return aliases[normalized] || normalized;
+}
+
+function formatShortDate(date) {
+  return new Date(`${date}T00:00:00.000Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function cleanId(value) {
+  return String(value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function titleize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export async function generateCardsForMatchday(store, input) {
   return store.update((data) => {
     const matchDayId = input.matchDayId || "md_12";
     const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
-    const cards = createCardPool(matchDayId, matches);
+    const cards = createCardPool(matchDayId, matches, data.oddsSnapshots);
     data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchDayId);
     data.predictionCards.push(...cards);
+    rebuildPlayerCardsForMatchday(data, matchDayId);
     data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} matchday cards.`));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
@@ -434,7 +627,9 @@ function scoreMatchday(data, matchDayId, leagueId) {
             (playerCard.playerAnswer === card.expectedAnswer) === grade.isCorrect
           );
           playerCard.isCorrect = answerCorrect;
-          playerCard.pointsAwarded = answerCorrect ? 10 : 0;
+          playerCard.pointsAwarded = answerCorrect == null
+            ? 0
+            : answerCorrect ? CARD_POINTS_CORRECT : CARD_POINTS_INCORRECT;
           if (answerCorrect != null && card.status !== "VOID") {
             cardAttempted += 1;
             if (answerCorrect) cardCorrect += 1;
@@ -538,7 +733,7 @@ function hydrateState(data, currentUserId = "user_you") {
     league,
     matchdays: data.matchdays
       .slice()
-      .sort((a, b) => new Date(b.date) - new Date(a.date)),
+      .sort(sortMatchdaysForSchedule),
     todayMatchdayId: matchday.id,
     matchdaySummaries: hydrateMatchdaySummaries(data, league.id, currentUser.id),
     matchday,
@@ -578,7 +773,7 @@ function hydrateLeagues(data) {
 function hydrateMatchdaySummaries(data, leagueId, userId) {
   return data.matchdays
     .slice()
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort(sortMatchdaysForSchedule)
     .map((matchday) => {
       const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
       const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === userId);
@@ -624,8 +819,17 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
 }
 
 function getTodayMatchday(data) {
-  return data.matchdays.find((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status)) ||
-    data.matchdays.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  const today = new Date().toISOString().slice(0, 10);
+  return data.matchdays.find((matchday) => matchday.date === today && matchday.status !== "FINAL") ||
+    data.matchdays.find((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status)) ||
+    data.matchdays.slice().filter((matchday) => matchday.date >= today).sort(sortMatchdaysForSchedule)[0] ||
+    data.matchdays.slice().sort(sortMatchdaysForSchedule).at(-1);
+}
+
+function sortMatchdaysForSchedule(a, b) {
+  return (a.phaseSort || 0) - (b.phaseSort || 0) ||
+    new Date(a.date) - new Date(b.date) ||
+    a.name.localeCompare(b.name);
 }
 
 function getContestResultLabel(contest, userSide) {
@@ -724,20 +928,27 @@ function ensureStanding(data, leagueId, userId) {
 }
 
 function ensurePlayerCardSet(data, userId, matchDayId = "md_12") {
-  const existing = data.playerCardSets.find((set) => set.matchDayId === matchDayId && set.userId === userId);
-  if (existing) return existing;
+  let set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId);
+  if (!set) {
+    set = {
+      id: `set_${matchDayId}_${userId}`,
+      matchDayId,
+      userId,
+      generatedAt: new Date().toISOString()
+    };
+    data.playerCardSets.push(set);
+  }
 
-  const set = {
-    id: `set_${matchDayId}_${userId}`,
-    matchDayId,
-    userId,
-    generatedAt: new Date().toISOString()
-  };
-  data.playerCardSets.push(set);
-
-  data.predictionCards
+  const assignedIds = new Set(
+    data.playerCards
+      .filter((card) => card.playerCardSetId === set.id)
+      .map((card) => card.predictionCardId)
+  );
+  const assignedCount = assignedIds.size;
+  shuffle(data.predictionCards
     .filter((card) => card.matchDayId === matchDayId)
-    .slice(0, 9)
+    .filter((card) => !assignedIds.has(card.id)), `${matchDayId}_${userId}`)
+    .slice(0, Math.max(0, CARD_SET_SIZE - assignedCount))
     .forEach((card) => {
       data.playerCards.push({
         id: `pc_${set.id}_${card.id}`,
@@ -754,13 +965,66 @@ function ensurePlayerCardSet(data, userId, matchDayId = "md_12") {
   return set;
 }
 
+function rebuildPlayerCardsForMatchday(data, matchDayId) {
+  const activeUserIds = [...new Set(data.leagueMembers
+    .filter((member) => member.status !== "REMOVED")
+    .map((member) => member.userId))];
+
+  activeUserIds.forEach((userId) => {
+    const set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId) || {
+      id: `set_${matchDayId}_${userId}`,
+      matchDayId,
+      userId,
+      generatedAt: new Date().toISOString()
+    };
+    if (!data.playerCardSets.some((item) => item.id === set.id)) data.playerCardSets.push(set);
+
+    data.playerCards = data.playerCards.filter((card) => card.playerCardSetId !== set.id);
+    shuffle(data.predictionCards.filter((card) => card.matchDayId === matchDayId), `${matchDayId}_${userId}`)
+      .slice(0, CARD_SET_SIZE)
+      .forEach((card) => {
+        data.playerCards.push({
+          id: `pc_${set.id}_${card.id}`,
+          playerCardSetId: set.id,
+          predictionCardId: card.id,
+          selected: false,
+          playerAnswer: null,
+          isCorrect: null,
+          pointsAwarded: 0,
+          answeredAt: null
+        });
+      });
+  });
+}
+
 function ensureDemoScaffold(data) {
   ensureDemoMatchdayHistory(data);
   ensurePlayableMatchday(data);
+  ensureCurrentCardRules(data);
+}
+
+function ensureCurrentCardRules(data) {
+  data.matchdays
+    .filter((matchday) => matchday.status !== "FINAL")
+    .forEach((matchday) => {
+      const cards = data.predictionCards.filter((card) => card.matchDayId === matchday.id);
+      if (cards.length < CARD_SET_SIZE) {
+        const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+        const generatedCards = createCardPool(matchday.id, matches, data.oddsSnapshots);
+        const existingIds = new Set(data.predictionCards.map((card) => card.id));
+        data.predictionCards.push(...generatedCards.filter((card) => !existingIds.has(card.id)));
+      }
+
+      const userIds = [...new Set(data.leagueMembers
+        .filter((member) => member.status !== "REMOVED")
+        .map((member) => member.userId))];
+      userIds.forEach((userId) => ensurePlayerCardSet(data, userId, matchday.id));
+    });
 }
 
 function ensurePlayableMatchday(data) {
   if (data.matchdays.some((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status))) return;
+  if (data.matchdays.some((matchday) => matchday.externalProvider === "football-data")) return;
 
   const now = new Date();
   const nowIso = now.toISOString();
@@ -827,12 +1091,7 @@ function createPlayableMatches(matchDayId, now) {
 }
 
 function createPlayableCorrectScoreOdds(matches, capturedAt) {
-  const scores = [
-    ["0-0", 7.5], ["1-0", 6.6], ["1-1", 5.8], ["2-1", 6.2],
-    ["2-0", 7.1], ["3-1", 9.5], ["0-1", 10.5], ["1-2", 11.5], ["3-0", 12.0]
-  ];
-
-  return matches.flatMap((match) => scores.map(([score, price]) => ({
+  return matches.flatMap((match) => createCorrectScorePrices().map(([score, price]) => ({
     id: `odds_${match.id}_CORRECT_SCORE_${score.replace(/\W/g, "_")}`,
     tournamentMatchId: match.id,
     provider: "mock",
@@ -845,6 +1104,19 @@ function createPlayableCorrectScoreOdds(matches, capturedAt) {
     rawData: { seed: "today" },
     capturedAt
   })));
+}
+
+function createCorrectScorePrices() {
+  const scores = [];
+  for (let home = 0; home <= 5; home += 1) {
+    for (let away = 0; away <= 5; away += 1) {
+      const total = home + away;
+      const drawPenalty = home === away ? 1.2 : 0;
+      const blowoutPenalty = Math.abs(home - away) * 1.35;
+      scores.push([`${home}-${away}`, Number((5.8 + total * 1.25 + drawPenalty + blowoutPenalty).toFixed(1))]);
+    }
+  }
+  return scores;
 }
 
 function ensureDemoMatchdayHistory(data) {
@@ -901,10 +1173,7 @@ function ensureDemoMatchdayHistory(data) {
   ];
   data.tournamentMatches.push(...historyMatches);
 
-  const historyOdds = [
-    ["0-0", 7.4], ["1-0", 6.1], ["1-1", 5.8], ["2-0", 7.1],
-    ["2-1", 6.5], ["3-1", 9.6], ["0-1", 10.2], ["1-2", 11.2], ["3-0", 12.5]
-  ].map(([score, price]) => ({
+  const historyOdds = createCorrectScorePrices().map(([score, price]) => ({
     id: `odds_match_fra_mex_CORRECT_SCORE_${score.replace(/\W/g, "_")}`,
     tournamentMatchId: "match_fra_mex",
     provider: "mock",
