@@ -35,6 +35,12 @@ services:
         sync: false
       - key: ODDS_API_SPORT_KEY
         sync: false
+      - key: ODDS_API_REGIONS
+        value: us,uk,eu
+      - key: ODDS_API_FEATURED_MARKETS
+        value: h2h,totals
+      - key: ODDS_API_EXTRA_MARKETS
+        value: btts,correct_score
       - key: RESEND_API_KEY
         sync: false
       - key: INVITE_FROM_EMAIL

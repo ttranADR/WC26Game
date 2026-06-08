@@ -124,9 +124,12 @@ FOOTBALL_DATA_COMPETITION=WC
 FOOTBALL_DATA_SEASON=2026
 ODDS_PROVIDER=odds-api
 ODDS_API_KEY=your_odds_api_key
+ODDS_API_REGIONS=us,uk,eu
+ODDS_API_FEATURED_MARKETS=h2h,totals
+ODDS_API_EXTRA_MARKETS=btts,correct_score
 ```
 
-`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports h2h, totals, BTTS, and correct-score odds when the market is available for the selected sport/account.
+`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports featured odds such as h2h/totals, then attempts extra event markets such as BTTS and correct score when bookmakers make them available for the selected sport/account.
 
 API-Football:
 
@@ -182,6 +185,9 @@ FOOTBALL_DATA_COMPETITION=WC
 FOOTBALL_DATA_SEASON=2026
 ODDS_PROVIDER=odds-api
 ODDS_API_KEY=your_odds_api_key
+ODDS_API_REGIONS=us,uk,eu
+ODDS_API_FEATURED_MARKETS=h2h,totals
+ODDS_API_EXTRA_MARKETS=btts,correct_score
 ```
 
 Alternative single-provider modes are still supported:

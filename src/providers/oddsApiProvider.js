@@ -2,12 +2,21 @@ export function createOddsApiProvider(apiKey = process.env.ODDS_API_KEY) {
   if (!apiKey) throw new Error("ODDS_API_KEY is required for odds-api provider.");
   const baseUrl = "https://api.the-odds-api.com/v4";
   const preferredSportKey = process.env.ODDS_API_SPORT_KEY;
+  const regions = process.env.ODDS_API_REGIONS || "us,uk,eu";
+  const featuredMarkets = process.env.ODDS_API_FEATURED_MARKETS || "h2h,totals";
+  const extraMarkets = (process.env.ODDS_API_EXTRA_MARKETS || "btts,correct_score")
+    .split(",")
+    .map((market) => market.trim())
+    .filter(Boolean);
 
   async function call(path) {
     const joiner = path.includes("?") ? "&" : "?";
     const response = await fetch(`${baseUrl}${path}${joiner}apiKey=${apiKey}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(`The Odds API error: ${JSON.stringify(data)}`);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = data.message || data.error_code || response.statusText || response.status;
+      throw new Error(`The Odds API error: ${message}`);
+    }
     return data;
   }
 
@@ -24,12 +33,12 @@ export function createOddsApiProvider(apiKey = process.env.ODDS_API_KEY) {
       const sportKey = preferredSportKey || await findWorldCupSoccerSportKey(call);
       if (!sportKey) return [];
 
-      const events = await call(`/sports/${sportKey}/odds?regions=us,uk,eu&markets=h2h,totals,btts&oddsFormat=decimal`);
+      const events = await call(`/sports/${sportKey}/odds?regions=${encodeURIComponent(regions)}&markets=${encodeURIComponent(featuredMarkets)}&oddsFormat=decimal`);
       const relevantEvents = filterEventsByDate(events, date);
       const regularOdds = relevantEvents.flatMap(mapEventOdds);
-      const correctScoreOdds = await getCorrectScoreOdds(call, sportKey, relevantEvents, date);
+      const extraOdds = await getExtraMarketOdds(call, sportKey, relevantEvents, extraMarkets, regions);
 
-      return [...regularOdds, ...correctScoreOdds];
+      return [...regularOdds, ...extraOdds];
     },
 
     async getMatchEvents() {
@@ -47,21 +56,19 @@ async function findWorldCupSoccerSportKey(call) {
     null;
 }
 
-async function getCorrectScoreOdds(call, sportKey, events, date) {
-  try {
-    const rows = await call(`/sports/${sportKey}/odds?regions=us,uk,eu&markets=correct_score&oddsFormat=decimal`);
-    return filterEventsByDate(rows, date).flatMap(mapEventOdds);
-  } catch {
-    const perEvent = await Promise.all(events.map(async (event) => {
+async function getExtraMarketOdds(call, sportKey, events, markets, regions) {
+  const perEvent = await Promise.all(events.map(async (event) => {
+    const perMarket = await Promise.all(markets.map(async (market) => {
       try {
-        const row = await call(`/sports/${sportKey}/events/${event.id}/odds?regions=us,uk,eu&markets=correct_score&oddsFormat=decimal`);
+        const row = await call(`/sports/${sportKey}/events/${event.id}/odds?regions=${encodeURIComponent(regions)}&markets=${encodeURIComponent(market)}&oddsFormat=decimal`);
         return mapEventOdds(row);
       } catch {
         return [];
       }
     }));
-    return perEvent.flat();
-  }
+    return perMarket.flat();
+  }));
+  return perEvent.flat();
 }
 
 function filterEventsByDate(events, date) {
