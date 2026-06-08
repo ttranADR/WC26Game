@@ -252,42 +252,73 @@ export async function updateLeagueMemberStatus(store, input) {
   });
 }
 
-export async function syncFixtures(store, provider, input) {
-  return store.update(async (data) => {
+export async function syncFixtures(store, provider, input = {}) {
+  const plan = await store.update((data) => {
+    ensureDemoScaffold(data);
     const syncAll = input.scope === "all" && typeof provider.getCompetitionFixtures === "function";
-    const fixtures = syncAll
-      ? await provider.getCompetitionFixtures()
-      : await provider.getFixturesByDate(mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday").date);
+    const matchDayId = input.matchDayId || "md_12";
+    const matchday = syncAll ? null : mustFind(data.matchdays, matchDayId, "Matchday");
+    return { syncAll, matchDayId, date: matchday?.date };
+  });
 
-    if (syncAll) {
+  const fixtures = plan.syncAll
+    ? await provider.getCompetitionFixtures()
+    : await provider.getFixturesByDate(plan.date);
+
+  return store.update((data) => {
+    if (plan.syncAll) {
       upsertCompetitionFixtures(data, fixtures);
     } else {
-      const matchDayId = input.matchDayId || "md_12";
-      fixtures.forEach((fixture) => upsertTournamentMatch(data, fixture, matchDayId));
-      updateMatchdayFromMatches(data, matchDayId);
+      fixtures.forEach((fixture) => upsertTournamentMatch(data, fixture, plan.matchDayId));
+      updateMatchdayFromMatches(data, plan.matchDayId);
     }
 
-    data.syncLogs.unshift(log("SYNC_FIXTURES", "SUCCESS", `Synced ${fixtures.length} fixtures${syncAll ? " across the tournament" : ""}.`));
+    data.syncLogs.unshift(log("SYNC_FIXTURES", "SUCCESS", `Synced ${fixtures.length} fixtures${plan.syncAll ? " across the tournament" : ""}.`));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
 }
 
-export async function syncOdds(store, provider, input) {
-  return store.update(async (data) => {
-    const syncAll = input.scope === "all";
-    const matchday = syncAll ? null : mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday");
-    const rawOdds = await provider.getOddsByDate(matchday?.date);
-    const resolver = createMatchResolver(data.tournamentMatches, matchday?.id);
-    const nextOdds = rawOdds.map((odd, index) => {
-      const tournamentMatchId = resolver(odd);
-      return { ...odd, id: `odds_${tournamentMatchId}_${odd.marketKey}_${index}_${Date.now()}`, tournamentMatchId };
-    }).filter((odd) => odd.tournamentMatchId);
+export async function syncOdds(store, provider, input = {}) {
+  const plan = await store.update((data) => {
+    ensureDemoScaffold(data);
+    const matches = selectStoredFixturesForOdds(data, input);
+    if (!matches.length) throw new Error("Sync fixtures before syncing odds.");
+    return {
+      matches: matches.map(projectFixtureForOddsSync),
+      dates: getFixtureDates(matches)
+    };
+  });
+  const rawOdds = await fetchOddsForStoredFixtures(provider, plan.dates);
+  const targetMatchIds = new Set(plan.matches.map((match) => match.id));
 
-    data.oddsSnapshots = data.oddsSnapshots.filter((odd) => !nextOdds.some((next) => (
-      next.tournamentMatchId === odd.tournamentMatchId && next.marketKey === odd.marketKey && next.outcomeName === odd.outcomeName
-    )));
+  return store.update((data) => {
+    const resolver = createMatchResolver(plan.matches);
+    const capturedAt = Date.now();
+    const providerOdds = rawOdds.map((odd, index) => {
+      const tournamentMatchId = resolver(odd);
+      if (!targetMatchIds.has(tournamentMatchId)) return null;
+      return {
+        ...odd,
+        id: createOddsSnapshotId(tournamentMatchId, odd, index, capturedAt),
+        tournamentMatchId
+      };
+    }).filter(Boolean);
+    const nextOdds = withCompleteCorrectScoreOdds(plan.matches, providerOdds, capturedAt);
+    const nextKeys = new Set(nextOdds.map(oddsSnapshotKey));
+    const coveredCorrectScoreKeys = new Set(nextOdds
+      .filter((odd) => odd.marketKey === "CORRECT_SCORE")
+      .map(correctScoreOutcomeKey));
+
+    data.oddsSnapshots = data.oddsSnapshots.filter((odd) => (
+      !nextKeys.has(oddsSnapshotKey(odd)) &&
+      !coveredCorrectScoreKeys.has(correctScoreOutcomeKey(odd))
+    ));
     data.oddsSnapshots.push(...nextOdds);
-    data.syncLogs.unshift(log("SYNC_ODDS", "SUCCESS", `Synced ${nextOdds.length} odds snapshots${rawOdds.length > nextOdds.length ? ` (${rawOdds.length - nextOdds.length} unmatched)` : ""}.`));
+    data.syncLogs.unshift(log(
+      "SYNC_ODDS",
+      "SUCCESS",
+      `Synced ${nextOdds.length} odds snapshots for ${plan.matches.length} stored fixtures across ${plan.dates.length} date${plan.dates.length === 1 ? "" : "s"}${rawOdds.length > providerOdds.length ? ` (${rawOdds.length - providerOdds.length} unmatched)` : ""}.`
+    ));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
 }
@@ -367,6 +398,125 @@ function upsertCompetitionFixtures(data, fixtures) {
       dayFixtures.forEach((fixture) => upsertTournamentMatch(data, fixture, matchday.id));
       updateMatchdayFromMatches(data, matchday.id);
     });
+}
+
+function selectStoredFixturesForOdds(data, input) {
+  if (input.matchDayId) {
+    mustFind(data.matchdays, input.matchDayId, "Matchday");
+    return data.tournamentMatches.filter((match) => match.matchDayId === input.matchDayId && match.kickoffAt);
+  }
+
+  if (input.scope === "all") {
+    return data.tournamentMatches.filter((match) => match.kickoffAt);
+  }
+
+  const matchDayId = input.matchDayId || "md_12";
+  mustFind(data.matchdays, matchDayId, "Matchday");
+  return data.tournamentMatches.filter((match) => match.matchDayId === matchDayId && match.kickoffAt);
+}
+
+function projectFixtureForOddsSync(match) {
+  return {
+    id: match.id,
+    externalId: match.externalId,
+    matchDayId: match.matchDayId,
+    homeTeam: match.homeTeam,
+    awayTeam: match.awayTeam,
+    kickoffAt: match.kickoffAt
+  };
+}
+
+function getFixtureDates(matches) {
+  return [...new Set(matches
+    .map((match) => match.kickoffAt?.slice(0, 10))
+    .filter(Boolean))]
+    .sort();
+}
+
+async function fetchOddsForStoredFixtures(provider, fixtureDates) {
+  const batches = [];
+  for (const date of fixtureDates) {
+    const rows = await provider.getOddsByDate(date);
+    batches.push(...rows.map((row) => ({ ...row, sourceFixtureDate: date })));
+  }
+  return batches;
+}
+
+function createOddsSnapshotId(tournamentMatchId, odd, index, capturedAt) {
+  return [
+    "odds",
+    cleanId(tournamentMatchId),
+    cleanId(odd.provider || "provider"),
+    cleanId(odd.bookmaker || "book"),
+    cleanId(odd.marketKey),
+    cleanId(odd.outcomeName),
+    index,
+    capturedAt
+  ].join("_");
+}
+
+function withCompleteCorrectScoreOdds(matches, providerOdds, capturedAt) {
+  const nextOdds = [...providerOdds];
+  const existingScorelines = new Set(nextOdds
+    .filter((odd) => odd.marketKey === "CORRECT_SCORE")
+    .map(correctScoreOutcomeKey));
+  const capturedIso = new Date(capturedAt).toISOString();
+
+  matches.forEach((match) => {
+    createCorrectScorePrices().forEach(([score, price], scoreIndex) => {
+      const key = correctScoreOutcomeKey({
+        tournamentMatchId: match.id,
+        marketKey: "CORRECT_SCORE",
+        outcomeName: score
+      });
+      if (existingScorelines.has(key)) return;
+
+      const odd = {
+        tournamentMatchId: match.id,
+        provider: "pitchpick-generated",
+        marketKey: "CORRECT_SCORE",
+        bookmaker: "PitchPick",
+        outcomeName: score,
+        priceDecimal: price,
+        priceAmerican: null,
+        impliedProbability: Number((1 / price).toFixed(4)),
+        sourceFixtureDate: match.kickoffAt?.slice(0, 10),
+        rawData: { generated: true, reason: "Missing correct-score bookmaker quote" },
+        capturedAt: capturedIso
+      };
+      nextOdds.push({
+        ...odd,
+        id: createOddsSnapshotId(match.id, odd, scoreIndex, capturedAt)
+      });
+      existingScorelines.add(key);
+    });
+  });
+
+  return nextOdds;
+}
+
+function oddsSnapshotKey(odd) {
+  return [
+    odd.tournamentMatchId,
+    odd.provider || "",
+    odd.bookmaker || "",
+    odd.marketKey || "",
+    odd.outcomeName || ""
+  ].join("::");
+}
+
+function correctScoreOutcomeKey(odd) {
+  if (odd.marketKey !== "CORRECT_SCORE") return "";
+  return [
+    odd.tournamentMatchId,
+    odd.marketKey,
+    normalizeScoreOutcomeName(odd.outcomeName)
+  ].join("::");
+}
+
+function normalizeScoreOutcomeName(value) {
+  const match = String(value || "").match(/(\d+)\s*-\s*(\d+)/);
+  return match ? `${Number(match[1])}-${Number(match[2])}` : String(value || "").trim();
 }
 
 function ensureMatchdayForFixtures(data, date, fixtures) {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createSeedData } from "../src/seed.js";
 import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
+import { syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
 const data = createSeedData();
@@ -40,4 +41,66 @@ assert.throws(() => assertStorageConfiguration({
   providers: ["football-data"]
 }), /DATABASE_URL is required/);
 
+const syncData = createSeedData();
+const store = createMemoryStore(syncData);
+const oddsDates = [];
+await syncOdds(store, {
+  async getOddsByDate(date) {
+    oddsDates.push(date);
+    if (date !== "2026-06-12") return [];
+    return [{
+      tournamentMatchId: "fix_bra_mar",
+      provider: "test-odds",
+      marketKey: "MATCH_WINNER",
+      bookmaker: "TestBook",
+      outcomeName: "Brazil",
+      priceDecimal: 1.8,
+      impliedProbability: 0.5556,
+      capturedAt: new Date().toISOString()
+    }, {
+      tournamentMatchId: "fix_bra_mar",
+      provider: "test-odds",
+      marketKey: "CORRECT_SCORE",
+      bookmaker: "TestBook",
+      outcomeName: "0-0",
+      priceDecimal: 25,
+      impliedProbability: 0.04,
+      capturedAt: new Date().toISOString()
+    }];
+  }
+}, { matchDayId: "md_12" });
+assert.deepEqual(oddsDates, ["2026-06-12", "2026-06-13"]);
+assert.ok(syncData.oddsSnapshots.some((odd) => (
+  odd.provider === "test-odds" &&
+  odd.tournamentMatchId === "match_bra_mar" &&
+  odd.sourceFixtureDate === "2026-06-12"
+)));
+const brazilCorrectScoreOdds = syncData.oddsSnapshots.filter((odd) => (
+  odd.tournamentMatchId === "match_bra_mar" &&
+  odd.marketKey === "CORRECT_SCORE"
+));
+assert.equal(brazilCorrectScoreOdds.length, 36);
+assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "0-0")?.priceDecimal, 25);
+assert.ok(brazilCorrectScoreOdds.some((odd) => (
+  odd.outcomeName === "5-5" &&
+  odd.provider === "pitchpick-generated" &&
+  odd.priceDecimal > 1
+)));
+
 console.log("All tests passed.");
+
+function createMemoryStore(data) {
+  return {
+    async read() {
+      return data;
+    },
+    async write(nextData) {
+      Object.assign(data, nextData);
+      return data;
+    },
+    async update(mutator) {
+      const result = await mutator(data);
+      return result ?? data;
+    }
+  };
+}

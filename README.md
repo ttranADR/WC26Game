@@ -42,6 +42,7 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - Yes is green, No is red.
 - Correct selected cards score +10; incorrect selected cards score -10.
 - Exact Score Boost reads all correct-score ratios from backend odds snapshots.
+- Correct-score odds store every scoreline from `0-0` through `5-5` for each game.
 - All matchdays are grouped by World Cup phase and the current/today matchday is highlighted.
 - Submit card answers and exact score prediction.
 - Lock-time validation on the backend.
@@ -96,6 +97,8 @@ External fixtures/odds APIs -> protected sync endpoint/job -> Neon Postgres -> P
 ```
 
 The browser app never calls paid sports APIs directly. It loads app state from the PitchPick backend, and the backend reads that state from the configured store. In deployed/live mode, that store must be Neon.
+
+See [docs/live-data-pipeline.md](docs/live-data-pipeline.md) for the fixture and odds ingestion design.
 
 Set this for Neon-backed runtime:
 
@@ -265,7 +268,7 @@ The endpoint accepts an optional sync mode:
 { "sync": "both" }
 ```
 
-Fixture sync can import the whole World Cup schedule from football-data.org. Odds sync maps provider events back to local matches by team/date and writes odds snapshots to Neon.
+Fixture sync can import the whole World Cup schedule from football-data.org. Odds sync reads the stored fixture list first, fetches odds by each stored fixture date, maps provider odds rows back to stored matches by ID/team/date, and writes odds snapshots to Neon.
 
 For a free-friendly schedule, use the included GitHub Actions workflow:
 
