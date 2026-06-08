@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createCardsFromOdds, createSeedData } from "../src/seed.js";
-import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
+import { getExactScoreMultiplier, gradeCard, gradeExactPrediction } from "../src/scoring.js";
 import { generateCardsForMatchday, getAppState, loginUser, submitPicks, syncDailyTournamentData, syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
@@ -33,6 +33,8 @@ const oddsGeneratedCards = createCardsFromOdds("md_12", data.tournamentMatches, 
 assert.equal(oddsGeneratedCards.length, 12);
 assert.ok(oddsGeneratedCards.every((card) => card.sourceOddsSnapshotIds.length === 1));
 assert.ok(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"));
+assert.ok(oddsGeneratedCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
+assert.ok(data.predictionCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
 
 const fallbackData = createSeedData();
 fallbackData.matchdays.push({
@@ -103,6 +105,36 @@ const futureSubmitResult = await submitPicks(fallbackStore, {
 });
 assert.equal(futureSubmitResult.message, "Picks submitted.");
 
+const staleAdminData = createSeedData();
+staleAdminData.playerCardSets.push({
+  id: "set_md_12_admin_1",
+  matchDayId: "md_12",
+  userId: "admin_1",
+  generatedAt: new Date().toISOString()
+});
+staleAdminData.playerCards.push({
+  id: "pc_set_md_12_admin_1_old_card_1",
+  playerCardSetId: "set_md_12_admin_1",
+  predictionCardId: "old_card_1",
+  selected: false,
+  playerAnswer: null,
+  isCorrect: null,
+  pointsAwarded: 0,
+  answeredAt: null
+});
+const staleAdminStore = createMemoryStore(staleAdminData);
+const staleAdminResult = await generateCardsForMatchday(staleAdminStore, {
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const staleAdminSummary = staleAdminResult.state.matchdaySummaries.find((item) => item.id === "md_12");
+assert.equal(staleAdminSummary.playerCards.length, 12);
+assert.ok(staleAdminSummary.playerCards.every((card) => card.card));
+assert.equal(staleAdminData.playerCards.some((card) => (
+  card.playerCardSetId === "set_md_12_admin_1" &&
+  card.predictionCardId === "old_card_1"
+)), false);
+
 const exact = gradeExactPrediction({
   predictedHomeScore: 2,
   predictedAwayScore: 1
@@ -116,6 +148,31 @@ const wrong = gradeExactPrediction({
 }, match, data.oddsSnapshots);
 assert.equal(wrong.isExact, false);
 assert.equal(wrong.pointsAwarded, 0);
+
+const fiveFiveMultiplier = data.oddsSnapshots.find((odd) => (
+  odd.tournamentMatchId === match.id &&
+  odd.marketKey === "CORRECT_SCORE" &&
+  odd.outcomeName === "5-5"
+)).priceDecimal;
+assert.equal(getExactScoreMultiplier({
+  predictedHomeScore: 8,
+  predictedAwayScore: 5
+}, match, data.oddsSnapshots), fiveFiveMultiplier);
+assert.equal(getExactScoreMultiplier({
+  predictedHomeScore: 8,
+  predictedAwayScore: 5
+}, match, []), 19.5);
+const otherExact = gradeExactPrediction({
+  predictedHomeScore: 8,
+  predictedAwayScore: 5
+}, {
+  ...match,
+  status: "FINISHED",
+  homeScore: 8,
+  awayScore: 5
+}, data.oddsSnapshots);
+assert.equal(otherExact.isExact, true);
+assert.equal(otherExact.pointsAwarded, Number((fiveFiveMultiplier * 5).toFixed(1)));
 
 assert.equal(getStorageMode("postgres://example"), "neon");
 assert.equal(getStorageMode(""), "local-json");

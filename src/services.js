@@ -1279,6 +1279,14 @@ function ensurePlayerCardSet(data, userId, matchDayId = "md_12") {
     data.playerCardSets.push(set);
   }
 
+  const validCardIds = new Set(data.predictionCards
+    .filter((card) => card.matchDayId === matchDayId)
+    .map((card) => card.id));
+  data.playerCards = data.playerCards.filter((card) => (
+    card.playerCardSetId !== set.id ||
+    validCardIds.has(card.predictionCardId)
+  ));
+
   const assignedIds = new Set(
     data.playerCards
       .filter((card) => card.playerCardSetId === set.id)
@@ -1317,7 +1325,10 @@ function ensurePlayableCardSetsForUser(data, userId) {
 function rebuildPlayerCardsForMatchday(data, matchDayId) {
   const activeUserIds = [...new Set(data.leagueMembers
     .filter((member) => member.status !== "REMOVED")
-    .map((member) => member.userId))];
+    .map((member) => member.userId)
+    .concat(data.playerCardSets
+      .filter((set) => set.matchDayId === matchDayId)
+      .map((set) => set.userId)))];
 
   activeUserIds.forEach((userId) => {
     const set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId) || {

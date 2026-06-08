@@ -254,7 +254,7 @@ function createCardFromOdd(matchDayId, matchItem, odd) {
   const homeCode = matchItem.homeTeamCode || matchItem.homeTeam.slice(0, 3).toUpperCase();
   const awayCode = matchItem.awayTeamCode || matchItem.awayTeam.slice(0, 3).toUpperCase();
   const label = `${matchItem.homeTeam} vs ${matchItem.awayTeam}`;
-  const probability = probabilityFromOdd(odd);
+  const probability = balancedCardProbability(probabilityFromOdd(odd));
   const base = {
     matchDayId,
     tournamentMatchId: matchItem.id,
@@ -378,6 +378,14 @@ function probabilityFromOdd(odd) {
   return 0.5;
 }
 
+function balancedCardProbability(value) {
+  const probability = Number(value);
+  if (!Number.isFinite(probability)) return 0.5;
+  if (probability < 0.4) return Number((0.4 + probability * 0.5).toFixed(4));
+  if (probability > 0.6) return Number((0.6 - (Math.min(1, probability) - 0.6) * 0.25).toFixed(4));
+  return Number(probability.toFixed(4));
+}
+
 function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
   const label = `${matchItem.homeTeam} vs ${matchItem.awayTeam}`;
   const homeCode = matchItem.homeTeamCode || matchItem.homeTeam.slice(0, 3).toUpperCase();
@@ -401,6 +409,7 @@ function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
 
   return candidates.map(([cardType, title, questionText, gradingRule, marketKey, outcomeName], index) => {
     const sourceOdd = marketKey ? findBestOdd(oddsSnapshots, matchItem.id, marketKey, outcomeName) : null;
+    const probability = balancedCardProbability(sourceOdd?.impliedProbability ?? (index % 2 === 0 ? 0.51 : 0.48));
     return {
       matchDayId,
       tournamentMatchId: matchItem.id,
@@ -409,8 +418,8 @@ function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
       questionText,
       expectedAnswer: "YES",
       gradingRule,
-      estimatedProbability: sourceOdd?.impliedProbability || (index % 2 === 0 ? 0.51 : 0.48),
-      difficultyLabel: sourceOdd ? difficultyFromProbability(sourceOdd.impliedProbability) : "Balanced",
+      estimatedProbability: probability,
+      difficultyLabel: difficultyFromProbability(probability),
       sourceOddsSnapshotIds: sourceOdd?.id ? [sourceOdd.id] : [],
       status: "ACTIVE"
     };
@@ -439,8 +448,8 @@ function findWeakerSide(matchItem, oddsSnapshots) {
 }
 
 function difficultyFromProbability(probability) {
-  if (probability >= 0.58) return "Likely";
-  if (probability <= 0.36) return "Bold";
+  if (probability >= 0.56) return "Likely";
+  if (probability <= 0.44) return "Bold";
   return "Balanced";
 }
 

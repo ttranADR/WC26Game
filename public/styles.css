@@ -947,6 +947,35 @@ select:focus-visible {
   font-size: 28px;
 }
 
+.score-picker {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.score-picker span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.score-picker select {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 850;
+}
+
+.score-picker small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .chips {
   flex-wrap: wrap;
   gap: 8px;

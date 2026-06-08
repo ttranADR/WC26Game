@@ -1,5 +1,7 @@
 import { CARD_POINTS_CORRECT, CARD_POINTS_INCORRECT } from "./config.js";
 
+const DEFAULT_OTHER_SCORE_MULTIPLIER = 19.5;
+
 export function gradeCard(card, match) {
   if (card.status === "VOID") {
     return { isCorrect: null, pointsAwarded: 0, voidReason: card.voidReason || "Voided by admin" };
@@ -77,7 +79,14 @@ export function getExactScoreMultiplier(prediction, match, odds = []) {
     odd.marketKey === "CORRECT_SCORE" &&
     odd.outcomeName === score
   ));
-  return exact?.priceDecimal || getFallbackExactMultiplier(prediction, match, odds);
+  if (exact) return Number(exact.priceDecimal);
+
+  const otherScore = odds.find((odd) => (
+    odd.tournamentMatchId === match.id &&
+    odd.marketKey === "CORRECT_SCORE" &&
+    odd.outcomeName === "5-5"
+  ));
+  return otherScore ? Number(otherScore.priceDecimal) : DEFAULT_OTHER_SCORE_MULTIPLIER;
 }
 
 export function gradeExactPrediction(prediction, match, odds = []) {

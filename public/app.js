@@ -16,6 +16,7 @@ const api = {
 const MIN_SELECTED_CARDS = 5;
 const MAX_SELECTED_CARDS = 12;
 const CARD_SET_SIZE = 12;
+const DEFAULT_OTHER_SCORE_MULTIPLIER = 19.5;
 
 async function request(path, options = {}) {
   const headers = { "content-type": "application/json" };
@@ -177,7 +178,7 @@ function renderPlayer() {
   const readOnlyCards = locked || !hasAssignedCards;
   const selectedMatch = summary.matches.find((match) => match.id === state.selectedMatchId) || summary.matches[0] || null;
   const exactOdds = selectedMatch ? getExactOdds(selectedMatch.id) : [];
-  const activeOdd = exactOdds.find((odd) => odd.outcomeName === `${state.score.home}-${state.score.away}`);
+  const activeOdd = getActiveExactOdd(exactOdds);
   const multiplier = activeOdd?.priceDecimal || estimateMultiplier();
   const potential = Number((multiplier * 5).toFixed(1));
   const yourScore = estimateProjectedScore(multiplier);
@@ -264,6 +265,12 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
     `;
   }
 
+  const selectedScore = scoreKey(state.score);
+  const scoreOdds = withOtherExactOdd(exactOdds);
+  const listedOdd = getExactOddForScore(scoreOdds, selectedScore);
+  const displayOdd = listedOdd || getOtherExactOdd(scoreOdds);
+  const usesOtherRate = !listedOdd && Boolean(displayOdd);
+
   return `
     <section class="panel">
       <div class="panel-head">
@@ -293,11 +300,15 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
         <strong>${multiplier.toFixed(1)}x</strong>
         <em>${potential} pts</em>
       </div>
-      <div class="chips">${exactOdds.map((odd) => `
-        <button class="chip ${odd.outcomeName === `${state.score.home}-${state.score.away}` ? "active" : ""}" data-score-chip="${odd.outcomeName}" ${readOnlyCards ? "disabled" : ""}>
-          ${odd.outcomeName}<small>${odd.priceDecimal.toFixed(1)}x</small>
-        </button>
-      `).join("")}</div>
+      <label class="score-picker">
+        <span>Score list</span>
+        <select id="scoreSelect" aria-label="Exact score list" ${readOnlyCards || !scoreOdds.length ? "disabled" : ""}>
+          ${renderScoreSelectOptions(scoreOdds, selectedScore, displayOdd)}
+        </select>
+        <small>${usesOtherRate
+          ? `Other scores use the 5-5 rate: ${displayOdd.priceDecimal.toFixed(1)}x.`
+          : "Listed score odds from the database."}</small>
+      </label>
     </section>
   `;
 }
@@ -446,7 +457,7 @@ function renderCard(playerCard, options = {}) {
         <button class="answer-button ${dirty.answer === "YES" ? "yes-active" : ""}" data-answer="YES" ${locked ? "disabled" : ""}>Yes</button>
         <button class="answer-button ${dirty.answer === "NO" ? "no-active" : ""}" data-answer="NO" ${locked ? "disabled" : ""}>No</button>
       </div>
-      <div class="card-foot"><strong>${playerCard.card.estimatedProbability.toFixed(2)} prob</strong><span>+10 / -10</span></div>
+      <div class="card-foot"><strong>${formatProbability(playerCard.card.estimatedProbability)} prob</strong><span>+10 / -10</span></div>
     </article>
   `;
 }
@@ -745,7 +756,79 @@ function renderStandingsTable(rows) {
 function getExactOdds(matchId) {
   return state.data.correctScoreOdds
     .filter((odd) => odd.tournamentMatchId === matchId)
-    .sort((a, b) => a.priceDecimal - b.priceDecimal);
+    .sort(compareScoreOdds);
+}
+
+function renderScoreSelectOptions(exactOdds, selectedScore, displayOdd) {
+  if (!exactOdds.length) return `<option value="">No score odds available</option>`;
+  const listedOdd = getExactOddForScore(exactOdds, selectedScore);
+  const otherOption = !listedOdd && displayOdd
+    ? `<option value="${selectedScore}" selected>Other score ${selectedScore} · ${displayOdd.priceDecimal.toFixed(1)}x</option>`
+    : "";
+  const groups = new Map();
+  exactOdds.forEach((odd) => {
+    const score = parseScoreValue(odd.outcomeName);
+    const home = score ? score.home : "Other";
+    if (!groups.has(home)) groups.set(home, []);
+    groups.get(home).push(odd);
+  });
+
+  return otherOption + [...groups.entries()].map(([home, odds]) => `
+    <optgroup label="${home} home goals">
+      ${odds.map((odd) => `
+        <option value="${odd.outcomeName}" ${odd.outcomeName === selectedScore ? "selected" : ""}>
+          ${odd.outcomeName} · ${odd.priceDecimal.toFixed(1)}x
+        </option>
+      `).join("")}
+    </optgroup>
+  `).join("");
+}
+
+function getActiveExactOdd(exactOdds) {
+  const scoreOdds = withOtherExactOdd(exactOdds);
+  return getExactOddForScore(scoreOdds, scoreKey(state.score)) || getOtherExactOdd(scoreOdds);
+}
+
+function getExactOddForScore(exactOdds, score) {
+  return exactOdds.find((odd) => odd.outcomeName === score) || null;
+}
+
+function getOtherExactOdd(exactOdds) {
+  return getExactOddForScore(exactOdds, "5-5") || null;
+}
+
+function withOtherExactOdd(exactOdds) {
+  if (getExactOddForScore(exactOdds, "5-5")) return exactOdds;
+  return [...exactOdds, {
+    outcomeName: "5-5",
+    priceDecimal: DEFAULT_OTHER_SCORE_MULTIPLIER
+  }].sort(compareScoreOdds);
+}
+
+function compareScoreOdds(a, b) {
+  const left = parseScoreValue(a.outcomeName);
+  const right = parseScoreValue(b.outcomeName);
+  if (!left || !right) return String(a.outcomeName).localeCompare(String(b.outcomeName));
+  return left.home - right.home || left.away - right.away;
+}
+
+function parseScoreValue(value) {
+  const match = String(value || "").match(/^(\d+)\s*-\s*(\d+)$/);
+  if (!match) return null;
+  return {
+    home: Number(match[1]),
+    away: Number(match[2])
+  };
+}
+
+function scoreKey(score) {
+  return `${score.home}-${score.away}`;
+}
+
+function formatProbability(probability) {
+  const percent = Math.round(Number(probability || 0) * 100);
+  const balancedPercent = Number.isFinite(percent) ? Math.min(60, Math.max(40, percent)) : 50;
+  return `${balancedPercent}%`;
 }
 
 function groupMatchdaysByCalendarMonth(matchdays) {
@@ -1040,6 +1123,18 @@ root.addEventListener("change", (event) => {
   if (event.target.id === "managedLeagueSelect") {
     state.managedLeagueId = event.target.value;
     localStorage.setItem("pitchpick-managed-league-id", state.managedLeagueId);
+    render();
+  }
+
+  if (event.target.id === "scoreSelect") {
+    if (isMatchdayLocked(selectedMatchday())) {
+      showToast("This matchday auto-locked at first kickoff.");
+      render();
+      return;
+    }
+    const score = parseScoreValue(event.target.value);
+    if (!score) return;
+    state.score = score;
     render();
   }
 });
