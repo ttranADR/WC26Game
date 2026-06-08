@@ -40,6 +40,7 @@ export async function submitPicks(store, input) {
   const { userId = "user_you", matchDayId = "md_12", selectedCardIds, answers, scorePrediction } = input;
 
   return store.update((data) => {
+    refreshMatchdayStatuses(data);
     const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
     if (isLocked(matchday)) throw new Error("This matchday is locked. Picks can no longer be edited.");
 
@@ -668,10 +669,11 @@ function updateMatchdayFromMatches(data, matchDayId) {
 }
 
 function refreshMatchdayStatuses(data) {
+  const now = new Date();
   data.matchdays.forEach((matchday) => {
-    if (matchday.status === "FINAL") return;
     const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
-    const nextStatus = matches.length ? deriveMatchdayStatus(matchday, matches) : deriveMatchdayStatus(matchday, []);
+    if (matchday.status === "FINAL" && !hasFutureKickoff(matchday, matches, now)) return;
+    const nextStatus = matches.length ? deriveMatchdayStatus(matchday, matches, now) : deriveMatchdayStatus(matchday, [], now);
     if (matchday.status !== nextStatus) {
       matchday.status = nextStatus;
       matchday.updatedAt = new Date().toISOString();
@@ -679,15 +681,33 @@ function refreshMatchdayStatuses(data) {
   });
 }
 
-function deriveMatchdayStatus(matchday, matches) {
+function deriveMatchdayStatus(matchday, matches, now = new Date()) {
+  const firstKickoff = getFirstKickoffTime(matches);
+  if (Number.isFinite(firstKickoff) && firstKickoff > now.getTime()) {
+    return matchday.date === getLocalDateKey(now) ? "OPEN" : "SCHEDULED";
+  }
   if (!matches.length) {
-    if (new Date(matchday.lockAt) <= new Date()) return "LOCKED";
-    return matchday.date === getLocalDateKey() ? "OPEN" : "SCHEDULED";
+    if (new Date(matchday.lockAt) <= now) return "LOCKED";
+    return matchday.date === getLocalDateKey(now) ? "OPEN" : "SCHEDULED";
   }
   if (matches.every((match) => match.status === "FINISHED")) return "FINAL";
   if (matches.some((match) => match.status === "LIVE")) return "SCORING";
-  if (new Date(matchday.lockAt) <= new Date()) return "LOCKED";
-  return matchday.date === getLocalDateKey() ? "OPEN" : "SCHEDULED";
+  if (new Date(matchday.lockAt) <= now) return "LOCKED";
+  return matchday.date === getLocalDateKey(now) ? "OPEN" : "SCHEDULED";
+}
+
+function hasFutureKickoff(matchday, matches, now = new Date()) {
+  const firstKickoff = getFirstKickoffTime(matches);
+  const fallbackLock = new Date(matchday.lockAt).getTime();
+  const kickoff = Number.isFinite(firstKickoff) ? firstKickoff : fallbackLock;
+  return Number.isFinite(kickoff) && kickoff > now.getTime();
+}
+
+function getFirstKickoffTime(matches) {
+  return matches
+    .map((match) => new Date(match.kickoffAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b)[0];
 }
 
 function getStageInfo(fixtures) {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createCardsFromOdds, createSeedData } from "../src/seed.js";
 import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
-import { generateCardsForMatchday, submitPicks, syncDailyTournamentData, syncOdds } from "../src/services.js";
+import { generateCardsForMatchday, getAppState, submitPicks, syncDailyTournamentData, syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
 const data = createSeedData();
@@ -63,6 +63,11 @@ const fallbackResult = await generateCardsForMatchday(fallbackStore, {
 const fallbackSummary = fallbackResult.state.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
 assert.equal(fallbackSummary.predictionCardCount, 12);
 assert.equal(fallbackSummary.playerCards.length, 12);
+fallbackData.matchdays.find((item) => item.id === "md_no_direct_odds").status = "FINAL";
+fallbackData.tournamentMatches.find((item) => item.id === "match_no_direct_odds").status = "FINISHED";
+const refreshedFutureState = await getAppState(fallbackStore, "user_you");
+const refreshedFutureSummary = refreshedFutureState.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
+assert.equal(refreshedFutureSummary.status, "SCHEDULED");
 const futureSubmitResult = await submitPicks(fallbackStore, {
   userId: "user_you",
   matchDayId: "md_no_direct_odds",
