@@ -175,8 +175,8 @@ function renderPlayer() {
   const selected = hasAssignedCards ? [...state.dirtyCards.values()].filter((card) => card.selected).length : 0;
   const locked = isMatchdayLocked(summary);
   const readOnlyCards = locked || !hasAssignedCards;
-  const selectedMatch = summary.matches.find((match) => match.id === state.selectedMatchId) || summary.matches[0];
-  const exactOdds = getExactOdds(selectedMatch.id);
+  const selectedMatch = summary.matches.find((match) => match.id === state.selectedMatchId) || summary.matches[0] || null;
+  const exactOdds = selectedMatch ? getExactOdds(selectedMatch.id) : [];
   const activeOdd = exactOdds.find((odd) => odd.outcomeName === `${state.score.home}-${state.score.away}`);
   const multiplier = activeOdd?.priceDecimal || estimateMultiplier();
   const potential = Number((multiplier * 5).toFixed(1));
@@ -224,40 +224,7 @@ function renderPlayer() {
         </section>
 
         <aside class="right-rail">
-          <section class="panel">
-            <div class="panel-head">
-              <h2>Exact Score Boost</h2>
-              <span class="label">API ratios</span>
-            </div>
-            <div class="score-matchup">
-              <span class="flag home">${selectedMatch.homeTeamCode}</span>
-              <span>vs</span>
-              <span class="flag away">${selectedMatch.awayTeamCode}</span>
-            </div>
-            <div class="score-controls">
-              <div class="score-stack">
-                <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
-                <strong>${state.score.home}</strong>
-                <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
-              </div>
-              <span> - </span>
-              <div class="score-stack">
-                <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
-                <strong>${state.score.away}</strong>
-                <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
-              </div>
-            </div>
-            <div class="score-odds">
-              <span>Multiplier</span>
-              <strong>${multiplier.toFixed(1)}x</strong>
-              <em>${potential} pts</em>
-            </div>
-            <div class="chips">${exactOdds.map((odd) => `
-              <button class="chip ${odd.outcomeName === `${state.score.home}-${state.score.away}` ? "active" : ""}" data-score-chip="${odd.outcomeName}" ${readOnlyCards ? "disabled" : ""}>
-                ${odd.outcomeName}<small>${odd.priceDecimal.toFixed(1)}x</small>
-              </button>
-            `).join("")}</div>
-          </section>
+          ${renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards })}
 
           <section class="panel">
             <div class="panel-head"><h2>Opponent</h2><span class="label">${data.league.pairingMode}</span></div>
@@ -273,13 +240,64 @@ function renderPlayer() {
 
       <div class="bottom-fixtures">
         <div><p class="label">${summary.isToday ? "Today's matches" : "Selected matches"}</p><strong>${summary.matches.length} matches</strong></div>
-        ${summary.matches.map((match) => `
-          <button class="fixture-button ${match.id === selectedMatch.id ? "active" : ""}" data-match-id="${match.id}">
+        ${summary.matches.length ? summary.matches.map((match) => `
+          <button class="fixture-button ${match.id === selectedMatch?.id ? "active" : ""}" data-match-id="${match.id}">
             <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)}</em>
           </button>
-        `).join("")}
-        <button class="submit-button" id="submitPicks" ${!readOnlyCards && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
+        `).join("") : `<div class="empty-state fixture-empty">No matches are scheduled for this matchday yet.</div>`}
+        <button class="submit-button" id="submitPicks" ${selectedMatch && !readOnlyCards && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
       </div>
+    </section>
+  `;
+}
+
+function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards }) {
+  if (!selectedMatch) {
+    return `
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Exact Score Boost</h2>
+          <span class="label">No match</span>
+        </div>
+        <div class="empty-state compact-empty">No match is available for exact-score picks yet.</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Exact Score Boost</h2>
+        <span class="label">API ratios</span>
+      </div>
+      <div class="score-matchup">
+        <span class="flag home">${selectedMatch.homeTeamCode}</span>
+        <span>vs</span>
+        <span class="flag away">${selectedMatch.awayTeamCode}</span>
+      </div>
+      <div class="score-controls">
+        <div class="score-stack">
+          <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
+          <strong>${state.score.home}</strong>
+          <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
+        </div>
+        <span> - </span>
+        <div class="score-stack">
+          <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
+          <strong>${state.score.away}</strong>
+          <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
+        </div>
+      </div>
+      <div class="score-odds">
+        <span>Multiplier</span>
+        <strong>${multiplier.toFixed(1)}x</strong>
+        <em>${potential} pts</em>
+      </div>
+      <div class="chips">${exactOdds.map((odd) => `
+        <button class="chip ${odd.outcomeName === `${state.score.home}-${state.score.away}` ? "active" : ""}" data-score-chip="${odd.outcomeName}" ${readOnlyCards ? "disabled" : ""}>
+          ${odd.outcomeName}<small>${odd.priceDecimal.toFixed(1)}x</small>
+        </button>
+      `).join("")}</div>
     </section>
   `;
 }
@@ -461,6 +479,7 @@ function renderAdmin() {
   const data = state.data;
   const league = managedLeague();
   const opsMatchday = selectedMatchday() || data.matchday;
+  document.querySelector("#matchdayName").textContent = `Admin Ops · ${opsMatchday.name}`;
   const leagueMembers = membersForLeague(league.id);
   const availableUsers = availableUsersForLeague(league.id);
   const emailOutbox = data.emailOutbox || [];
@@ -675,6 +694,7 @@ function renderMemberRow(member) {
 
 function renderLeaderboard() {
   const league = managedLeague();
+  document.querySelector("#matchdayName").textContent = `${league.name} · Standings`;
   root.innerHTML = `
     <section class="panel">
       <div class="panel-head"><h2>${league.name} Leaderboard</h2><button class="panel-button" id="exportCsv">Export CSV</button></div>
@@ -684,6 +704,7 @@ function renderLeaderboard() {
 }
 
 function renderRules() {
+  document.querySelector("#matchdayName").textContent = "Game Rules";
   root.innerHTML = `
     <section class="panel">
       <div class="panel-head"><h2>Game Rules</h2><span class="label">World Cup friends league</span></div>
@@ -1065,6 +1086,10 @@ async function submitPicks() {
   const summary = selectedMatchday();
   if (isMatchdayLocked(summary)) {
     showToast("This matchday auto-locked at first kickoff.");
+    return;
+  }
+  if (!state.selectedMatchId) {
+    showToast("No match is available for this matchday yet.");
     return;
   }
   const selectedCardIds = [...state.dirtyCards.entries()].filter(([, value]) => value.selected).map(([cardId]) => cardId);

@@ -736,6 +736,11 @@ select:focus-visible {
   font-weight: 800;
 }
 
+.compact-empty,
+.fixture-empty {
+  margin-top: 0;
+}
+
 .prediction-card {
   display: grid;
   grid-template-rows: auto minmax(48px, 1fr) auto auto;
