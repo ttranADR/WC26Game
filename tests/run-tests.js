@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import { createCardsFromOdds, createSeedData } from "../src/seed.js";
 import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
-import { generateCardsForMatchday, getAppState, submitPicks, syncDailyTournamentData, syncOdds } from "../src/services.js";
+import { generateCardsForMatchday, getAppState, loginUser, submitPicks, syncDailyTournamentData, syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
 const data = createSeedData();
 const match = data.tournamentMatches.find((item) => item.id === "match_bra_mar");
 assert.equal(data.predictionCards.length, 12);
+
+const loginData = createSeedData();
+const loginStore = createMemoryStore(loginData);
+assert.equal((await loginUser(loginStore, { email: "user", password: "player123" })).user.id, "user_you");
+assert.equal((await loginUser(loginStore, { email: "user@pitchpick.local", password: "player123" })).user.id, "user_you");
+assert.equal((await loginUser(loginStore, { email: "player@pitchpick.local", password: "player123" })).user.id, "user_you");
+assert.equal((await loginUser(loginStore, { email: "admin", password: "admin123" })).user.id, "admin_1");
 
 const over = data.predictionCards.find((card) => card.cardType === "TOTAL_GOALS_OVER");
 assert.equal(gradeCard(over, match).pointsAwarded, 10);

@@ -21,7 +21,7 @@ export async function getAppState(store, userId = "user_you") {
 export async function loginUser(store, input) {
   return store.update((data) => {
     ensureDemoScaffold(data);
-    const email = String(input.email || "").trim().toLowerCase();
+    const email = normalizeLoginIdentifier(input.email);
     const password = String(input.password || "");
     const user = data.users.find((item) => item.email.toLowerCase() === email);
     if (!user || !verifyPassword(user, password)) {
@@ -34,6 +34,19 @@ export async function loginUser(store, input) {
       state: hydrateState(data, user.id)
     };
   });
+}
+
+function normalizeLoginIdentifier(value) {
+  const identifier = String(value || "").trim().toLowerCase();
+  const aliases = {
+    admin: "admin@pitchpick.local",
+    player: "you@pitchpick.local",
+    user: "you@pitchpick.local",
+    you: "you@pitchpick.local",
+    "player@pitchpick.local": "you@pitchpick.local",
+    "user@pitchpick.local": "you@pitchpick.local"
+  };
+  return aliases[identifier] || identifier;
 }
 
 export async function submitPicks(store, input) {

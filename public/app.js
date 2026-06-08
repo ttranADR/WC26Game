@@ -125,8 +125,8 @@ function renderLogin(error = "") {
         </div>
         ${error ? `<div class="form-error">${error}</div>` : ""}
         <label>
-          <span>Email</span>
-          <input name="email" type="email" value="you@pitchpick.local" required />
+          <span>Email or username</span>
+          <input name="email" type="text" value="user" autocomplete="username" required />
         </label>
         <label>
           <span>Password</span>
@@ -137,7 +137,7 @@ function renderLogin(error = "") {
           <button type="button" data-demo-login="player">Player demo</button>
           <button type="button" data-demo-login="admin">Admin demo</button>
         </div>
-        <p class="muted">Admin: admin@pitchpick.local / admin123<br />Player: you@pitchpick.local / player123</p>
+        <p class="muted">Admin: admin / admin123<br />Player: user / player123</p>
       </form>
     </section>
   `;
@@ -910,7 +910,7 @@ root.addEventListener("click", async (event) => {
 
   const demo = event.target.closest("[data-demo-login]");
   if (demo) {
-    const email = demo.dataset.demoLogin === "admin" ? "admin@pitchpick.local" : "you@pitchpick.local";
+    const email = demo.dataset.demoLogin === "admin" ? "admin" : "user";
     const password = demo.dataset.demoLogin === "admin" ? "admin123" : "player123";
     await doLogin(email, password);
     return;
