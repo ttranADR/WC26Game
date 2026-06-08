@@ -314,39 +314,55 @@ select:focus-visible {
 }
 
 .matchday-list {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 2px;
+  display: grid;
+  gap: 8px;
+  max-height: 258px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .phase-group {
   display: grid;
-  gap: 6px;
-  min-width: max-content;
+  grid-template-columns: minmax(118px, 160px) minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-2);
 }
 
-.phase-group > span {
+.phase-label {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.phase-label span {
   color: var(--muted);
   font-size: 11px;
   font-weight: 950;
   text-transform: uppercase;
 }
 
+.phase-label small {
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .phase-days {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 6px;
+  min-width: 0;
 }
 
 .matchday-chip {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 2px 10px;
-  min-width: 118px;
+  min-width: 0;
   padding: 9px 10px;
   text-align: left;
 }
@@ -997,7 +1013,10 @@ th {
 }
 
 .submit-button[disabled],
-.primary[disabled] {
+.primary[disabled],
+.answer-button[disabled],
+.score-step[disabled],
+.chip[disabled] {
   cursor: not-allowed;
   opacity: 0.58;
 }
@@ -1006,6 +1025,12 @@ th {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 420px;
   gap: 16px;
+}
+
+.admin-main {
+  display: grid;
+  gap: 14px;
+  align-content: start;
 }
 
 .admin-grid {
@@ -1065,6 +1090,33 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.ops-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.ops-summary span {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.ops-summary strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.ops-summary small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .league-summary {
@@ -1195,12 +1247,15 @@ th {
   }
 
   .matchday-strip,
-  .result-hero {
+  .result-hero,
+  .phase-group {
     grid-template-columns: 1fr;
   }
 
   .matchday-list {
-    padding-bottom: 8px;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
   }
 
   .result-breakdown {
@@ -1240,6 +1295,7 @@ th {
   .bottom-fixtures,
   .admin-grid,
   .league-summary,
+  .ops-summary,
   .live-data-summary,
   .live-data-actions,
   .member-row {

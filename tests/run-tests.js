@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createSeedData } from "../src/seed.js";
+import { createCardsFromOdds, createSeedData } from "../src/seed.js";
 import { gradeCard, gradeExactPrediction } from "../src/scoring.js";
 import { syncDailyTournamentData, syncOdds } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
@@ -13,6 +13,19 @@ assert.equal(gradeCard(over, match).pointsAwarded, 10);
 
 const draw = data.predictionCards.find((card) => card.cardType === "DRAW" && card.tournamentMatchId === match.id);
 assert.equal(gradeCard(draw, match).pointsAwarded, -10);
+
+const exactScoreCard = {
+  status: "ACTIVE",
+  cardType: "EXACT_SCORE",
+  expectedAnswer: "YES",
+  gradingRule: { homeScore: 2, awayScore: 1 }
+};
+assert.equal(gradeCard(exactScoreCard, match).pointsAwarded, 10);
+
+const oddsGeneratedCards = createCardsFromOdds("md_12", data.tournamentMatches, data.oddsSnapshots, "test_odds_cards");
+assert.equal(oddsGeneratedCards.length, 12);
+assert.ok(oddsGeneratedCards.every((card) => card.sourceOddsSnapshotIds.length === 1));
+assert.ok(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"));
 
 const exact = gradeExactPrediction({
   predictedHomeScore: 2,

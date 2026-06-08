@@ -44,6 +44,9 @@ export function gradeCard(card, match) {
     case "DRAW":
       result = home === away;
       break;
+    case "EXACT_SCORE":
+      result = home === card.gradingRule.homeScore && away === card.gradingRule.awayScore;
+      break;
     default:
       return { isCorrect: null, pointsAwarded: 0, voidReason: "Unsupported grading rule" };
   }

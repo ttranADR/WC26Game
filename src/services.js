@@ -1,4 +1,4 @@
-import { createCardPool, createContests, createStandings } from "./seed.js";
+import { createCardsFromOdds, createCardPool, createContests, createStandings } from "./seed.js";
 import { gradeCard, gradeExactPrediction, getExactScoreMultiplier } from "./scoring.js";
 import { ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
 import { sendInviteEmail } from "./email.js";
@@ -607,7 +607,7 @@ function ensureMatchdayForFixtures(data, date, fixtures) {
     .filter(Number.isFinite)
     .sort((a, b) => a - b)[0];
   const lockAt = firstKickoff
-    ? new Date(firstKickoff - 15 * 60 * 1000).toISOString()
+    ? new Date(firstKickoff).toISOString()
     : `${date}T00:00:00.000Z`;
   const existing = data.matchdays.find((matchday) => matchday.date === date && matchday.externalProvider === "football-data") ||
     data.matchdays.find((matchday) => matchday.date === date);
@@ -659,7 +659,7 @@ function updateMatchdayFromMatches(data, matchDayId) {
     .map((match) => new Date(match.kickoffAt).getTime())
     .filter(Number.isFinite)
     .sort((a, b) => a - b)[0];
-  if (firstKickoff) matchday.lockAt = new Date(firstKickoff - 15 * 60 * 1000).toISOString();
+  if (firstKickoff) matchday.lockAt = new Date(firstKickoff).toISOString();
   matchday.phase = stage.key;
   matchday.phaseLabel = stage.label;
   matchday.phaseSort = stage.sort;
@@ -667,11 +667,27 @@ function updateMatchdayFromMatches(data, matchDayId) {
   matchday.updatedAt = new Date().toISOString();
 }
 
+function refreshMatchdayStatuses(data) {
+  data.matchdays.forEach((matchday) => {
+    if (matchday.status === "FINAL") return;
+    const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+    const nextStatus = matches.length ? deriveMatchdayStatus(matchday, matches) : deriveMatchdayStatus(matchday, []);
+    if (matchday.status !== nextStatus) {
+      matchday.status = nextStatus;
+      matchday.updatedAt = new Date().toISOString();
+    }
+  });
+}
+
 function deriveMatchdayStatus(matchday, matches) {
+  if (!matches.length) {
+    if (new Date(matchday.lockAt) <= new Date()) return "LOCKED";
+    return matchday.date === getLocalDateKey() ? "OPEN" : "SCHEDULED";
+  }
   if (matches.every((match) => match.status === "FINISHED")) return "FINAL";
   if (matches.some((match) => match.status === "LIVE")) return "SCORING";
   if (new Date(matchday.lockAt) <= new Date()) return "LOCKED";
-  return matchday.date === new Date().toISOString().slice(0, 10) ? "OPEN" : "SCHEDULED";
+  return matchday.date === getLocalDateKey() ? "OPEN" : "SCHEDULED";
 }
 
 function getStageInfo(fixtures) {
@@ -752,13 +768,15 @@ function titleize(value) {
 export async function generateCardsForMatchday(store, input) {
   return store.update((data) => {
     const matchDayId = input.matchDayId || "md_12";
+    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
     const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
-    const cards = createCardPool(matchDayId, matches, data.oddsSnapshots);
+    const cards = createCardsFromOdds(matchDayId, matches, data.oddsSnapshots);
+    if (!cards.length) throw new Error(`No odds-backed card data found for ${matchday.name}. Sync odds before generating cards.`);
     data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchDayId);
     data.predictionCards.push(...cards);
     rebuildPlayerCardsForMatchday(data, matchDayId);
-    data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} matchday cards.`));
-    return { ok: true, state: hydrateState(data, input.currentUserId) };
+    data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} cards from stored odds for ${matchday.name}.`));
+    return { ok: true, message: `Generated ${cards.length} odds-backed cards.`, state: hydrateState(data, input.currentUserId) };
   });
 }
 
@@ -940,6 +958,7 @@ function updateSide(data, leagueId, contest, side, scoreFor, scoreAgainst, cardS
 
 function hydrateState(data, currentUserId = "user_you") {
   ensureDemoScaffold(data);
+  refreshMatchdayStatuses(data);
   const league = data.leagues[0];
   const matchday = getTodayMatchday(data);
   data.users.forEach(ensureUserPassword);
@@ -966,6 +985,7 @@ function hydrateState(data, currentUserId = "user_you") {
       .slice()
       .sort(sortMatchdaysForSchedule),
     todayMatchdayId: matchday.id,
+    todayDate: getLocalDateKey(),
     matchdaySummaries: hydrateMatchdaySummaries(data, league.id, currentUser.id),
     matchday,
     matches,
@@ -1003,11 +1023,13 @@ function hydrateLeagues(data) {
 }
 
 function hydrateMatchdaySummaries(data, leagueId, userId) {
+  const today = getLocalDateKey();
   return data.matchdays
     .slice()
     .sort(sortMatchdaysForSchedule)
     .map((matchday) => {
       const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+      const predictionCards = data.predictionCards.filter((card) => card.matchDayId === matchday.id);
       const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === userId);
       const playerCards = data.playerCards
         .filter((playerCard) => playerCard.playerCardSetId === cardSet?.id)
@@ -1031,8 +1053,10 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
 
       return {
         ...matchday,
-        isToday: matchday.id === getTodayMatchday(data).id,
+        isToday: matchday.date === today,
         matches,
+        predictionCards,
+        predictionCardCount: predictionCards.length,
         playerCards,
         selectedCards: playerCards.filter((card) => card.selected),
         scorePrediction,
@@ -1051,11 +1075,20 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
 }
 
 function getTodayMatchday(data) {
-  const today = new Date().toISOString().slice(0, 10);
-  return data.matchdays.find((matchday) => matchday.date === today && matchday.status !== "FINAL") ||
-    data.matchdays.find((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status)) ||
-    data.matchdays.slice().filter((matchday) => matchday.date >= today).sort(sortMatchdaysForSchedule)[0] ||
-    data.matchdays.slice().sort(sortMatchdaysForSchedule).at(-1);
+  const today = getLocalDateKey();
+  const sorted = data.matchdays.slice().sort(sortMatchdaysForSchedule);
+  return sorted.find((matchday) => matchday.date === today && matchday.status !== "FINAL") ||
+    sorted.find((matchday) => matchday.status === "SCORING") ||
+    sorted.find((matchday) => matchday.date >= today && matchday.status !== "FINAL") ||
+    sorted.filter((matchday) => matchday.status !== "FINAL").at(-1) ||
+    sorted.at(-1);
+}
+
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function sortMatchdaysForSchedule(a, b) {
@@ -1231,7 +1264,9 @@ function rebuildPlayerCardsForMatchday(data, matchDayId) {
 
 function ensureDemoScaffold(data) {
   ensureDemoMatchdayHistory(data);
+  refreshMatchdayStatuses(data);
   ensurePlayableMatchday(data);
+  refreshMatchdayStatuses(data);
   ensureCurrentCardRules(data);
 }
 
@@ -1255,12 +1290,15 @@ function ensureCurrentCardRules(data) {
 }
 
 function ensurePlayableMatchday(data) {
-  if (data.matchdays.some((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status))) return;
+  const today = getLocalDateKey();
+  if (data.matchdays.some((matchday) => matchday.date === today && matchday.status !== "FINAL")) return;
+  if (data.matchdays.some((matchday) => matchday.date >= today && ["OPEN", "SCHEDULED", "SCORING"].includes(matchday.status))) return;
   if (data.matchdays.some((matchday) => matchday.externalProvider === "football-data")) return;
 
   const now = new Date();
   const nowIso = now.toISOString();
-  const date = nowIso.slice(0, 10);
+  const date = today;
+  const firstKickoff = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
   const matchDayId = `md_live_${date.replaceAll("-", "")}_${data.matchdays.length + 1}`;
   if (data.matchdays.some((matchday) => matchday.id === matchDayId)) return;
 
@@ -1268,7 +1306,7 @@ function ensurePlayableMatchday(data) {
     id: matchDayId,
     name: "Today Matchday",
     date,
-    lockAt: new Date(now.getTime() + 6 * 60 * 60 * 1000).toISOString(),
+    lockAt: firstKickoff,
     status: "OPEN",
     createdAt: nowIso,
     updatedAt: nowIso

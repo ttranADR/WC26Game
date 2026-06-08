@@ -177,6 +177,51 @@ function odd(tournamentMatchId, marketKey, outcomeName, priceDecimal) {
   };
 }
 
+export function createCardsFromOdds(matchDayId, matches, oddsSnapshots = [], seedText = `${matchDayId}_${Date.now()}`) {
+  const matchById = new Map(matches.map((matchItem) => [matchItem.id, matchItem]));
+  const candidates = shuffle(oddsSnapshots
+    .filter((odd) => matchById.has(odd.tournamentMatchId))
+    .map((odd) => createCardFromOdd(matchDayId, matchById.get(odd.tournamentMatchId), odd))
+    .filter(Boolean), seedText);
+
+  const picked = [];
+  const seen = new Set();
+  const marketCounts = new Map();
+  const marketCaps = new Map([
+    ["CORRECT_SCORE", 3],
+    ["MATCH_WINNER", 5],
+    ["TOTAL_GOALS", 5],
+    ["BOTH_TEAMS_SCORE", 4]
+  ]);
+
+  for (const card of candidates) {
+    if (picked.length >= CARD_SET_SIZE) break;
+    const key = cardUniquenessKey(card);
+    const marketCount = marketCounts.get(card.sourceMarketKey) || 0;
+    const marketCap = marketCaps.get(card.sourceMarketKey) || CARD_SET_SIZE;
+    if (seen.has(key) || marketCount >= marketCap) continue;
+    picked.push(card);
+    seen.add(key);
+    marketCounts.set(card.sourceMarketKey, marketCount + 1);
+  }
+
+  for (const card of candidates) {
+    if (picked.length >= CARD_SET_SIZE) break;
+    const key = cardUniquenessKey(card);
+    if (seen.has(key)) continue;
+    picked.push(card);
+    seen.add(key);
+  }
+
+  return picked.slice(0, CARD_SET_SIZE).map(({ sourceMarketKey, ...card }, index) => ({
+    ...card,
+    id: `${cardIdPrefix(matchDayId)}_${index + 1}`,
+    displayIndex: index + 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }));
+}
+
 export function createCardPool(matchDayId, matches, oddsSnapshots = []) {
   const fallbackMatch = {
     id: "match_bra_mar",
@@ -186,7 +231,6 @@ export function createCardPool(matchDayId, matches, oddsSnapshots = []) {
     awayTeamCode: "MAR"
   };
   const activeMatches = matches.length ? matches : [fallbackMatch];
-  const cardIdPrefix = matchDayId === "md_12" ? "card" : `card_${matchDayId}`;
   const perMatch = activeMatches.map((matchItem) => createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots));
   const cards = [];
 
@@ -199,11 +243,139 @@ export function createCardPool(matchDayId, matches, oddsSnapshots = []) {
 
   return cards.slice(0, CARD_SET_SIZE).map((card, index) => ({
     ...card,
-    id: `${cardIdPrefix}_${index + 1}`,
+    id: `${cardIdPrefix(matchDayId)}_${index + 1}`,
     displayIndex: index + 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }));
+}
+
+function createCardFromOdd(matchDayId, matchItem, odd) {
+  const homeCode = matchItem.homeTeamCode || matchItem.homeTeam.slice(0, 3).toUpperCase();
+  const awayCode = matchItem.awayTeamCode || matchItem.awayTeam.slice(0, 3).toUpperCase();
+  const label = `${matchItem.homeTeam} vs ${matchItem.awayTeam}`;
+  const probability = probabilityFromOdd(odd);
+  const base = {
+    matchDayId,
+    tournamentMatchId: matchItem.id,
+    expectedAnswer: "YES",
+    estimatedProbability: probability,
+    difficultyLabel: difficultyFromProbability(probability),
+    sourceOddsSnapshotIds: odd.id ? [odd.id] : [],
+    sourceMarketKey: odd.marketKey,
+    status: "ACTIVE"
+  };
+  const outcome = normalizeOddOutcome(odd.outcomeName);
+  const homeOutcomes = [matchItem.homeTeam, homeCode].map(normalizeOddOutcome);
+  const awayOutcomes = [matchItem.awayTeam, awayCode].map(normalizeOddOutcome);
+
+  if (odd.marketKey === "MATCH_WINNER") {
+    if (outcome === "draw" || outcome === "tie") {
+      return {
+        ...base,
+        cardType: "DRAW",
+        title: `${homeCode}-${awayCode} Draw`,
+        questionText: `Will ${label} finish level after regulation?`,
+        gradingRule: {}
+      };
+    }
+    if (homeOutcomes.includes(outcome)) {
+      return {
+        ...base,
+        cardType: "WIN_MARGIN",
+        title: `${homeCode} Win`,
+        questionText: `Will ${matchItem.homeTeam} beat ${matchItem.awayTeam}?`,
+        gradingRule: { team: "HOME", marginAtLeast: 1 }
+      };
+    }
+    if (awayOutcomes.includes(outcome)) {
+      return {
+        ...base,
+        cardType: "WIN_MARGIN",
+        title: `${awayCode} Win`,
+        questionText: `Will ${matchItem.awayTeam} beat ${matchItem.homeTeam}?`,
+        gradingRule: { team: "AWAY", marginAtLeast: 1 }
+      };
+    }
+  }
+
+  if (odd.marketKey === "TOTAL_GOALS") {
+    const total = parseGoalTotal(odd.outcomeName);
+    if (!total) return null;
+    const [side, threshold] = total;
+    const over = side === "OVER";
+    return {
+      ...base,
+      cardType: over ? "TOTAL_GOALS_OVER" : "TOTAL_GOALS_UNDER",
+      title: `${over ? "Over" : "Under"} ${threshold} Goals`,
+      questionText: `Will ${label} have ${over ? "over" : "under"} ${threshold} total goals?`,
+      gradingRule: { threshold }
+    };
+  }
+
+  if (odd.marketKey === "BOTH_TEAMS_SCORE") {
+    const yes = ["yes", "y", "true"].includes(outcome);
+    const no = ["no", "n", "false"].includes(outcome);
+    if (!yes && !no) return null;
+    return {
+      ...base,
+      cardType: "BOTH_TEAMS_SCORE",
+      title: yes ? "Both Teams Score" : "No BTTS",
+      questionText: `Will both teams score in ${label}?`,
+      expectedAnswer: yes ? "YES" : "NO",
+      gradingRule: {}
+    };
+  }
+
+  if (odd.marketKey === "CORRECT_SCORE") {
+    const score = parseCorrectScore(odd.outcomeName);
+    if (!score) return null;
+    return {
+      ...base,
+      cardType: "EXACT_SCORE",
+      title: `${homeCode} ${score.homeScore}-${score.awayScore} ${awayCode}`,
+      questionText: `Will ${label} finish ${score.homeScore}-${score.awayScore}?`,
+      gradingRule: score
+    };
+  }
+
+  return null;
+}
+
+function cardUniquenessKey(card) {
+  return [
+    card.tournamentMatchId,
+    card.cardType,
+    card.expectedAnswer,
+    JSON.stringify(card.gradingRule)
+  ].join("::");
+}
+
+function cardIdPrefix(matchDayId) {
+  return matchDayId === "md_12" ? "card" : `card_${matchDayId}`;
+}
+
+function parseGoalTotal(value) {
+  const match = String(value || "").match(/\b(over|under)\s*(\d+(?:\.\d+)?)\b/i);
+  if (!match) return null;
+  return [match[1].toUpperCase(), Number(match[2])];
+}
+
+function parseCorrectScore(value) {
+  const match = String(value || "").match(/\b(\d+)\s*-\s*(\d+)\b/);
+  if (!match) return null;
+  return {
+    homeScore: Number(match[1]),
+    awayScore: Number(match[2])
+  };
+}
+
+function probabilityFromOdd(odd) {
+  const implied = Number(odd.impliedProbability);
+  if (Number.isFinite(implied) && implied > 0 && implied < 1) return implied;
+  const price = Number(odd.priceDecimal);
+  if (Number.isFinite(price) && price > 1) return Number((1 / price).toFixed(4));
+  return 0.5;
 }
 
 function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {

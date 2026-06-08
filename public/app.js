@@ -171,6 +171,7 @@ function renderPlayer() {
   }
 
   const selected = [...state.dirtyCards.values()].filter((card) => card.selected).length;
+  const locked = isMatchdayLocked(summary);
   const selectedMatch = summary.matches.find((match) => match.id === state.selectedMatchId) || summary.matches[0];
   const exactOdds = getExactOdds(selectedMatch.id);
   const activeOdd = exactOdds.find((odd) => odd.outcomeName === `${state.score.home}-${state.score.away}`);
@@ -198,9 +199,9 @@ function renderPlayer() {
           <div><span>${opponent?.displayName || "Maya"}</span><strong class="blue-score">72</strong><small class="muted">Projected</small></div>
         </div>
         <div class="lock-card">
-          <span class="muted">Locks in</span>
-          <strong>${formatCountdown(summary.lockAt)}</strong>
-          <small class="muted">Picks lock before first match</small>
+          <span class="muted">${locked ? "Auto-locked" : "Auto-locks in"}</span>
+          <strong>${locked ? "Locked" : formatCountdown(summary.lockAt)}</strong>
+          <small class="muted">First kickoff · ${formatTime(summary.lockAt)}</small>
         </div>
       </div>
 
@@ -210,7 +211,7 @@ function renderPlayer() {
             <div>
               <p class="label">Pick ${MIN_SELECTED_CARDS}-${MAX_SELECTED_CARDS} of ${CARD_SET_SIZE}</p>
               <h2>Prediction cards</h2>
-              <span class="muted">Correct picks score +10. Incorrect picks score -10.</span>
+              <span class="muted">${locked ? "This matchday is read-only after first kickoff." : "Correct picks score +10. Incorrect picks score -10."}</span>
             </div>
             <div class="meter"><span>${selected} Selected</span><strong>${selected} / ${MAX_SELECTED_CARDS}</strong></div>
           </div>
@@ -230,15 +231,15 @@ function renderPlayer() {
             </div>
             <div class="score-controls">
               <div class="score-stack">
-                <button class="score-step" data-score-team="home" data-delta="1">+</button>
+                <button class="score-step" data-score-team="home" data-delta="1" ${locked ? "disabled" : ""}>+</button>
                 <strong>${state.score.home}</strong>
-                <button class="score-step" data-score-team="home" data-delta="-1">-</button>
+                <button class="score-step" data-score-team="home" data-delta="-1" ${locked ? "disabled" : ""}>-</button>
               </div>
               <span> - </span>
               <div class="score-stack">
-                <button class="score-step" data-score-team="away" data-delta="1">+</button>
+                <button class="score-step" data-score-team="away" data-delta="1" ${locked ? "disabled" : ""}>+</button>
                 <strong>${state.score.away}</strong>
-                <button class="score-step" data-score-team="away" data-delta="-1">-</button>
+                <button class="score-step" data-score-team="away" data-delta="-1" ${locked ? "disabled" : ""}>-</button>
               </div>
             </div>
             <div class="score-odds">
@@ -247,7 +248,7 @@ function renderPlayer() {
               <em>${potential} pts</em>
             </div>
             <div class="chips">${exactOdds.map((odd) => `
-              <button class="chip ${odd.outcomeName === `${state.score.home}-${state.score.away}` ? "active" : ""}" data-score-chip="${odd.outcomeName}">
+              <button class="chip ${odd.outcomeName === `${state.score.home}-${state.score.away}` ? "active" : ""}" data-score-chip="${odd.outcomeName}" ${locked ? "disabled" : ""}>
                 ${odd.outcomeName}<small>${odd.priceDecimal.toFixed(1)}x</small>
               </button>
             `).join("")}</div>
@@ -272,7 +273,7 @@ function renderPlayer() {
             <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)}</em>
           </button>
         `).join("")}
-        <button class="submit-button" id="submitPicks" ${selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
+        <button class="submit-button" id="submitPicks" ${!locked && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
       </div>
     </section>
   `;
@@ -289,7 +290,10 @@ function renderMatchdayList(activeId) {
       <div class="matchday-list">
         ${groups.map((group) => `
           <div class="phase-group">
-            <span>${group.label}</span>
+            <div class="phase-label">
+              <span>${group.label}</span>
+              <small>${group.matchdays.length} day${group.matchdays.length === 1 ? "" : "s"}</small>
+            </div>
             <div class="phase-days">
               ${group.matchdays.map((matchday) => `
                 <button class="matchday-chip ${matchday.id === activeId ? "active" : ""} ${matchday.isToday ? "today" : ""}" data-matchday-id="${matchday.id}">
@@ -399,16 +403,17 @@ function renderCard(playerCard) {
   const dirty = state.dirtyCards.get(playerCard.predictionCardId) || { selected: false, answer: null };
   const selectedCount = [...state.dirtyCards.values()].filter((card) => card.selected).length;
   const lockedOut = !dirty.selected && selectedCount >= MAX_SELECTED_CARDS;
+  const locked = isMatchdayLocked(selectedMatchday());
   return `
-    <article class="prediction-card ${dirty.selected ? "selected" : ""} ${lockedOut ? "locked" : ""}" data-card-id="${playerCard.predictionCardId}">
+    <article class="prediction-card ${dirty.selected ? "selected" : ""} ${lockedOut || locked ? "locked" : ""}" data-card-id="${playerCard.predictionCardId}">
       <div class="card-top">
         <span class="card-number">${playerCard.card.id.replace("card_", "")}</span>
         <h3>${playerCard.card.title}</h3>
       </div>
       <p class="card-question">${playerCard.card.questionText}</p>
       <div class="answer-row">
-        <button class="answer-button ${dirty.answer === "YES" ? "yes-active" : ""}" data-answer="YES">Yes</button>
-        <button class="answer-button ${dirty.answer === "NO" ? "no-active" : ""}" data-answer="NO">No</button>
+        <button class="answer-button ${dirty.answer === "YES" ? "yes-active" : ""}" data-answer="YES" ${locked ? "disabled" : ""}>Yes</button>
+        <button class="answer-button ${dirty.answer === "NO" ? "no-active" : ""}" data-answer="NO" ${locked ? "disabled" : ""}>No</button>
       </div>
       <div class="card-foot"><strong>${playerCard.card.estimatedProbability.toFixed(2)} prob</strong><span>+10 / -10</span></div>
     </article>
@@ -424,46 +429,52 @@ function renderAdmin() {
   const emailOutbox = data.emailOutbox || [];
   root.innerHTML = `
     <section class="admin-layout">
-      <div class="admin-grid">
-        ${renderLiveDataPanel(data)}
+      <div class="admin-main">
+        ${renderMatchdayList(opsMatchday.id)}
+        <div class="admin-grid">
+          ${renderLiveDataPanel(data)}
 
-        <section class="panel">
-          <div class="panel-head"><h2>Manage Leagues</h2><span class="label">${data.leagues.length} leagues</span></div>
-          <form class="admin-form" id="updateLeagueForm">
-            <select id="managedLeagueSelect" name="leagueId" aria-label="Select league to manage">
-              ${data.leagues.map((item) => `<option value="${item.id}" ${item.id === league.id ? "selected" : ""}>${item.name}</option>`).join("")}
-            </select>
-            <input name="name" value="${escapeHtml(league.name)}" aria-label="League name" />
-            <input name="seasonName" value="${escapeHtml(league.seasonName)}" aria-label="Season name" />
-            <select name="pairingMode" aria-label="Pairing mode">
-              <option value="SOLO" ${league.pairingMode === "SOLO" ? "selected" : ""}>SOLO</option>
-              <option value="DUO" ${league.pairingMode === "DUO" ? "selected" : ""}>DUO</option>
-            </select>
-            <button class="panel-button primary">Save League</button>
-          </form>
-          <div class="league-summary">
-            <span><strong>${league.memberCount}</strong> members</span>
-            <span><strong>${league.activeMemberCount}</strong> active</span>
-            <span><strong>${league.invitedMemberCount}</strong> invited</span>
-            <span><strong>${league.contestCount}</strong> contests</span>
-          </div>
-        </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Manage Leagues</h2><span class="label">${data.leagues.length} leagues</span></div>
+            <form class="admin-form" id="updateLeagueForm">
+              <select id="managedLeagueSelect" name="leagueId" aria-label="Select league to manage">
+                ${data.leagues.map((item) => `<option value="${item.id}" ${item.id === league.id ? "selected" : ""}>${item.name}</option>`).join("")}
+              </select>
+              <input name="name" value="${escapeHtml(league.name)}" aria-label="League name" />
+              <input name="seasonName" value="${escapeHtml(league.seasonName)}" aria-label="Season name" />
+              <select name="pairingMode" aria-label="Pairing mode">
+                <option value="SOLO" ${league.pairingMode === "SOLO" ? "selected" : ""}>SOLO</option>
+                <option value="DUO" ${league.pairingMode === "DUO" ? "selected" : ""}>DUO</option>
+              </select>
+              <button class="panel-button primary">Save League</button>
+            </form>
+            <div class="league-summary">
+              <span><strong>${league.memberCount}</strong> members</span>
+              <span><strong>${league.activeMemberCount}</strong> active</span>
+              <span><strong>${league.invitedMemberCount}</strong> invited</span>
+              <span><strong>${league.contestCount}</strong> contests</span>
+            </div>
+          </section>
 
-        <section class="panel">
-          <div class="panel-head"><h2>Matchday Ops</h2><span class="label">${opsMatchday.status}</span></div>
-          <p class="muted">Sync imports tournament data. Card, pairing, lock, score, and finalize target <strong>${opsMatchday.name}</strong> for <strong>${league.name}</strong>.</p>
-          <div class="actions">
-            <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
-            <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
-            <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
-            <button class="panel-button" data-admin-action="generate-pairings">Generate Pairings</button>
-            <button class="panel-button danger" data-admin-action="lock-matchday">Lock</button>
-            <button class="panel-button" data-admin-action="score-matchday">Score</button>
-            <button class="panel-button primary" data-admin-action="finalize-matchday">Finalize</button>
-          </div>
-        </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Matchday Ops</h2><span class="label">${opsMatchday.status}</span></div>
+            <p class="muted">Cards, pairings, score, and finalize target <strong>${opsMatchday.name}</strong> for <strong>${league.name}</strong>.</p>
+            <div class="ops-summary">
+              <span><strong>${formatDate(opsMatchday.date)}</strong><small>${opsMatchday.matches.length} matches</small></span>
+              <span><strong>${formatTime(opsMatchday.lockAt)}</strong><small>Auto-lock</small></span>
+              <span><strong>${opsMatchday.predictionCardCount || 0}</strong><small>Cards</small></span>
+            </div>
+            <div class="actions">
+              <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
+              <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
+              <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
+              <button class="panel-button" data-admin-action="generate-pairings">Generate Pairings</button>
+              <button class="panel-button" data-admin-action="score-matchday">Score</button>
+              <button class="panel-button primary" data-admin-action="finalize-matchday">Finalize</button>
+            </div>
+          </section>
 
-        <section class="panel">
+          <section class="panel">
           <div class="panel-head"><h2>Create League</h2><span class="label">Admin</span></div>
           <form class="admin-form" id="createLeagueForm">
             <input name="name" value="Weekend Rivals" aria-label="League name" />
@@ -473,20 +484,22 @@ function renderAdmin() {
             </select>
             <button class="panel-button primary">Create League</button>
           </form>
-        </section>
+          </section>
 
-        <section class="panel">
+          <section class="panel">
           <div class="panel-head"><h2>Void Card</h2><span class="label">Safety</span></div>
           <form class="admin-form" id="voidForm">
-            <select name="cardId" aria-label="Card to void">
-              ${data.playerCards.map((playerCard) => `<option value="${playerCard.card.id}">${playerCard.card.title}</option>`).join("")}
+            <select name="cardId" aria-label="Card to void" ${opsMatchday.predictionCards?.length ? "" : "disabled"}>
+              ${opsMatchday.predictionCards?.length
+                ? opsMatchday.predictionCards.map((card) => `<option value="${card.id}">${card.title}</option>`).join("")
+                : `<option>No cards for selected matchday</option>`}
             </select>
             <input name="reason" value="Data unavailable" aria-label="Void reason" />
-            <button class="panel-button danger">Void Card</button>
+            <button class="panel-button danger" ${opsMatchday.predictionCards?.length ? "" : "disabled"}>Void Card</button>
           </form>
-        </section>
+          </section>
 
-        <section class="panel">
+          <section class="panel">
           <div class="panel-head"><h2>League Members</h2><span class="label">${league.name}</span></div>
           <div class="context-banner">
             <strong>Managing: ${league.name}</strong>
@@ -510,12 +523,13 @@ function renderAdmin() {
           </form>
 
           <div class="member-list">${leagueMembers.length ? leagueMembers.map(renderMemberRow).join("") : `<p class="muted">No members yet. Invite a friend to ${league.name} to start this league.</p>`}</div>
-        </section>
+          </section>
 
-        <section class="panel">
+          <section class="panel">
           <div class="panel-head"><h2>Pairings</h2><span class="label">${managedContests().length} contests</span></div>
           <div class="contest-list">${managedContests().length ? managedContests().map(renderContestRow).join("") : `<p class="muted">Generate pairings for ${league.name} to fill this list.</p>`}</div>
-        </section>
+          </section>
+        </div>
       </div>
 
       <aside class="right-rail">
@@ -545,7 +559,7 @@ function renderAdmin() {
 }
 
 function renderLiveDataPanel(data) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKey();
   const matchdays = data.matchdays || [];
   const tournamentMatches = data.tournamentMatches || [];
   const oddsSnapshots = data.oddsSnapshots || [];
@@ -639,7 +653,7 @@ function renderRules() {
       <p>Each player receives 12 prediction cards each matchday and must select at least 5, up to all 12.</p>
       <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect.</p>
       <p>Players also submit one exact final score. If it is correct, exact-score points equal <strong>5 x odds multiplier</strong>.</p>
-      <p>Admin can sync fixtures and odds, generate cards, generate deterministic pairings, lock submissions, score, finalize, void cards, and export standings.</p>
+      <p>Admin can sync fixtures and odds, generate cards, generate deterministic pairings, score, finalize, void cards, and export standings.</p>
     </section>
   `;
 }
@@ -747,8 +761,12 @@ function selectedMatchday() {
 function normalizeSelectedMatchday() {
   const summaries = state.data?.matchdaySummaries || [];
   if (!summaries.length) return null;
-  const exists = summaries.some((matchday) => matchday.id === state.selectedMatchdayId);
-  if (!exists) {
+  const selected = summaries.find((matchday) => matchday.id === state.selectedMatchdayId);
+  const today = summaries.find((matchday) => matchday.id === state.data.todayMatchdayId);
+  const selectedIsStaleActiveDay = selected && today &&
+    selected.date < (state.data.todayDate || todayKey()) &&
+    selected.status !== "FINAL";
+  if (!selected || selectedIsStaleActiveDay) {
     state.selectedMatchdayId = state.data.todayMatchdayId || summaries[0].id;
     localStorage.setItem("pitchpick-selected-matchday-id", state.selectedMatchdayId);
   }
@@ -823,6 +841,7 @@ root.addEventListener("click", async (event) => {
   const cardEl = event.target.closest(".prediction-card");
   const answerButton = event.target.closest("[data-answer]");
   if (cardEl?.dataset.cardId && answerButton) {
+    if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
     const cardId = cardEl.dataset.cardId;
     const current = state.dirtyCards.get(cardId);
     if (!current.selected) {
@@ -834,6 +853,7 @@ root.addEventListener("click", async (event) => {
   }
 
   if (cardEl?.dataset.cardId) {
+    if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
     const cardId = cardEl.dataset.cardId;
     const current = state.dirtyCards.get(cardId);
     if (current.selected) mutateCard(cardId, { selected: false, answer: null });
@@ -847,6 +867,7 @@ root.addEventListener("click", async (event) => {
 
   const scoreStep = event.target.closest("[data-score-team]");
   if (scoreStep) {
+    if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
     const team = scoreStep.dataset.scoreTeam;
     const delta = Number(scoreStep.dataset.delta);
     state.score[team] = Math.max(0, Math.min(12, state.score[team] + delta));
@@ -856,6 +877,7 @@ root.addEventListener("click", async (event) => {
 
   const scoreChip = event.target.closest("[data-score-chip]");
   if (scoreChip) {
+    if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
     const [home, away] = scoreChip.dataset.scoreChip.split("-").map(Number);
     state.score = { home, away };
     render();
@@ -956,6 +978,10 @@ root.addEventListener("submit", async (event) => {
 
 async function submitPicks() {
   const summary = selectedMatchday();
+  if (isMatchdayLocked(summary)) {
+    showToast("This matchday auto-locked at first kickoff.");
+    return;
+  }
   const selectedCardIds = [...state.dirtyCards.entries()].filter(([, value]) => value.selected).map(([cardId]) => cardId);
   if (selectedCardIds.length < MIN_SELECTED_CARDS || selectedCardIds.length > MAX_SELECTED_CARDS) {
     showToast(`Select ${MIN_SELECTED_CARDS} to ${MAX_SELECTED_CARDS} cards.`);
@@ -984,7 +1010,7 @@ async function runAdminAction(action) {
     scope: syncScope
   };
   if (action === "sync-daily-tournament-data") {
-    body.date = document.querySelector("#dailySyncDate")?.value || new Date().toISOString().slice(0, 10);
+    body.date = document.querySelector("#dailySyncDate")?.value || todayKey();
   }
   await mutate(`/api/admin/${action}`, body, action.replaceAll("-", " ") + " complete.");
 }
@@ -1018,6 +1044,18 @@ async function doLogin(email, password) {
   } catch (error) {
     renderLogin(error.message);
   }
+}
+
+function todayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isMatchdayLocked(matchday) {
+  if (!matchday) return false;
+  return ["LOCKED", "SCORING", "FINAL"].includes(matchday.status) || new Date(matchday.lockAt).getTime() <= Date.now();
 }
 
 function managedLeague() {
