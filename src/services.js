@@ -1024,6 +1024,7 @@ function hydrateState(data, currentUserId = "user_you") {
   const matchday = getTodayMatchday(data);
   data.users.forEach(ensureUserPassword);
   const currentUser = data.users.find((user) => user.id === currentUserId) || data.users.find((user) => user.id === "user_you");
+  ensurePlayableCardSetsForUser(data, currentUser.id);
   const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === currentUser.id);
   const playerCards = data.playerCards
     .filter((playerCard) => playerCard.playerCardSetId === cardSet?.id)
@@ -1289,6 +1290,15 @@ function ensurePlayerCardSet(data, userId, matchDayId = "md_12") {
     });
 
   return set;
+}
+
+function ensurePlayableCardSetsForUser(data, userId) {
+  data.matchdays
+    .filter((matchday) => matchday.status !== "FINAL")
+    .forEach((matchday) => {
+      const hasGeneratedCards = data.predictionCards.some((card) => card.matchDayId === matchday.id);
+      if (hasGeneratedCards) ensurePlayerCardSet(data, userId, matchday.id);
+    });
 }
 
 function rebuildPlayerCardsForMatchday(data, matchDayId) {

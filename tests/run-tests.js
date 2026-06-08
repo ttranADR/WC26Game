@@ -68,6 +68,21 @@ fallbackData.tournamentMatches.find((item) => item.id === "match_no_direct_odds"
 const refreshedFutureState = await getAppState(fallbackStore, "user_you");
 const refreshedFutureSummary = refreshedFutureState.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
 assert.equal(refreshedFutureSummary.status, "SCHEDULED");
+const adminFutureState = await getAppState(fallbackStore, "admin_1");
+const adminFutureSummary = adminFutureState.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
+assert.equal(adminFutureSummary.playerCards.length, 12);
+const adminFutureSubmitResult = await submitPicks(fallbackStore, {
+  userId: "admin_1",
+  matchDayId: "md_no_direct_odds",
+  selectedCardIds: adminFutureSummary.playerCards.slice(0, 5).map((card) => card.predictionCardId),
+  answers: Object.fromEntries(adminFutureSummary.playerCards.slice(0, 5).map((card) => [card.predictionCardId, "YES"])),
+  scorePrediction: {
+    tournamentMatchId: "match_no_direct_odds",
+    predictedHomeScore: 2,
+    predictedAwayScore: 1
+  }
+});
+assert.equal(adminFutureSubmitResult.message, "Picks submitted.");
 const futureSubmitResult = await submitPicks(fallbackStore, {
   userId: "user_you",
   matchDayId: "md_no_direct_odds",
