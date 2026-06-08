@@ -124,12 +124,22 @@ FOOTBALL_DATA_COMPETITION=WC
 FOOTBALL_DATA_SEASON=2026
 ODDS_PROVIDER=odds-api
 ODDS_API_KEY=your_odds_api_key
-ODDS_API_REGIONS=us,uk,eu
-ODDS_API_FEATURED_MARKETS=h2h,totals
-ODDS_API_EXTRA_MARKETS=btts,correct_score
+ODDS_API_VERSION=v3
+ODDS_API_BASE_URL=https://api.odds-api.io/v3
+ODDS_API_SPORT=football
+ODDS_API_LEAGUE=international-world-cup
+ODDS_API_EVENT_STATUS=pending,live
+ODDS_API_EVENT_LIMIT=50
+ODDS_API_BOOKMAKERS=Bet365,Unibet
 ```
 
-`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports featured odds such as h2h/totals, then attempts extra event markets such as BTTS and correct score when bookmakers make them available for the selected sport/account.
+`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports odds from odds-api.io v3 by fetching `/events`, then batching `/odds/multi` requests for up to 10 events at a time.
+
+Postman smoke test for odds-api.io v3:
+
+```text
+GET https://api.odds-api.io/v3/events?apiKey=YOUR_API_KEY&sport=football&league=international-world-cup&status=pending&from=2026-06-13T00:00:00Z&to=2026-06-14T00:00:00Z&limit=50
+```
 
 API-Football:
 
@@ -185,9 +195,13 @@ FOOTBALL_DATA_COMPETITION=WC
 FOOTBALL_DATA_SEASON=2026
 ODDS_PROVIDER=odds-api
 ODDS_API_KEY=your_odds_api_key
-ODDS_API_REGIONS=us,uk,eu
-ODDS_API_FEATURED_MARKETS=h2h,totals
-ODDS_API_EXTRA_MARKETS=btts,correct_score
+ODDS_API_VERSION=v3
+ODDS_API_BASE_URL=https://api.odds-api.io/v3
+ODDS_API_SPORT=football
+ODDS_API_LEAGUE=international-world-cup
+ODDS_API_EVENT_STATUS=pending,live
+ODDS_API_EVENT_LIMIT=50
+ODDS_API_BOOKMAKERS=Bet365,Unibet
 ```
 
 Alternative single-provider modes are still supported:
