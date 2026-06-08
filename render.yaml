@@ -11,6 +11,8 @@ services:
         value: 20
       - key: DATA_PROVIDER
         value: mock
+      - key: REQUIRE_NEON_STORAGE
+        value: true
       - key: FIXTURES_PROVIDER
         sync: false
       - key: ODDS_PROVIDER

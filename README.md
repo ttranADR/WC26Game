@@ -1,6 +1,6 @@
 # PitchPick Full-Stack MVP
 
-PitchPick is a World Cup prediction game for friend leagues. This version is a Node app with a browser frontend, local JSON storage for development, optional Neon Postgres storage for deployment, a mock football/odds provider, admin tools, player submissions, scoring, exact-score multipliers, and standings.
+PitchPick is a World Cup prediction game for friend leagues. This version is a Node app with a browser frontend, Neon Postgres storage for deployed/live data, local JSON storage for mock development, football/odds API sync, admin tools, player submissions, scoring, exact-score multipliers, and standings.
 
 ## Run Locally
 
@@ -55,8 +55,6 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - Dark/light mode.
 - Mobile responsive layout.
 
-## Data Storage
-
 ## Managing Leagues
 
 Open the Admin tab and use the **Manage Leagues** panel at the top.
@@ -91,13 +89,30 @@ The Player tab still shows the seeded current player league until real auth/memb
 
 ## Data Storage
 
-Local metadata is stored here:
+The production data flow is:
+
+```text
+External fixtures/odds APIs -> protected sync endpoint/job -> Neon Postgres -> PitchPick backend -> browser app
+```
+
+The browser app never calls paid sports APIs directly. It loads app state from the PitchPick backend, and the backend reads that state from the configured store. In deployed/live mode, that store must be Neon.
+
+Set this for Neon-backed runtime:
+
+```text
+DATABASE_URL=your_neon_pooled_connection_string
+REQUIRE_NEON_STORAGE=true
+```
+
+When `DATABASE_URL` is set, the app stores metadata, synced fixtures, odds snapshots, cards, picks, pairings, standings, sync logs, and invite state in Neon Postgres in a `pitchpick_state` JSONB row. This keeps the MVP deployable without rewriting every feature into separate SQL tables first.
+
+Local JSON storage is only for mock development without live providers:
 
 ```text
 data/db.json
 ```
 
-When `DATABASE_URL` is set, the app stores the same metadata in Neon Postgres in a `pitchpick_state` table. This keeps the MVP deployable without rewriting every feature into separate SQL tables first.
+If you configure a live data provider such as `football-data`, `api-football`, `sportmonks`, or `odds-api`, the server requires `DATABASE_URL` so external API data is persisted to Neon instead of a local file.
 
 For a later production hardening pass, split the JSON document into relational tables:
 
@@ -162,7 +177,7 @@ DATA_PROVIDER=odds-api
 ODDS_API_KEY=your_key
 ```
 
-API keys stay server-side in Node. Never call paid sports APIs directly from browser JavaScript.
+API keys stay server-side in Node. Sync routes and scheduled jobs are the only places that call external sports APIs. Player/admin screens load the stored state from Neon through `/api/state` and mutation responses.
 
 ## Render + Neon Deployment
 
@@ -180,6 +195,7 @@ Start command: npm start
 
 ```text
 DATABASE_URL=your_neon_pooled_connection_string
+REQUIRE_NEON_STORAGE=true
 CRON_SECRET=a_long_random_secret
 APP_URL=https://your-render-service.onrender.com
 DATA_PROVIDER=mock
@@ -279,7 +295,7 @@ The workflow is quota-friendly:
 ## Deployment Notes
 
 - Render hosts the Node backend and frontend.
-- Neon stores metadata when `DATABASE_URL` is set.
+- Neon stores live app data when `DATABASE_URL` is set. Use `REQUIRE_NEON_STORAGE=true` in deployed environments.
 - GitHub Actions can run the scheduled sync for free.
 - Render free web services may sleep when idle, so the first request after inactivity can be slow.
 - Before sharing widely, replace demo login with real authentication.

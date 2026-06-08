@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createStore } from "./src/store.js";
 import { createNeonStore } from "./src/neonStore.js";
+import { assertStorageConfiguration, getStorageMode, normalizeProviderName } from "./src/storageConfig.js";
 import { createMockFootballProvider } from "./src/providers/mockFootballProvider.js";
 import { createApiFootballProvider } from "./src/providers/apiFootballProvider.js";
 import { createFootballDataProvider } from "./src/providers/footballDataProvider.js";
@@ -36,11 +37,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 loadDotEnv(path.join(__dirname, ".env"));
 const publicDir = path.join(__dirname, "public");
 const dataPath = path.join(__dirname, "data", "db.json");
-const store = process.env.DATABASE_URL ? createNeonStore(process.env.DATABASE_URL) : createStore(dataPath);
-const defaultProviderName = process.env.DATA_PROVIDER || "mock";
-const fixtureProvider = createProvider(process.env.FIXTURES_PROVIDER || defaultProviderName);
-const oddsProvider = createProvider(process.env.ODDS_PROVIDER || defaultProviderName);
+const databaseUrl = process.env.DATABASE_URL?.trim();
+const defaultProviderName = normalizeProviderName(process.env.DATA_PROVIDER || "mock");
+const fixtureProviderName = normalizeProviderName(process.env.FIXTURES_PROVIDER || defaultProviderName);
+const oddsProviderName = normalizeProviderName(process.env.ODDS_PROVIDER || defaultProviderName);
+assertStorageConfiguration({
+  databaseUrl,
+  requireNeonStorage: process.env.REQUIRE_NEON_STORAGE,
+  providers: [defaultProviderName, fixtureProviderName, oddsProviderName]
+});
+const store = databaseUrl ? createNeonStore(databaseUrl) : createStore(dataPath);
+const fixtureProvider = createProvider(fixtureProviderName);
+const oddsProvider = createProvider(oddsProviderName);
 const port = Number(process.env.PORT || 4173);
+console.log(`PitchPick storage: ${getStorageMode(databaseUrl)}; fixtures: ${fixtureProviderName}; odds: ${oddsProviderName}`);
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -260,7 +270,8 @@ function createProvider(name) {
   if (name === "football-data") return createFootballDataProvider();
   if (name === "sportmonks") return createSportmonksProvider();
   if (name === "odds-api") return createOddsApiProvider();
-  return createMockFootballProvider();
+  if (name === "mock") return createMockFootballProvider();
+  throw new Error(`Unsupported data provider: ${name}`);
 }
 
 function loadDotEnv(filePath) {
