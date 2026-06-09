@@ -58,8 +58,12 @@ function createOddsApiIoV3Provider(apiKey) {
   const sport = process.env.ODDS_API_SPORT || "football";
   const league = process.env.ODDS_API_LEAGUE || "international-fifa-world-cup";
   const status = process.env.ODDS_API_EVENT_STATUS || "pending,live";
-  const limit = Number(process.env.ODDS_API_EVENT_LIMIT || 50);
+  const requestedLimit = Number(process.env.ODDS_API_EVENT_LIMIT || 50);
+  const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+    ? Math.floor(requestedLimit)
+    : 50;
   const bookmakers = process.env.ODDS_API_BOOKMAKERS || "Bet365";
+  const eventBookmaker = bookmakers.split(",").map((bookmaker) => bookmaker.trim()).filter(Boolean)[0];
 
   async function call(path, params = {}) {
     const url = new URL(`${baseUrl}${path}`);
@@ -77,6 +81,44 @@ function createOddsApiIoV3Provider(apiKey) {
     return data;
   }
 
+  async function fetchEventRows(params = {}) {
+    const eventRows = [];
+    const seenEventIds = new Set();
+    for (let skip = 0; ; skip += limit) {
+      const data = await call("/events", {
+        sport,
+        league,
+        status,
+        bookmaker: eventBookmaker,
+        limit,
+        skip,
+        ...params
+      });
+      const pageRows = unpackRows(data);
+      const newRows = pageRows.filter((event) => {
+        const eventId = event.id ? String(event.id) : JSON.stringify(event);
+        if (seenEventIds.has(eventId)) return false;
+        seenEventIds.add(eventId);
+        return true;
+      });
+
+      eventRows.push(...newRows);
+      if (pageRows.length < limit || !newRows.length) break;
+    }
+    return eventRows;
+  }
+
+  async function fetchOddsForEvents(eventRows) {
+    const oddsRows = [];
+    for (const eventChunk of chunk(eventRows, 10)) {
+      const eventIds = eventChunk.map((event) => event.id).filter(Boolean).join(",");
+      if (!eventIds) continue;
+      const rows = await call("/odds/multi", { eventIds, bookmakers });
+      oddsRows.push(...unpackRows(rows));
+    }
+    return oddsRows.flatMap(mapOddsApiIoV3EventOdds);
+  }
+
   return {
     async getFixturesByDate() {
       return [];
@@ -88,33 +130,24 @@ function createOddsApiIoV3Provider(apiKey) {
 
     async getOddsByDate(date) {
       const { from, to } = makeDateRange(date);
-      const events = await call("/events", {
-        sport,
-        league,
-        status,
-        from,
-        to,
-        limit
-      });
-      const eventRows = Array.isArray(events) ? events : events.data || events.events || [];
-      if (!eventRows.length) return [];
+      const eventRows = await fetchEventRows({ from, to });
+      return fetchOddsForEvents(eventRows);
+    },
 
-      const chunks = chunk(eventRows, 10);
-      const oddsRows = [];
-      for (const eventChunk of chunks) {
-        const eventIds = eventChunk.map((event) => event.id).filter(Boolean).join(",");
-        if (!eventIds) continue;
-        const rows = await call("/odds/multi", { eventIds, bookmakers });
-        oddsRows.push(...(Array.isArray(rows) ? rows : rows.data || rows.events || []));
-      }
-
-      return oddsRows.flatMap(mapOddsApiIoV3EventOdds);
+    async getCompetitionOdds() {
+      const eventRows = await fetchEventRows();
+      return fetchOddsForEvents(eventRows);
     },
 
     async getMatchEvents() {
       return [];
     }
   };
+}
+
+function unpackRows(payload) {
+  if (Array.isArray(payload)) return payload;
+  return payload?.data || payload?.events || [];
 }
 
 function makeDateRange(date) {

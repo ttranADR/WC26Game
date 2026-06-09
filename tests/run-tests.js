@@ -344,25 +344,87 @@ assert.ok(brazilCorrectScoreOdds.some((odd) => (
   odd.priceDecimal > 1
 )));
 
+const bulkOddsData = createSeedData();
+const bulkOddsStore = createMemoryStore(bulkOddsData);
+const bulkOddsCalls = [];
+await syncOdds(bulkOddsStore, {
+  async getCompetitionOdds() {
+    bulkOddsCalls.push("competition");
+    return [{
+      tournamentMatchId: "fix_bra_mar",
+      provider: "bulk-test-odds",
+      marketKey: "MATCH_WINNER",
+      bookmaker: "TestBook",
+      outcomeName: "Brazil",
+      priceDecimal: 1.8,
+      impliedProbability: 0.5556,
+      commenceAt: "2026-06-12T20:00:00.000Z",
+      capturedAt: new Date().toISOString()
+    }];
+  },
+  async getOddsByDate() {
+    throw new Error("Initial all-fixture odds sync should use the bulk competition odds fetch.");
+  }
+}, { scope: "all" });
+assert.deepEqual(bulkOddsCalls, ["competition"]);
+assert.ok(bulkOddsData.oddsSnapshots.some((odd) => (
+  odd.provider === "bulk-test-odds" &&
+  odd.tournamentMatchId === "match_bra_mar" &&
+  odd.sourceFixtureDate === "2026-06-12"
+)));
+
 const originalFetch = globalThis.fetch;
+const originalOddsApiVersion = process.env.ODDS_API_VERSION;
+const originalOddsEventLimit = process.env.ODDS_API_EVENT_LIMIT;
+const originalOddsLeague = process.env.ODDS_API_LEAGUE;
+const originalOddsBookmakers = process.env.ODDS_API_BOOKMAKERS;
+process.env.ODDS_API_VERSION = "v3";
+process.env.ODDS_API_EVENT_LIMIT = "2";
+process.env.ODDS_API_LEAGUE = "international-fifa-world-cup";
+process.env.ODDS_API_BOOKMAKERS = "Bet365";
+const eventFetches = [];
+const oddsMultiFetches = [];
 globalThis.fetch = async (url) => {
   const parsed = new URL(String(url));
   if (parsed.pathname.endsWith("/events")) {
     assert.equal(parsed.searchParams.get("league"), "international-fifa-world-cup");
-    return jsonResponse([{
-      id: "event_jun_13",
-      home: "Brazil",
-      away: "Morocco",
-      date: "2026-06-13T20:00:00Z"
-    }]);
+    assert.equal(parsed.searchParams.get("bookmaker"), "Bet365");
+    assert.equal(parsed.searchParams.get("limit"), "2");
+    assert.equal(parsed.searchParams.has("from"), false);
+    assert.equal(parsed.searchParams.has("to"), false);
+    const skip = Number(parsed.searchParams.get("skip") || 0);
+    eventFetches.push(skip);
+    if (skip === 0) {
+      return jsonResponse([{
+        id: "event_jun_13",
+        home: "Brazil",
+        away: "Morocco",
+        date: "2026-06-13T20:00:00Z"
+      }, {
+        id: "event_jun_14",
+        home: "Spain",
+        away: "Japan",
+        date: "2026-06-14T20:00:00Z"
+      }]);
+    }
+    if (skip === 2) {
+      return jsonResponse([{
+        id: "event_jun_15",
+        home: "France",
+        away: "Canada",
+        date: "2026-06-15T20:00:00Z"
+      }]);
+    }
+    throw new Error(`Unexpected events skip ${skip}`);
   }
   if (parsed.pathname.endsWith("/odds/multi")) {
     assert.equal(parsed.searchParams.get("bookmakers"), "Bet365");
-    return jsonResponse([{
-      id: "event_jun_13",
-      home: "Brazil",
-      away: "Morocco",
-      date: "2026-06-13T20:00:00Z",
+    oddsMultiFetches.push(parsed.searchParams.get("eventIds"));
+    return jsonResponse(parsed.searchParams.get("eventIds").split(",").map((eventId) => ({
+      id: eventId,
+      home: eventId === "event_jun_13" ? "Brazil" : "Spain",
+      away: eventId === "event_jun_13" ? "Morocco" : "Japan",
+      date: eventId === "event_jun_13" ? "2026-06-13T20:00:00Z" : "2026-06-14T20:00:00Z",
       bookmakers: {
         Bet365: [{
           name: "Correct Score",
@@ -373,13 +435,15 @@ globalThis.fetch = async (url) => {
           ]
         }]
       }
-    }]);
+    })));
   }
   throw new Error(`Unexpected fetch URL ${url}`);
 };
 try {
   const provider = createOddsApiProvider("test-key");
-  const mappedOdds = await provider.getOddsByDate("2026-06-13");
+  const mappedOdds = await provider.getCompetitionOdds();
+  assert.deepEqual(eventFetches, [0, 2]);
+  assert.deepEqual(oddsMultiFetches, ["event_jun_13,event_jun_14,event_jun_15"]);
   assert.ok(mappedOdds.some((odd) => (
     odd.marketKey === "CORRECT_SCORE" &&
     odd.outcomeName === "1-1" &&
@@ -393,6 +457,14 @@ try {
   )));
 } finally {
   globalThis.fetch = originalFetch;
+  if (originalOddsApiVersion == null) delete process.env.ODDS_API_VERSION;
+  else process.env.ODDS_API_VERSION = originalOddsApiVersion;
+  if (originalOddsEventLimit == null) delete process.env.ODDS_API_EVENT_LIMIT;
+  else process.env.ODDS_API_EVENT_LIMIT = originalOddsEventLimit;
+  if (originalOddsLeague == null) delete process.env.ODDS_API_LEAGUE;
+  else process.env.ODDS_API_LEAGUE = originalOddsLeague;
+  if (originalOddsBookmakers == null) delete process.env.ODDS_API_BOOKMAKERS;
+  else process.env.ODDS_API_BOOKMAKERS = originalOddsBookmakers;
 }
 
 const dailyData = createSeedData();

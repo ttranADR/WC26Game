@@ -153,7 +153,7 @@ ODDS_API_EVENT_LIMIT=50
 ODDS_API_BOOKMAKERS=Bet365
 ```
 
-`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports odds from odds-api.io v3 by fetching `/events`, then batching `/odds/multi` requests for up to 10 events at a time.
+`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports odds from odds-api.io v3. Initial Load pages all available World Cup `/events` with `limit`/`skip`, then batches `/odds/multi` requests for up to 10 events at a time. Daily updates still fetch odds only for the selected match date.
 
 Postman smoke test for odds-api.io v3:
 
@@ -188,7 +188,7 @@ API keys stay server-side in Node. Sync routes and scheduled jobs are the only p
 
 Use the Admin tab's **Live Data** panel:
 
-1. Click **Initial Load** one time after deployment. It imports all available World Cup fixtures from football-data, stores them in Neon, then imports odds for the stored games from odds-api.
+1. Click **Initial Load** one time after deployment. It imports all available World Cup fixtures from football-data, stores them in Neon, then bulk-imports all available World Cup odds from odds-api.
 2. Use **Update Date** each matchday before the first match starts. It updates fixture status/results and odds only for the selected date.
 
 Both actions run through the Render backend. The browser calls PitchPick admin endpoints; it never calls football-data or odds-api directly.

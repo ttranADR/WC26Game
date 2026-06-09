@@ -297,12 +297,16 @@ export async function syncOdds(store, provider, input = {}) {
     ensureDemoScaffold(data);
     const matches = selectStoredFixturesForOdds(data, input);
     if (!matches.length) throw new Error("Sync fixtures before syncing odds.");
+    const useCompetitionOdds = input.scope === "all" && typeof provider.getCompetitionOdds === "function";
     return {
       matches: matches.map(projectFixtureForOddsSync),
-      dates: getFixtureDates(matches)
+      dates: getFixtureDates(matches),
+      useCompetitionOdds
     };
   });
-  const rawOdds = await fetchOddsForStoredFixtures(provider, plan.dates);
+  const rawOdds = plan.useCompetitionOdds
+    ? await provider.getCompetitionOdds()
+    : await fetchOddsForStoredFixtures(provider, plan.dates);
   const targetMatchIds = new Set(plan.matches.map((match) => match.id));
 
   return store.update((data) => {
@@ -314,7 +318,8 @@ export async function syncOdds(store, provider, input = {}) {
       return {
         ...odd,
         id: createOddsSnapshotId(tournamentMatchId, odd, index, capturedAt),
-        tournamentMatchId
+        tournamentMatchId,
+        sourceFixtureDate: odd.sourceFixtureDate || odd.commenceAt?.slice(0, 10)
       };
     }).filter(Boolean);
     const nextOdds = withCompleteCorrectScoreOdds(plan.matches, providerOdds, capturedAt);
@@ -328,10 +333,13 @@ export async function syncOdds(store, provider, input = {}) {
       !coveredCorrectScoreKeys.has(correctScoreOutcomeKey(odd))
     ));
     data.oddsSnapshots.push(...nextOdds);
+    const oddsSource = plan.useCompetitionOdds
+      ? "using one bulk competition odds fetch"
+      : `across ${plan.dates.length} date${plan.dates.length === 1 ? "" : "s"}`;
     data.syncLogs.unshift(log(
       "SYNC_ODDS",
       "SUCCESS",
-      `Synced ${nextOdds.length} odds snapshots for ${plan.matches.length} stored fixtures across ${plan.dates.length} date${plan.dates.length === 1 ? "" : "s"}${rawOdds.length > providerOdds.length ? ` (${rawOdds.length - providerOdds.length} unmatched)` : ""}.`
+      `Synced ${nextOdds.length} odds snapshots for ${plan.matches.length} stored fixtures ${oddsSource}${rawOdds.length > providerOdds.length ? ` (${rawOdds.length - providerOdds.length} unmatched)` : ""}.`
     ));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
