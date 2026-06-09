@@ -56,10 +56,10 @@ function createTheOddsApiV4Provider(apiKey) {
 function createOddsApiIoV3Provider(apiKey) {
   const baseUrl = process.env.ODDS_API_BASE_URL || "https://api.odds-api.io/v3";
   const sport = process.env.ODDS_API_SPORT || "football";
-  const league = process.env.ODDS_API_LEAGUE || "international-world-cup";
+  const league = process.env.ODDS_API_LEAGUE || "international-fifa-world-cup";
   const status = process.env.ODDS_API_EVENT_STATUS || "pending,live";
   const limit = Number(process.env.ODDS_API_EVENT_LIMIT || 50);
-  const bookmakers = process.env.ODDS_API_BOOKMAKERS || "Bet365,Unibet";
+  const bookmakers = process.env.ODDS_API_BOOKMAKERS || "Bet365";
 
   async function call(path, params = {}) {
     const url = new URL(`${baseUrl}${path}`);

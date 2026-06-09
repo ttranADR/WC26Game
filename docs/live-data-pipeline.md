@@ -61,6 +61,13 @@ Use the Admin **Live Data** panel for normal operations:
 
 The initial load is idempotent, but it is intended to be used as the database bootstrap rather than a daily task.
 
+Initial odds loading uses odds-api v3 with:
+
+```text
+league=international-fifa-world-cup
+bookmakers=Bet365
+```
+
 ## Correct Score Odds
 
 Every stored fixture must have a complete `CORRECT_SCORE` market in `oddsSnapshots`.

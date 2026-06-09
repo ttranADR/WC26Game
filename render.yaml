@@ -42,13 +42,13 @@ services:
       - key: ODDS_API_SPORT
         value: football
       - key: ODDS_API_LEAGUE
-        value: international-world-cup
+        value: international-fifa-world-cup
       - key: ODDS_API_EVENT_STATUS
         value: pending,live
       - key: ODDS_API_EVENT_LIMIT
         value: 50
       - key: ODDS_API_BOOKMAKERS
-        value: Bet365,Unibet
+        value: Bet365
       - key: ODDS_API_SPORT_KEY
         sync: false
       - key: ODDS_API_REGIONS
