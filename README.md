@@ -47,11 +47,12 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - Submit card answers and exact score prediction.
 - Lock-time validation on the backend.
 - Admin dashboard for league ops.
-- Create league, select/manage any league, edit league name/season/pairing mode, invite players into the selected league, and view league member metadata.
-- Sync fixtures, sync odds, generate cards, generate pairings.
+- Create league, select/manage any league, edit league name/season/matchup style, invite players into the selected league, and view league member metadata.
+- Sync fixtures, sync odds, generate cards, generate selected-matchday or full-season matchups.
 - Lock, score, finalize, void card.
 - Raw sync logs and standings CSV export.
-- Deterministic pairings.
+- 1v1, 2v2, half-league, and mixed matchup schedules.
+- Finalized league points are preserved when future matchups are shuffled.
 - Idempotent scoring.
 - Dark/light mode.
 - Mobile responsive layout.
@@ -61,10 +62,11 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 Open the Admin tab and use the **Manage Leagues** panel at the top.
 
 1. Select the league you want to manage.
-2. Edit the league name, season, or pairing mode.
+2. Edit the league name, season, or matchup style.
 3. Click **Save League**.
 4. Use **League Members** to invite a new friend, add an existing player, mark a member active/invited, or remove a member.
-5. Invites, pairings, scoring, finalizing, and CSV export now target the selected managed league.
+5. Use **Generate Season** to create the full matchup schedule, or **Shuffle Selected** to replace only the selected unfinalized matchday.
+6. Invites, matchups, scoring, finalizing, and CSV export now target the selected managed league.
 
 The invite form shows `Inviting to: {League Name}` so you can always see which league receives the friend invite.
 

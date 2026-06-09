@@ -1014,6 +1014,56 @@ select:focus-visible {
   background: var(--surface-2);
 }
 
+.contest-row-head,
+.contest-sides {
+  display: grid;
+  gap: 8px;
+}
+
+.contest-row-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.contest-row-head strong,
+.contest-side strong {
+  overflow-wrap: anywhere;
+}
+
+.contest-sides {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.contest-side {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.contest-side span,
+.contest-vs {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.contest-vs {
+  display: grid;
+  place-items: center;
+}
+
+.season-matchups {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .context-banner {
   display: grid;
   gap: 4px;
@@ -1094,6 +1144,17 @@ select:focus-visible {
   border-color: var(--gold);
   color: var(--gold);
   background: color-mix(in srgb, var(--gold) 14%, transparent);
+}
+
+.status-pill.scheduled {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+.status-pill.final {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--selected);
 }
 
 .member-actions {
@@ -1460,6 +1521,8 @@ th {
   .ops-summary,
   .live-data-summary,
   .live-data-actions,
+  .contest-row-head,
+  .contest-sides,
   .member-row {
     grid-template-columns: 1fr;
   }

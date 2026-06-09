@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
-import { createCardsFromOdds, createSeedData } from "../src/seed.js";
+import { createCardsFromOdds, createContests, createSeedData } from "../src/seed.js";
 import { getExactScoreMultiplier, gradeCard, gradeExactPrediction } from "../src/scoring.js";
-import { generateCardsForMatchday, getAppState, loginUser, submitPicks, syncDailyTournamentData, syncOdds } from "../src/services.js";
+import {
+  finalizeMatchday,
+  generateCardsForMatchday,
+  generatePairingsForMatchday,
+  getAppState,
+  loginUser,
+  submitPicks,
+  syncDailyTournamentData,
+  syncOdds
+} from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
 const data = createSeedData();
@@ -35,6 +44,107 @@ assert.ok(oddsGeneratedCards.every((card) => card.sourceOddsSnapshotIds.length =
 assert.ok(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"));
 assert.ok(oddsGeneratedCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
 assert.ok(data.predictionCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
+
+const pairingUsers = ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"];
+const soloContests = createContests("league_test", "md_test_solo", pairingUsers.slice(0, 4), "SOLO", { seedText: "pairing_test" });
+assert.equal(soloContests.length, 2);
+assert.ok(soloContests.every((contest) => (
+  contest.mode === "SOLO" &&
+  contest.participants.filter((part) => part.side === "A").length === 1 &&
+  contest.participants.filter((part) => part.side === "B").length === 1
+)));
+const duoContests = createContests("league_test", "md_test_duo", pairingUsers, "DUO", { seedText: "pairing_test" });
+assert.equal(duoContests.length, 2);
+assert.ok(duoContests.every((contest) => (
+  contest.mode === "DUO" &&
+  contest.participants.filter((part) => part.side === "A").length === 2 &&
+  contest.participants.filter((part) => part.side === "B").length === 2
+)));
+const halfContest = createContests("league_test", "md_test_half", pairingUsers.slice(0, 5), "HALF", { seedText: "pairing_test" });
+assert.equal(halfContest.length, 1);
+assert.equal(halfContest[0].participants.filter((part) => part.side === "A").length, 3);
+assert.equal(halfContest[0].participants.filter((part) => part.side === "B").length, 2);
+const mixedContests = createContests("league_test", "md_test_mixed", pairingUsers, "MIXED", { seedText: "pairing_test" });
+assert.ok(["SOLO", "DUO", "HALF"].includes(mixedContests[0].mode));
+assert.equal(mixedContests[0].requestedMode, "MIXED");
+
+const seasonPairingData = createSeedData();
+seasonPairingData.matchdays.push({
+  id: "md_pairing_future",
+  name: "Pairing Future",
+  date: "2026-06-14",
+  lockAt: "2026-06-14T20:00:00.000Z",
+  status: "SCHEDULED",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+const seasonPairingStore = createMemoryStore(seasonPairingData);
+const seasonPairingResult = await generatePairingsForMatchday(seasonPairingStore, {
+  leagueId: "league_1",
+  scope: "season",
+  pairingMode: "MIXED",
+  seedText: "season_pairings",
+  currentUserId: "admin_1"
+});
+assert.match(seasonPairingResult.message, /season matchups/);
+assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_12"));
+assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_pairing_future"));
+
+const preserveData = createSeedData();
+preserveData.matchdays.push({
+  id: "md_11",
+  name: "Existing History Placeholder",
+  date: "2026-06-08",
+  lockAt: "2026-06-08T20:00:00.000Z",
+  status: "FINAL",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}, {
+  id: "md_preserve_old",
+  name: "Preserve Old",
+  date: "2026-06-09",
+  lockAt: "2026-06-09T20:00:00.000Z",
+  status: "FINAL",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+preserveData.headToHeadContests = preserveData.headToHeadContests.filter((contest) => contest.matchDayId !== "md_12");
+preserveData.headToHeadContests.push({
+  id: "contest_md_preserve_old_1",
+  leagueId: "league_1",
+  matchDayId: "md_preserve_old",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "FINAL",
+  participantAName: "user_you",
+  participantBName: "user_maya",
+  participantAScore: 10,
+  participantBScore: 0,
+  result: "A_WIN",
+  participants: [
+    { id: "part_md_preserve_old_a", side: "A", userId: "user_you" },
+    { id: "part_md_preserve_old_b", side: "B", userId: "user_maya" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+const preserveStore = createMemoryStore(preserveData);
+const skippedPairingResult = await generatePairingsForMatchday(preserveStore, {
+  leagueId: "league_1",
+  matchDayId: "md_preserve_old",
+  shuffle: true,
+  currentUserId: "admin_1"
+});
+assert.match(skippedPairingResult.message, /Skipped 1 finalized matchday/);
+assert.equal(preserveData.headToHeadContests.filter((contest) => contest.matchDayId === "md_preserve_old").length, 1);
+await finalizeMatchday(preserveStore, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const preservedStanding = preserveData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_you");
+assert.equal(preservedStanding.leaguePoints, 3);
+assert.equal(preservedStanding.fantasyPointsFor, 10);
 
 const fallbackData = createSeedData();
 fallbackData.matchdays.push({

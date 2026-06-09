@@ -1,4 +1,4 @@
-import { createCardsFromOdds, createCardPool, createContests, createStandings } from "./seed.js";
+import { createCardsFromOdds, createCardPool, createContests, createStandings, normalizePairingMode } from "./seed.js";
 import { gradeCard, gradeExactPrediction, getExactScoreMultiplier } from "./scoring.js";
 import { ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
 import { sendInviteEmail } from "./email.js";
@@ -137,7 +137,7 @@ export async function createLeague(store, input) {
       name,
       slug: slugify(name),
       seasonName: input.seasonName || "World Cup 2026",
-      pairingMode: input.pairingMode === "DUO" ? "DUO" : "SOLO",
+      pairingMode: normalizePairingMode(input.pairingMode),
       createdByUserId: "admin_1",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -155,7 +155,7 @@ export async function updateLeague(store, input) {
     league.name = name;
     league.slug = slugify(name);
     league.seasonName = String(input.seasonName || league.seasonName || "World Cup 2026").trim();
-    league.pairingMode = input.pairingMode === "DUO" ? "DUO" : "SOLO";
+    league.pairingMode = normalizePairingMode(input.pairingMode, league.pairingMode || "MIXED");
     league.updatedAt = new Date().toISOString();
     data.syncLogs.unshift(log("UPDATE_LEAGUE", "SUCCESS", `Updated ${league.name}.`));
     return { ok: true, leagueId: league.id, state: hydrateState(data, input.currentUserId) };
@@ -857,17 +857,56 @@ function generatedCardKey(card) {
 export async function generatePairingsForMatchday(store, input) {
   return store.update((data) => {
     const leagueId = input.leagueId || "league_1";
-    const matchDayId = input.matchDayId || "md_12";
     const league = mustFind(data.leagues, leagueId, "League");
-    if (input.pairingMode) league.pairingMode = input.pairingMode === "DUO" ? "DUO" : "SOLO";
+    if (input.pairingMode) league.pairingMode = normalizePairingMode(input.pairingMode, league.pairingMode || "MIXED");
+    const matchdays = getPairingTargetMatchdays(data, input);
     const userIds = data.leagueMembers
-      .filter((member) => member.leagueId === leagueId && member.status !== "REMOVED")
+      .filter((member) => member.leagueId === leagueId && member.status === "ACTIVE")
       .map((member) => member.userId);
-    data.headToHeadContests = data.headToHeadContests.filter((contest) => !(contest.leagueId === leagueId && contest.matchDayId === matchDayId));
-    data.headToHeadContests.push(...createContests(leagueId, matchDayId, userIds, league.pairingMode));
-    data.syncLogs.unshift(log("GENERATE_PAIRINGS", "SUCCESS", `Generated ${league.pairingMode} pairings.`));
-    return { ok: true, state: hydrateState(data, input.currentUserId) };
+    if (userIds.length < 2) throw new Error("At least two active league members are needed to generate matchups.");
+
+    const generated = [];
+    const skipped = [];
+    matchdays.forEach((matchday) => {
+      const hasFinalContest = data.headToHeadContests.some((contest) => (
+        contest.leagueId === leagueId &&
+        contest.matchDayId === matchday.id &&
+        contest.status === "FINAL"
+      ));
+      if (matchday.status === "FINAL" || hasFinalContest) {
+        skipped.push(matchday.name);
+        return;
+      }
+
+      data.headToHeadContests = data.headToHeadContests.filter((contest) => !(
+        contest.leagueId === leagueId &&
+        contest.matchDayId === matchday.id
+      ));
+      const seedText = input.shuffle || input.shuffleSeed
+        ? `${input.shuffleSeed || Date.now()}_${matchday.id}`
+        : input.seedText || "";
+      const contests = createContests(leagueId, matchday.id, userIds, league.pairingMode, { seedText });
+      data.headToHeadContests.push(...contests);
+      generated.push({ matchday, contests });
+    });
+
+    const modeSummary = generated
+      .flatMap((item) => item.contests.map((contest) => contest.mode))
+      .reduce((counts, mode) => ({ ...counts, [mode]: (counts[mode] || 0) + 1 }), {});
+    const modeText = Object.entries(modeSummary).map(([mode, count]) => `${count} ${mode}`).join(", ") || league.pairingMode;
+    const scopeText = input.scope === "season" ? "season matchups" : "matchups";
+    const skippedText = skipped.length ? ` Skipped ${skipped.length} finalized matchday${skipped.length === 1 ? "" : "s"}.` : "";
+    const message = `Generated ${generated.reduce((sum, item) => sum + item.contests.length, 0)} ${scopeText} for ${league.name} (${modeText}).${skippedText}`;
+    data.syncLogs.unshift(log("GENERATE_PAIRINGS", "SUCCESS", message));
+    return { ok: true, message, state: hydrateState(data, input.currentUserId) };
   });
+}
+
+function getPairingTargetMatchdays(data, input) {
+  if (input.scope === "season") {
+    return data.matchdays.slice().sort(sortMatchdaysForSchedule);
+  }
+  return [mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday")];
 }
 
 export async function lockMatchday(store, input) {
@@ -929,6 +968,15 @@ export async function exportStandingsCsv(store, leagueId) {
 }
 
 function scoreMatchday(data, matchDayId, leagueId) {
+  const matchdayScores = calculateMatchdayScores(data, matchDayId, { mutate: true });
+  data.headToHeadContests
+    .filter((contest) => contest.leagueId === leagueId && contest.matchDayId === matchDayId)
+    .forEach((contest) => updateContestScore(contest, matchdayScores.playerTotals));
+
+  rebuildLeagueStandingsFromFinalContests(data, leagueId, new Map([[matchDayId, matchdayScores]]));
+}
+
+function calculateMatchdayScores(data, matchDayId, options = {}) {
   const matches = new Map(data.tournamentMatches.map((match) => [match.id, match]));
   const cards = new Map(data.predictionCards.map((card) => [card.id, card]));
   const playerTotals = new Map();
@@ -949,18 +997,23 @@ function scoreMatchday(data, matchDayId, leagueId) {
           const answerCorrect = grade.isCorrect == null ? null : (
             (playerCard.playerAnswer === card.expectedAnswer) === grade.isCorrect
           );
-          playerCard.isCorrect = answerCorrect;
-          playerCard.pointsAwarded = answerCorrect == null
+          const pointsAwarded = answerCorrect == null
             ? 0
             : answerCorrect ? CARD_POINTS_CORRECT : CARD_POINTS_INCORRECT;
+          if (options.mutate) {
+            playerCard.isCorrect = answerCorrect;
+            playerCard.pointsAwarded = pointsAwarded;
+          }
           if (answerCorrect != null && card.status !== "VOID") {
             cardAttempted += 1;
             if (answerCorrect) cardCorrect += 1;
           }
-          total += playerCard.pointsAwarded;
+          total += pointsAwarded;
         } else {
-          playerCard.isCorrect = null;
-          playerCard.pointsAwarded = 0;
+          if (options.mutate) {
+            playerCard.isCorrect = null;
+            playerCard.pointsAwarded = 0;
+          }
         }
       });
       playerTotals.set(set.userId, total);
@@ -972,7 +1025,7 @@ function scoreMatchday(data, matchDayId, leagueId) {
     .forEach((prediction) => {
       const match = matches.get(prediction.tournamentMatchId);
       const grade = gradeExactPrediction(prediction, match, data.oddsSnapshots);
-      Object.assign(prediction, grade);
+      if (options.mutate) Object.assign(prediction, grade);
       playerTotals.set(prediction.userId, (playerTotals.get(prediction.userId) || 0) + grade.pointsAwarded);
       exactStats.set(prediction.userId, {
         exactScoresCorrect: grade.isExact ? 1 : 0,
@@ -980,27 +1033,39 @@ function scoreMatchday(data, matchDayId, leagueId) {
       });
     });
 
-  data.headToHeadContests
-    .filter((contest) => contest.leagueId === leagueId && contest.matchDayId === matchDayId)
-    .forEach((contest) => {
-      const aUsers = contest.participants.filter((part) => part.side === "A").map((part) => part.userId);
-      const bUsers = contest.participants.filter((part) => part.side === "B").map((part) => part.userId);
-      contest.participantAScore = sumScores(aUsers, playerTotals);
-      contest.participantBScore = bUsers.length ? sumScores(bUsers, playerTotals) : 0;
-      contest.status = "FINAL";
-      contest.result = contest.participantAScore === contest.participantBScore
-        ? "DRAW"
-        : contest.participantAScore > contest.participantBScore ? "A_WIN" : "B_WIN";
-      contest.updatedAt = new Date().toISOString();
-    });
+  return { playerTotals, cardStats, exactStats };
+}
 
-  const leagueUserIds = data.leagueMembers.filter((member) => member.leagueId === leagueId).map((member) => member.userId);
+function updateContestScore(contest, playerTotals) {
+  const aUsers = contest.participants.filter((part) => part.side === "A").map((part) => part.userId);
+  const bUsers = contest.participants.filter((part) => part.side === "B").map((part) => part.userId);
+  contest.participantAScore = sumScores(aUsers, playerTotals);
+  contest.participantBScore = bUsers.length ? sumScores(bUsers, playerTotals) : 0;
+  contest.status = "FINAL";
+  contest.result = contest.participantAScore === contest.participantBScore
+    ? "DRAW"
+    : contest.participantAScore > contest.participantBScore ? "A_WIN" : "B_WIN";
+  contest.updatedAt = new Date().toISOString();
+}
+
+function rebuildLeagueStandingsFromFinalContests(data, leagueId, scoreCache = new Map()) {
+  const leagueUserIds = data.leagueMembers
+    .filter((member) => member.leagueId === leagueId && member.status !== "REMOVED")
+    .map((member) => member.userId);
   data.leagueStandings = data.leagueStandings.filter((standing) => standing.leagueId !== leagueId);
   data.leagueStandings.push(...createStandings(leagueId, leagueUserIds));
 
   data.headToHeadContests
-    .filter((contest) => contest.leagueId === leagueId && contest.matchDayId === matchDayId)
+    .filter((contest) => contest.leagueId === leagueId && contest.status === "FINAL")
+    .sort((a, b) => sortMatchdaysForSchedule(
+      data.matchdays.find((matchday) => matchday.id === a.matchDayId) || { date: "", name: "" },
+      data.matchdays.find((matchday) => matchday.id === b.matchDayId) || { date: "", name: "" }
+    ))
     .forEach((contest) => {
+      if (!scoreCache.has(contest.matchDayId)) {
+        scoreCache.set(contest.matchDayId, calculateMatchdayScores(data, contest.matchDayId));
+      }
+      const { cardStats, exactStats } = scoreCache.get(contest.matchDayId);
       updateSide(data, leagueId, contest, "A", contest.participantAScore, contest.participantBScore, cardStats, exactStats);
       updateSide(data, leagueId, contest, "B", contest.participantBScore, contest.participantAScore, cardStats, exactStats);
     });
@@ -1070,6 +1135,7 @@ function hydrateState(data, currentUserId = "user_you") {
     playerCards,
     scorePrediction,
     contests: hydrateContests(data, null, matchday.id),
+    seasonContests: hydrateContests(data),
     standings: hydrateStandings(data, league.id),
     syncLogs: data.syncLogs.slice(0, 20),
     emailOutbox: (data.emailOutbox || []).slice(0, 20)
@@ -1116,9 +1182,14 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
       const contests = hydrateContests(data, leagueId, matchday.id);
       const userContest = contests.find((contest) => contest.participants.some((part) => part.userId === userId));
       const userSide = userContest?.participants.find((part) => part.userId === userId)?.side;
+      const teammateNames = userContest
+        ? userContest.participants
+          .filter((part) => part.side === userSide && part.userId !== userId)
+          .map((part) => part.user?.displayName || part.userId)
+        : [];
       const opponentNames = userContest
         ? userContest.participants
-          .filter((part) => part.userId !== userId)
+          .filter((part) => part.side !== userSide)
           .map((part) => part.user?.displayName || part.userId)
         : [];
       const cardPoints = playerCards.reduce((sum, card) => sum + (card.pointsAwarded || 0), 0);
@@ -1137,6 +1208,7 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
         scorePrediction,
         contests,
         userContest,
+        teammateNames,
         opponentNames,
         userSide,
         cardPoints,
@@ -1181,7 +1253,10 @@ function getContestResultLabel(contest, userSide) {
 
 function hydrateContests(data, leagueId, matchDayId) {
   return data.headToHeadContests
-    .filter((contest) => (!leagueId || contest.leagueId === leagueId) && contest.matchDayId === matchDayId)
+    .filter((contest) => (
+      (!leagueId || contest.leagueId === leagueId) &&
+      (!matchDayId || contest.matchDayId === matchDayId)
+    ))
     .map((contest) => ({
       ...contest,
       participants: contest.participants.map((part) => ({

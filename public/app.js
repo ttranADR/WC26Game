@@ -17,6 +17,12 @@ const MIN_SELECTED_CARDS = 5;
 const MAX_SELECTED_CARDS = 12;
 const CARD_SET_SIZE = 12;
 const DEFAULT_OTHER_SCORE_MULTIPLIER = 19.5;
+const PAIRING_MODE_LABELS = {
+  MIXED: "Mixed",
+  SOLO: "1v1",
+  DUO: "2v2",
+  HALF: "Half league"
+};
 
 async function request(path, options = {}) {
   const headers = { "content-type": "application/json" };
@@ -183,6 +189,7 @@ function renderPlayer() {
   const potential = Number((multiplier * 5).toFixed(1));
   const yourScore = estimateProjectedScore(multiplier);
   const opponent = findOpponent(summary);
+  const matchup = getContestDisplay(summary.userContest, data.currentUser.id);
 
   root.innerHTML = `
     <section class="arena">
@@ -200,7 +207,7 @@ function renderPlayer() {
         <div class="versus">VS</div>
         <div class="avatar-score">
           <span class="avatar blue">${initials(opponent?.displayName || "Maya")}</span>
-          <div><span>${opponent?.displayName || "Maya"}</span><strong class="blue-score">72</strong><small class="muted">Projected</small></div>
+          <div><span>${matchup.opponentLabel || opponent?.displayName || "Maya"}</span><strong class="blue-score">72</strong><small class="muted">Projected</small></div>
         </div>
         <div class="lock-card">
           <span class="muted">${locked ? "Auto-locked" : "Auto-locks in"}</span>
@@ -228,8 +235,13 @@ function renderPlayer() {
           ${renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards })}
 
           <section class="panel">
-            <div class="panel-head"><h2>Opponent</h2><span class="label">${data.league.pairingMode}</span></div>
+            <div class="panel-head"><h2>Opponent</h2><span class="label">${formatPairingMode(summary.userContest?.mode || data.league.pairingMode)}</span></div>
             ${renderContest(summary)}
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Season Matchups</h2><span class="label">${playerSeasonMatchups().length} days</span></div>
+            ${renderPlayerSeasonMatchups()}
           </section>
 
           <section class="panel">
@@ -406,7 +418,7 @@ function renderMatchdayResult(summary) {
           </section>
 
           <section class="panel">
-            <div class="panel-head"><h2>Contest</h2><span class="label">${summary.userContest?.mode || state.data.league.pairingMode}</span></div>
+            <div class="panel-head"><h2>Contest</h2><span class="label">${formatPairingMode(summary.userContest?.mode || state.data.league.pairingMode)}</span></div>
             ${summary.userContest ? renderContestRow(summary.userContest) : `<p class="muted">No contest was assigned.</p>`}
           </section>
 
@@ -510,8 +522,7 @@ function renderAdmin() {
               <input name="name" value="${escapeHtml(league.name)}" aria-label="League name" />
               <input name="seasonName" value="${escapeHtml(league.seasonName)}" aria-label="Season name" />
               <select name="pairingMode" aria-label="Pairing mode">
-                <option value="SOLO" ${league.pairingMode === "SOLO" ? "selected" : ""}>SOLO</option>
-                <option value="DUO" ${league.pairingMode === "DUO" ? "selected" : ""}>DUO</option>
+                ${renderPairingModeOptions(league.pairingMode)}
               </select>
               <button class="panel-button primary">Save League</button>
             </form>
@@ -525,7 +536,7 @@ function renderAdmin() {
 
           <section class="panel">
             <div class="panel-head"><h2>Matchday Ops</h2><span class="label">${opsMatchday.status}</span></div>
-            <p class="muted">Cards, pairings, score, and finalize target <strong>${opsMatchday.name}</strong> for <strong>${league.name}</strong>.</p>
+            <p class="muted">Cards, matchups, score, and finalize target <strong>${opsMatchday.name}</strong> for <strong>${league.name}</strong>.</p>
             <div class="ops-summary">
               <span><strong>${formatDate(opsMatchday.date)}</strong><small>${opsMatchday.matches.length} matches</small></span>
               <span><strong>${formatTime(opsMatchday.lockAt)}</strong><small>Auto-lock</small></span>
@@ -535,7 +546,9 @@ function renderAdmin() {
               <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
               <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
               <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
-              <button class="panel-button" data-admin-action="generate-pairings">Generate Pairings</button>
+              <button class="panel-button" data-admin-action="generate-pairings">Generate Selected</button>
+              <button class="panel-button" data-admin-action="generate-pairings" data-shuffle="true">Shuffle Selected</button>
+              <button class="panel-button primary" data-admin-action="generate-pairings" data-pairing-scope="season" data-shuffle="true">Generate Season</button>
               <button class="panel-button" data-admin-action="score-matchday">Score</button>
               <button class="panel-button primary" data-admin-action="finalize-matchday">Finalize</button>
             </div>
@@ -546,8 +559,7 @@ function renderAdmin() {
           <form class="admin-form" id="createLeagueForm">
             <input name="name" value="Weekend Rivals" aria-label="League name" />
             <select name="pairingMode" aria-label="Pairing mode">
-              <option value="SOLO">SOLO</option>
-              <option value="DUO">DUO</option>
+              ${renderPairingModeOptions("MIXED")}
             </select>
             <button class="panel-button primary">Create League</button>
           </form>
@@ -593,8 +605,13 @@ function renderAdmin() {
           </section>
 
           <section class="panel">
-          <div class="panel-head"><h2>Pairings</h2><span class="label">${managedContests().length} contests</span></div>
-          <div class="contest-list">${managedContests().length ? managedContests().map(renderContestRow).join("") : `<p class="muted">Generate pairings for ${league.name} to fill this list.</p>`}</div>
+          <div class="panel-head"><h2>Selected Matchups</h2><span class="label">${managedSelectedContests(opsMatchday.id).length} contests</span></div>
+          <div class="contest-list">${managedSelectedContests(opsMatchday.id).length ? managedSelectedContests(opsMatchday.id).map(renderContestRow).join("") : `<p class="muted">Generate matchups for ${opsMatchday.name} to fill this list.</p>`}</div>
+          </section>
+
+          <section class="panel">
+          <div class="panel-head"><h2>Season Matchups</h2><span class="label">${managedSeasonMatchups().length} contests</span></div>
+          <div class="contest-list season-matchups">${managedSeasonMatchups().length ? managedSeasonMatchups().map(({ contest, matchday }) => renderContestRow(contest, { matchday })).join("") : `<p class="muted">Generate the season schedule for ${league.name} to show every matchup here.</p>`}</div>
           </section>
         </div>
       </div>
@@ -722,7 +739,8 @@ function renderRules() {
       <p>Each player receives 12 prediction cards each matchday and must select at least 5, up to all 12.</p>
       <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect.</p>
       <p>Players also submit one exact final score. If it is correct, exact-score points equal <strong>5 x odds multiplier</strong>.</p>
-      <p>Admin can sync fixtures and odds, generate cards, generate deterministic pairings, score, finalize, void cards, and export standings.</p>
+      <p>Admin can generate a full-season matchup schedule with 1v1, 2v2, and half-league contests. Winning players receive <strong>3 league points</strong>; draws receive <strong>1</strong>.</p>
+      <p>Finalized matchup points stay in standings when future matchups are shuffled.</p>
     </section>
   `;
 }
@@ -731,13 +749,64 @@ function renderContest(summary = selectedMatchday()) {
   const contest = summary?.userContest ||
     state.data.contests.find((item) => item.participants.some((part) => part.userId === state.data.currentUser.id));
   if (!contest) return `<p class="muted">No contest assigned yet.</p>`;
-  return `<div class="contest">${renderContestRow(contest)}</div>`;
+  return renderContestRow(contest);
 }
 
-function renderContestRow(contest) {
-  const a = contest.participants.filter((part) => part.side === "A").map((part) => part.user.displayName).join(" + ");
-  const b = contest.participants.filter((part) => part.side === "B").map((part) => part.user.displayName).join(" + ") || "Bye";
-  return `<strong>${a} vs ${b}</strong><span class="muted">${contest.status} · ${contest.participantAScore} - ${contest.participantBScore}</span>`;
+function renderContestRow(contest, options = {}) {
+  const a = contest.participants.filter((part) => part.side === "A").map((part) => part.user?.displayName || part.userId);
+  const b = contest.participants.filter((part) => part.side === "B").map((part) => part.user?.displayName || part.userId);
+  const matchdayLabel = options.matchday ? `${formatDate(options.matchday.date)} · ${options.matchday.name}` : "";
+  return `
+    <div class="contest">
+      <div class="contest-row-head">
+        <strong>${matchdayLabel || formatPairingMode(contest.mode)}</strong>
+        <span class="status-pill ${contest.status.toLowerCase()}">${formatPairingMode(contest.mode)} · ${contest.status}</span>
+      </div>
+      <div class="contest-sides">
+        <div class="contest-side"><span>A</span><strong>${a.join(" + ") || "Side A"}</strong></div>
+        <div class="contest-vs">vs</div>
+        <div class="contest-side"><span>B</span><strong>${b.join(" + ") || "Bye"}</strong></div>
+      </div>
+      <span class="muted">${contest.participantAScore} - ${contest.participantBScore}${contest.result ? ` · ${contest.result.replace("_", " ")}` : ""}</span>
+    </div>
+  `;
+}
+
+function renderPairingModeOptions(selected) {
+  return Object.entries(PAIRING_MODE_LABELS).map(([mode, label]) => (
+    `<option value="${mode}" ${mode === selected ? "selected" : ""}>${label}</option>`
+  )).join("");
+}
+
+function formatPairingMode(mode) {
+  return PAIRING_MODE_LABELS[mode] || mode || "Mixed";
+}
+
+function playerSeasonMatchups() {
+  const userId = state.data.currentUser.id;
+  return state.data.matchdaySummaries
+    .filter((summary) => summary.userContest?.participants.some((part) => part.userId === userId));
+}
+
+function renderPlayerSeasonMatchups() {
+  const matchups = playerSeasonMatchups();
+  if (!matchups.length) return `<p class="muted">No season matchups have been generated yet.</p>`;
+  return `<div class="contest-list season-matchups">${matchups.map((summary) => renderContestRow(summary.userContest, { matchday: summary })).join("")}</div>`;
+}
+
+function getContestDisplay(contest, userId) {
+  if (!contest) return { teammateLabel: "", opponentLabel: "" };
+  const userSide = contest.participants.find((part) => part.userId === userId)?.side;
+  const teammates = contest.participants
+    .filter((part) => part.side === userSide && part.userId !== userId)
+    .map((part) => part.user?.displayName || part.userId);
+  const opponents = contest.participants
+    .filter((part) => part.side !== userSide)
+    .map((part) => part.user?.displayName || part.userId);
+  return {
+    teammateLabel: teammates.join(" + "),
+    opponentLabel: opponents.join(" + ")
+  };
 }
 
 function renderStandingsTable(rows) {
@@ -920,7 +989,8 @@ function estimateProjectedScore(multiplier) {
 function findOpponent(summary = selectedMatchday()) {
   const contest = summary?.userContest ||
     state.data.contests.find((item) => item.participants.some((part) => part.userId === state.data.currentUser.id));
-  return contest?.participants.find((part) => part.userId !== state.data.currentUser.id)?.user;
+  const userSide = contest?.participants.find((part) => part.userId === state.data.currentUser.id)?.side;
+  return contest?.participants.find((part) => part.side !== userSide)?.user;
 }
 
 function formatCountdown(lockAt) {
@@ -1093,7 +1163,7 @@ root.addEventListener("click", async (event) => {
   const adminAction = event.target.closest("[data-admin-action]");
   if (adminAction) {
     if (!isAdmin()) return showToast("Admin access required.");
-    await runAdminAction(adminAction.dataset.adminAction);
+    await runAdminAction(adminAction.dataset.adminAction, adminAction.dataset);
     return;
   }
 
@@ -1206,7 +1276,7 @@ async function submitPicks() {
   }, "Picks submitted.");
 }
 
-async function runAdminAction(action) {
+async function runAdminAction(action, options = {}) {
   const summary = selectedMatchday();
   const syncScope = action === "sync-fixtures" || action === "sync-odds" ? "all" : undefined;
   const body = {
@@ -1214,6 +1284,11 @@ async function runAdminAction(action) {
     matchDayId: summary?.id || state.data.matchday.id,
     scope: syncScope
   };
+  if (options.pairingScope) body.scope = options.pairingScope;
+  if (options.shuffle === "true") {
+    body.shuffle = true;
+    body.shuffleSeed = `${Date.now()}`;
+  }
   if (action === "sync-daily-tournament-data") {
     body.date = document.querySelector("#dailySyncDate")?.value || todayKey();
   }
@@ -1276,9 +1351,19 @@ function availableUsersForLeague(leagueId) {
   return state.data.users.filter((user) => user.role === "PLAYER" && !currentMembers.has(user.id));
 }
 
-function managedContests() {
+function managedSelectedContests(matchDayId = selectedMatchday()?.id) {
   const leagueId = managedLeague().id;
-  return state.data.contests.filter((contest) => contest.leagueId === leagueId);
+  return (state.data.seasonContests || state.data.contests)
+    .filter((contest) => contest.leagueId === leagueId && contest.matchDayId === matchDayId);
+}
+
+function managedSeasonMatchups() {
+  const leagueId = managedLeague().id;
+  return state.data.matchdaySummaries.flatMap((matchday) => (
+    matchday.contests
+      .filter((contest) => contest.leagueId === leagueId)
+      .map((contest) => ({ contest, matchday }))
+  ));
 }
 
 function escapeHtml(value) {

@@ -2,6 +2,9 @@ import { shuffle } from "./random.js";
 import { hashPassword } from "./auth.js";
 import { CARD_SET_SIZE, MIN_SELECTED_CARDS } from "./config.js";
 
+export const PAIRING_MODES = ["MIXED", "SOLO", "DUO", "HALF"];
+const CONTEST_PAIRING_MODES = ["SOLO", "DUO", "HALF"];
+
 export function createSeedData() {
   const now = new Date().toISOString();
   const players = [
@@ -75,7 +78,7 @@ export function createSeedData() {
       name: "Golden Boot League",
       slug: "golden-boot-league",
       seasonName: "World Cup 2026",
-      pairingMode: "SOLO",
+      pairingMode: "MIXED",
       createdByUserId: "admin_1",
       createdAt: now,
       updatedAt: now
@@ -494,34 +497,68 @@ function scorePrediction(id, userId, tournamentMatchId, predictedHomeScore, pred
   };
 }
 
-export function createContests(leagueId, matchDayId, userIds, mode) {
-  const shuffled = shuffle(userIds, `${leagueId}_${matchDayId}_${mode}`);
-  const contests = [];
+export function normalizePairingMode(mode, fallback = "MIXED") {
+  const value = String(mode || "").trim().toUpperCase();
+  if (value === "RANDOM") return "MIXED";
+  if (value === "TEAM") return "HALF";
+  return PAIRING_MODES.includes(value) ? value : fallback;
+}
 
-  for (let i = 0; i < shuffled.length; i += 2) {
-    const a = shuffled[i];
-    const b = shuffled[i + 1] || null;
-    contests.push({
-      id: `contest_${matchDayId}_${i / 2 + 1}`,
-      leagueId,
-      matchDayId,
-      mode,
-      status: "SCHEDULED",
-      participantAName: a,
-      participantBName: b || "Bye",
-      participantAScore: 0,
-      participantBScore: 0,
-      result: null,
-      participants: [
-        { id: `part_${matchDayId}_${i}_a`, side: "A", userId: a },
-        ...(b ? [{ id: `part_${matchDayId}_${i}_b`, side: "B", userId: b }] : [])
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
+export function resolveContestMode(leagueId, matchDayId, mode, seedText = "") {
+  const normalized = normalizePairingMode(mode);
+  if (normalized !== "MIXED") return normalized;
+  return shuffle(CONTEST_PAIRING_MODES, `${leagueId}_${matchDayId}_mixed_${seedText}`)[0];
+}
+
+export function createContests(leagueId, matchDayId, userIds, mode, options = {}) {
+  const requestedMode = normalizePairingMode(mode);
+  const contestMode = resolveContestMode(leagueId, matchDayId, requestedMode, options.seedText);
+  const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
+  const shuffled = shuffle(uniqueUserIds, `${leagueId}_${matchDayId}_${requestedMode}_${contestMode}_${options.seedText || ""}`);
+  const sides = createContestSides(shuffled, contestMode);
+  const now = new Date().toISOString();
+
+  return sides.map((side, index) => ({
+    id: `contest_${matchDayId}_${index + 1}`,
+    leagueId,
+    matchDayId,
+    mode: contestMode,
+    requestedMode,
+    status: "SCHEDULED",
+    participantAName: side.a.join(" + ") || "Side A",
+    participantBName: side.b.join(" + ") || "Bye",
+    participantAScore: 0,
+    participantBScore: 0,
+    result: null,
+    participants: [
+      ...side.a.map((userId, userIndex) => ({ id: `part_${matchDayId}_${index}_a_${userIndex}`, side: "A", userId })),
+      ...side.b.map((userId, userIndex) => ({ id: `part_${matchDayId}_${index}_b_${userIndex}`, side: "B", userId }))
+    ],
+    createdAt: now,
+    updatedAt: now
+  }));
+}
+
+function createContestSides(userIds, mode) {
+  if (!userIds.length) return [];
+  if (mode === "HALF") return [splitSide(userIds)];
+  const groupSize = mode === "DUO" ? 4 : 2;
+  const sides = [];
+
+  for (let i = 0; i < userIds.length; i += groupSize) {
+    sides.push(splitSide(userIds.slice(i, i + groupSize)));
   }
 
-  return contests;
+  return sides;
+}
+
+function splitSide(userIds) {
+  if (userIds.length <= 1) return { a: userIds, b: [] };
+  const splitAt = Math.ceil(userIds.length / 2);
+  return {
+    a: userIds.slice(0, splitAt),
+    b: userIds.slice(splitAt)
+  };
 }
 
 export function createStandings(leagueId, userIds) {
