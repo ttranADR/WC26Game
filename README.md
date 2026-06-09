@@ -44,6 +44,7 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - Exact Score Boost reads all correct-score ratios from backend odds snapshots.
 - Correct-score odds store every scoreline from `0-0` through `5-5` for each game.
 - All matchdays are grouped by World Cup phase and the current/today matchday is highlighted.
+- Dedicated Matchups tab with a full-tournament calendar for browsing each matchday's league contests.
 - Submit card answers and exact score prediction.
 - Lock-time validation on the backend.
 - Admin dashboard for league ops.

@@ -114,6 +114,7 @@ function render() {
   });
 
   if (state.route === "admin") renderAdmin();
+  else if (state.route === "matchups") renderSeasonMatchups();
   else if (state.route === "leaderboard") renderLeaderboard();
   else if (state.route === "rules") renderRules();
   else renderPlayer();
@@ -325,16 +326,20 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
   `;
 }
 
-function renderMatchdayList(activeId) {
+function renderMatchdayList(activeId, options = {}) {
   const months = groupMatchdaysByCalendarMonth(state.data.matchdaySummaries);
   const today = state.data.todayDate || todayKey();
   const upcomingCount = state.data.matchdaySummaries.filter((matchday) => matchday.date >= today && matchday.status !== "FINAL").length;
+  const summaryLabel = options.summaryLabel || "All matchdays";
+  const summaryMeta = options.summaryMeta || `${upcomingCount} upcoming`;
+  const getDayMetric = options.getDayMetric || ((matchday) => matchday.matches.length);
+  const formatDayMetricLabel = options.formatDayMetricLabel || ((count) => count === 1 ? "game" : "games");
   return `
     <section class="matchday-strip">
       <div class="calendar-summary">
-        <p class="label">All matchdays</p>
+        <p class="label">${summaryLabel}</p>
         <strong>${state.data.matchdaySummaries.length} days</strong>
-        <span class="muted">${upcomingCount} upcoming</span>
+        <span class="muted">${summaryMeta}</span>
       </div>
       <div class="matchday-calendar">
         ${months.map((month) => `
@@ -347,15 +352,18 @@ function renderMatchdayList(activeId) {
               ${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<span>${day}</span>`).join("")}
             </div>
             <div class="calendar-grid">
-              ${month.days.map((day) => day.matchday ? `
+              ${month.days.map((day) => {
+                const metricCount = day.matchday ? getDayMetric(day.matchday) : 0;
+                return day.matchday ? `
                 <button class="calendar-day ${day.matchday.id === activeId ? "active" : ""} ${day.matchday.isToday ? "today" : ""} ${day.matchday.status.toLowerCase()}" data-matchday-id="${day.matchday.id}">
                   <span>${day.dayOfMonth}</span>
                   <strong>${day.matchday.isToday ? "Today" : day.matchday.status}</strong>
-                  <small>${day.matchday.matches.length} games</small>
+                  <small>${metricCount} ${formatDayMetricLabel(metricCount)}</small>
                 </button>
               ` : `
                 <span class="calendar-day empty">${day.dayOfMonth || ""}</span>
-              `).join("")}
+              `;
+              }).join("")}
             </div>
           </div>
         `).join("")}
@@ -717,6 +725,93 @@ function renderMemberRow(member) {
         <button class="panel-button danger" data-member-action="REMOVED" data-member-user-id="${member.userId}">Remove</button>
       </div>
     </div>
+  `;
+}
+
+function renderSeasonMatchups() {
+  const league = managedLeague();
+  const summary = selectedMatchday();
+  if (!summary) {
+    root.innerHTML = `<div class="loading">No matchdays are available yet.</div>`;
+    return;
+  }
+
+  const dayMatchups = managedSelectedContests(summary.id);
+  const seasonMatchups = managedSeasonMatchups();
+  const generatedDays = new Set(seasonMatchups.map((item) => item.matchday.id)).size;
+  const finalizedCount = seasonMatchups.filter(({ contest }) => contest.status === "FINAL").length;
+  const currentUserContest = dayMatchups.find((contest) => (
+    contest.participants.some((part) => part.userId === state.data.currentUser.id)
+  ));
+
+  document.querySelector("#leagueName").textContent = league.name;
+  document.querySelector("#matchdayName").textContent = `${league.name} · Season Matchups`;
+  root.innerHTML = `
+    <section class="arena season-matchups-page">
+      ${renderMatchdayList(summary.id, {
+        summaryLabel: "Tournament matchups",
+        summaryMeta: `${generatedDays} days generated`,
+        getDayMetric: (matchday) => managedSelectedContests(matchday.id).length,
+        formatDayMetricLabel: (count) => count === 1 ? "matchup" : "matchups"
+      })}
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="label">${league.seasonName}</p>
+            <h2>${league.name} Matchup Calendar</h2>
+          </div>
+          ${isAdmin() ? `<button class="panel-button primary" data-admin-action="generate-pairings" data-pairing-scope="season" data-shuffle="true">Generate Season</button>` : `<span class="label">${formatPairingMode(league.pairingMode)}</span>`}
+        </div>
+        <div class="league-summary matchup-summary">
+          <span><strong>${state.data.matchdaySummaries.length}</strong> tournament days</span>
+          <span><strong>${generatedDays}</strong> matchup days</span>
+          <span><strong>${seasonMatchups.length}</strong> contests</span>
+          <span><strong>${finalizedCount}</strong> finalized</span>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <section class="picks-panel">
+          <div class="section-head">
+            <div>
+              <p class="label">${formatDate(summary.date)} · ${summary.status}</p>
+              <h2>${summary.name} Matchups</h2>
+              <span class="muted">${dayMatchups.length} contest${dayMatchups.length === 1 ? "" : "s"} for ${league.name}</span>
+            </div>
+            <div class="meter"><span>${formatPairingMode(league.pairingMode)}</span><strong>${dayMatchups.length}</strong></div>
+          </div>
+          <div class="contest-list season-day-matchups">
+            ${dayMatchups.length
+              ? dayMatchups.map(renderContestRow).join("")
+              : `<div class="empty-state compact-empty">No matchups generated for this matchday yet.</div>`}
+          </div>
+        </section>
+
+        <aside class="right-rail">
+          <section class="panel">
+            <div class="panel-head"><h2>${currentUserContest ? "Your Matchup" : "Day Snapshot"}</h2><span class="label">${summary.name}</span></div>
+            ${currentUserContest
+              ? renderContestRow(currentUserContest)
+              : `<div class="league-summary compact-summary"><span><strong>${dayMatchups.length}</strong> contests</span><span><strong>${summary.matches.length}</strong> games</span></div>`}
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Tournament Matches</h2><span class="label">${summary.matches.length} games</span></div>
+            <div class="contest-list">
+              ${summary.matches.length ? summary.matches.map((match) => `
+                <div class="log-row"><strong>${match.homeTeamCode} vs ${match.awayTeamCode}</strong><span class="muted">${match.homeTeam} vs ${match.awayTeam} · ${formatTime(match.kickoffAt)}</span></div>
+              `).join("") : `<p class="muted">No tournament matches are scheduled for this day.</p>`}
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Standings</h2><button class="panel-button" data-route-click="leaderboard">View Full</button></div>
+            ${renderStandingsTable(league.standings.slice(0, 6))}
+          </section>
+        </aside>
+      </div>
+    </section>
   `;
 }
 
