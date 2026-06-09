@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createCardsFromOdds, createContests, createSeedData } from "../src/seed.js";
+import { createOddsApiProvider } from "../src/providers/oddsApiProvider.js";
 import { getExactScoreMultiplier, gradeCard, gradeExactPrediction } from "../src/scoring.js";
 import {
   finalizeMatchday,
@@ -343,6 +344,57 @@ assert.ok(brazilCorrectScoreOdds.some((odd) => (
   odd.priceDecimal > 1
 )));
 
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (url) => {
+  const parsed = new URL(String(url));
+  if (parsed.pathname.endsWith("/events")) {
+    assert.equal(parsed.searchParams.get("league"), "international-fifa-world-cup");
+    return jsonResponse([{
+      id: "event_jun_13",
+      home: "Brazil",
+      away: "Morocco",
+      date: "2026-06-13T20:00:00Z"
+    }]);
+  }
+  if (parsed.pathname.endsWith("/odds/multi")) {
+    assert.equal(parsed.searchParams.get("bookmakers"), "Bet365");
+    return jsonResponse([{
+      id: "event_jun_13",
+      home: "Brazil",
+      away: "Morocco",
+      date: "2026-06-13T20:00:00Z",
+      bookmakers: {
+        Bet365: [{
+          name: "Correct Score",
+          updatedAt: "2026-06-08T19:09:30.941Z",
+          odds: [
+            { label: "1-1", odds: "7.000" },
+            { label: "3-1", odds: "19.000" }
+          ]
+        }]
+      }
+    }]);
+  }
+  throw new Error(`Unexpected fetch URL ${url}`);
+};
+try {
+  const provider = createOddsApiProvider("test-key");
+  const mappedOdds = await provider.getOddsByDate("2026-06-13");
+  assert.ok(mappedOdds.some((odd) => (
+    odd.marketKey === "CORRECT_SCORE" &&
+    odd.outcomeName === "1-1" &&
+    odd.priceDecimal === 7 &&
+    odd.bookmaker === "Bet365"
+  )));
+  assert.ok(mappedOdds.some((odd) => (
+    odd.marketKey === "CORRECT_SCORE" &&
+    odd.outcomeName === "3-1" &&
+    odd.priceDecimal === 19
+  )));
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
 const dailyData = createSeedData();
 const dailyStore = createMemoryStore(dailyData);
 const fixtureDates = [];
@@ -394,6 +446,15 @@ function createMemoryStore(data) {
     async update(mutator) {
       const result = await mutator(data);
       return result ?? data;
+    }
+  };
+}
+
+function jsonResponse(body) {
+  return {
+    ok: true,
+    async json() {
+      return body;
     }
   };
 }

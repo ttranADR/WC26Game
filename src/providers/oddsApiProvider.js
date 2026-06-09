@@ -169,7 +169,7 @@ function mapV3BothTeamsScore(event, bookmaker, market, row) {
 }
 
 function mapV3CorrectScore(event, bookmaker, market, row) {
-  const directScore = row.score || row.name || row.outcome || row.result || row.value;
+  const directScore = row.score || row.label || row.name || row.outcome || row.result || row.value;
   const directPrice = row.odds || row.odd || row.price || row.decimal;
   const direct = makeV3Odd(event, bookmaker, market, "CORRECT_SCORE", normalizeScoreOutcome(directScore), directPrice);
   const keyed = Object.entries(row)
