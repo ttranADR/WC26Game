@@ -1,6 +1,6 @@
 import { createCardsFromOdds, createCardPool, createContests, createStandings, normalizePairingMode } from "./seed.js";
 import { gradeCard, gradeExactPrediction, getExactScoreMultiplier } from "./scoring.js";
-import { ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
+import { defaultPasswordForRole, ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
 import { sendInviteEmail } from "./email.js";
 import { shuffle } from "./random.js";
 import {
@@ -47,6 +47,30 @@ function normalizeLoginIdentifier(value) {
     "user@pitchpick.local": "you@pitchpick.local"
   };
   return aliases[identifier] || identifier;
+}
+
+function normalizeEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!email.includes("@") || email.length < 5) throw new Error("Enter a valid email.");
+  return email;
+}
+
+function normalizeDisplayName(value) {
+  const displayName = String(value || "").trim();
+  if (displayName.length < 2) throw new Error("Name must be at least 2 characters.");
+  return displayName;
+}
+
+function normalizeUserRole(value) {
+  const role = String(value || "PLAYER").trim().toUpperCase();
+  if (!["ADMIN", "PLAYER"].includes(role)) throw new Error("Role must be ADMIN or PLAYER.");
+  return role;
+}
+
+function normalizePassword(value) {
+  const password = String(value || "").trim();
+  if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+  return password;
 }
 
 export async function submitPicks(store, input) {
@@ -147,6 +171,72 @@ export async function createLeague(store, input) {
   });
 }
 
+export async function createUserAccount(store, input) {
+  return store.update((data) => {
+    const email = normalizeEmail(input.email);
+    const displayName = normalizeDisplayName(input.displayName);
+    const role = normalizeUserRole(input.role);
+    const password = normalizePassword(input.password || defaultPasswordForRole(role));
+    if (data.users.some((user) => user.email.toLowerCase() === email)) {
+      throw new Error("A user with this email already exists.");
+    }
+
+    const id = `user_${Date.now()}`;
+    const user = {
+      id,
+      email,
+      displayName,
+      avatarUrl: `assets/${id}.svg`,
+      role,
+      passwordHash: hashPassword(password),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    data.users.push(user);
+    if (role === "PLAYER") ensurePlayerProfile(data, user);
+    data.syncLogs.unshift(log("CREATE_USER", "SUCCESS", `Created ${displayName} as ${role}.`));
+    return { ok: true, user: publicUser(user), state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function updateUserAccount(store, input) {
+  return store.update((data) => {
+    const user = mustFind(data.users, input.userId, "User");
+    const role = normalizeUserRole(input.role || user.role);
+    if (user.role === "ADMIN" && role !== "ADMIN" && !hasOtherAdmin(data, user.id)) {
+      throw new Error("At least one admin user is required.");
+    }
+
+    user.displayName = normalizeDisplayName(input.displayName || user.displayName);
+    user.role = role;
+    if (String(input.password || "").trim()) {
+      user.passwordHash = hashPassword(normalizePassword(input.password));
+    } else {
+      ensureUserPassword(user);
+    }
+    user.updatedAt = new Date().toISOString();
+    if (role === "PLAYER") ensurePlayerProfile(data, user);
+    data.syncLogs.unshift(log("UPDATE_USER", "SUCCESS", `Updated ${user.displayName}.`));
+    return { ok: true, user: publicUser(user), state: hydrateState(data, input.currentUserId) };
+  });
+}
+
+export async function updateOwnAccount(store, input) {
+  return store.update((data) => {
+    const user = mustFind(data.users, input.currentUserId, "User");
+    user.displayName = normalizeDisplayName(input.displayName || user.displayName);
+    if (String(input.password || "").trim()) {
+      user.passwordHash = hashPassword(normalizePassword(input.password));
+    } else {
+      ensureUserPassword(user);
+    }
+    user.updatedAt = new Date().toISOString();
+    if (user.role === "PLAYER") ensurePlayerProfile(data, user);
+    data.syncLogs.unshift(log("UPDATE_ACCOUNT", "SUCCESS", `${user.displayName} updated account settings.`));
+    return { ok: true, user: publicUser(user), state: hydrateState(data, user.id) };
+  });
+}
+
 export async function updateLeague(store, input) {
   return store.update((data) => {
     const league = mustFind(data.leagues, input.leagueId, "League");
@@ -166,8 +256,7 @@ export async function invitePlayer(store, input) {
   return store.update(async (data) => {
     const leagueId = input.leagueId || "league_1";
     const league = mustFind(data.leagues, leagueId, "League");
-    const email = String(input.email || "").trim().toLowerCase();
-    if (!email.includes("@")) throw new Error("Enter a valid email.");
+    const email = normalizeEmail(input.email);
 
     let user = data.users.find((item) => item.email.toLowerCase() === email);
     if (!user) {
@@ -175,7 +264,7 @@ export async function invitePlayer(store, input) {
       user = {
         id,
         email,
-        displayName: input.displayName || email.split("@")[0],
+        displayName: normalizeDisplayName(input.displayName || email.split("@")[0]),
         avatarUrl: `assets/${id}.svg`,
         role: "PLAYER",
         passwordHash: hashPassword("player123"),
@@ -1399,6 +1488,33 @@ function upsertLeagueMember(data, memberInput) {
   };
   data.leagueMembers.push(member);
   return member;
+}
+
+function ensurePlayerProfile(data, user) {
+  let profile = data.playerProfiles.find((item) => item.userId === user.id);
+  if (profile) {
+    profile.nickname = user.displayName;
+    profile.updatedAt = new Date().toISOString();
+    return profile;
+  }
+
+  profile = {
+    id: `profile_${user.id}`,
+    userId: user.id,
+    nickname: user.displayName,
+    favoriteTeam: "World Cup",
+    country: "US",
+    timezone: "America/Los_Angeles",
+    metadata: { createdByAdmin: true },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  data.playerProfiles.push(profile);
+  return profile;
+}
+
+function hasOtherAdmin(data, userId) {
+  return data.users.some((user) => user.id !== userId && user.role === "ADMIN");
 }
 
 function makeInviteCode(leagueId, userId) {

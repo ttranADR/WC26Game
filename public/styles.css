@@ -1086,6 +1086,26 @@ select:focus-visible {
   display: block;
 }
 
+.user-data-row {
+  grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) 120px minmax(130px, 1fr) auto;
+}
+
+.user-data-row input,
+.user-data-row select {
+  min-width: 0;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.account-page {
+  max-width: 720px;
+}
+
 .invite-link-row {
   display: grid;
   gap: 4px;

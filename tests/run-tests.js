@@ -11,7 +11,10 @@ import {
   submitPicks,
   syncDailyTournamentData,
   syncOdds,
-  updateMatchScoresForMatchday
+  updateMatchScoresForMatchday,
+  createUserAccount,
+  updateOwnAccount,
+  updateUserAccount
 } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
@@ -41,6 +44,44 @@ assert.equal(adminLogin.user.hasPassword, true);
 assert.equal("passwordHash" in adminLogin.user, false);
 assert.equal(adminLogin.state.currentUser.role, "ADMIN");
 assert.ok(adminLogin.state.users.every((user) => user.email && user.role && user.hasPassword && !("passwordHash" in user)));
+
+const accountStore = createMemoryStore(createSeedData());
+const createdUser = await createUserAccount(accountStore, {
+  currentUserId: "admin_1",
+  displayName: "Direct User",
+  email: "direct@pitchpick.local",
+  role: "PLAYER",
+  password: "direct123"
+});
+assert.equal(createdUser.user.email, "direct@pitchpick.local");
+assert.equal(createdUser.user.role, "PLAYER");
+assert.equal(createdUser.user.hasPassword, true);
+assert.equal("passwordHash" in createdUser.user, false);
+assert.equal((await loginUser(accountStore, { email: "direct@pitchpick.local", password: "direct123" })).user.id, createdUser.user.id);
+const promotedUser = await updateUserAccount(accountStore, {
+  currentUserId: "admin_1",
+  userId: createdUser.user.id,
+  displayName: "Direct Admin",
+  role: "ADMIN",
+  password: "direct456"
+});
+assert.equal(promotedUser.user.displayName, "Direct Admin");
+assert.equal(promotedUser.user.role, "ADMIN");
+await assert.rejects(() => loginUser(accountStore, { email: "direct@pitchpick.local", password: "direct123" }), /Invalid email or password/);
+assert.equal((await loginUser(accountStore, { email: "direct@pitchpick.local", password: "direct456" })).user.role, "ADMIN");
+const selfUpdated = await updateOwnAccount(accountStore, {
+  currentUserId: createdUser.user.id,
+  displayName: "Self Updated",
+  password: "self789"
+});
+assert.equal(selfUpdated.user.displayName, "Self Updated");
+assert.equal((await loginUser(accountStore, { email: "direct@pitchpick.local", password: "self789" })).user.displayName, "Self Updated");
+await assert.rejects(() => updateUserAccount(createMemoryStore(createSeedData()), {
+  currentUserId: "admin_1",
+  userId: "admin_1",
+  displayName: "Former Admin",
+  role: "PLAYER"
+}), /At least one admin/);
 
 const assignmentState = await getAppState(createMemoryStore(createSeedData()), "user_you");
 const assignmentSummary = assignmentState.matchdaySummaries.find((item) => item.id === "md_12");

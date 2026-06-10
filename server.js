@@ -15,6 +15,7 @@ import {
   acceptLeagueInvite,
   addLeagueMember,
   createLeague,
+  createUserAccount,
   exportStandingsCsv,
   finalizeMatchday,
   generateCardsForMatchday,
@@ -31,6 +32,8 @@ import {
   syncLiveData,
   syncOdds,
   updateLeague,
+  updateOwnAccount,
+  updateUserAccount,
   updateMatchScoresForMatchday,
   updateLeagueMemberStatus,
   voidCard
@@ -143,9 +146,26 @@ async function handleApi(req, res) {
       return;
     }
 
+    if (method === "POST" && url.pathname === "/api/player/update-account") {
+      sendJson(res, 200, await updateOwnAccount(store, await readJsonWithUser(req)));
+      return;
+    }
+
     if (method === "POST" && url.pathname === "/api/jobs/sync-live-data") {
       requireCronSecret(req);
       sendJson(res, 200, await syncLiveData(store, { fixtureProvider, oddsProvider }, await readJsonWithUser(req)));
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/admin/create-user") {
+      await requireAdmin(req);
+      sendJson(res, 200, await createUserAccount(store, await readJsonWithUser(req)));
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/admin/update-user") {
+      await requireAdmin(req);
+      sendJson(res, 200, await updateUserAccount(store, await readJsonWithUser(req)));
       return;
     }
 

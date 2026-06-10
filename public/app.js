@@ -23,6 +23,7 @@ const PAIRING_MODE_LABELS = {
   DUO: "2v2",
   HALF: "Half league"
 };
+const ADMIN_ROUTES = new Set(["admin", "playerData", "leagueData"]);
 
 async function request(path, options = {}) {
   const headers = { "content-type": "application/json" };
@@ -67,30 +68,20 @@ function showToast(message) {
 }
 
 async function loadState() {
-  const inviteCode = new URLSearchParams(window.location.search).get("invite");
-  if (inviteCode) {
-    const accepted = await api.post("/api/player/accept-invite", { inviteCode });
-    state.userId = accepted.user.id;
-    localStorage.setItem("pitchpick-user-id", state.userId);
-    state.data = accepted.state;
-    state.selectedMatchdayId = accepted.state.todayMatchdayId;
-    localStorage.setItem("pitchpick-selected-matchday-id", state.selectedMatchdayId);
-    window.history.replaceState(null, "", window.location.pathname);
-    showToast(accepted.message);
-  } else if (!state.userId) {
+  if (!state.userId) {
     renderLogin();
     updateChrome();
     return;
-  } else {
-    try {
-      state.data = await api.getState();
-    } catch (error) {
-      localStorage.removeItem("pitchpick-user-id");
-      state.userId = null;
-      renderLogin(error.message);
-      updateChrome();
-      return;
-    }
+  }
+
+  try {
+    state.data = await api.getState();
+  } catch (error) {
+    localStorage.removeItem("pitchpick-user-id");
+    state.userId = null;
+    renderLogin(error.message);
+    updateChrome();
+    return;
   }
   syncHydratedState();
   updateChrome();
@@ -103,15 +94,18 @@ function render() {
     return;
   }
 
-  if (state.route === "admin" && !isAdmin()) state.route = "player";
+  if (ADMIN_ROUTES.has(state.route) && !isAdmin()) state.route = "player";
 
   document.querySelectorAll("[data-route]").forEach((button) => {
     button.classList.toggle("active", button.dataset.route === state.route);
   });
 
   if (state.route === "admin") renderAdmin();
+  else if (state.route === "playerData") renderPlayerData();
+  else if (state.route === "leagueData") renderLeagueData();
   else if (state.route === "matchups") renderSeasonMatchups();
   else if (state.route === "leaderboard") renderLeaderboard();
+  else if (state.route === "account") renderAccount();
   else if (state.route === "rules") renderRules();
   else renderPlayer();
 }
@@ -125,7 +119,7 @@ function renderLogin(error = "") {
         <div>
           <p class="label">Welcome back</p>
           <h1>Log in to PitchPick</h1>
-          <p class="muted">Use a seeded demo account, or accept an invite link from email.</p>
+          <p class="muted">Use a seeded demo account or an account created by an admin.</p>
         </div>
         ${error ? `<div class="form-error">${error}</div>` : ""}
         <label>
@@ -150,7 +144,7 @@ function renderLogin(error = "") {
 function updateChrome() {
   const loggedIn = Boolean(state.data?.currentUser);
   const admin = isAdmin();
-  document.querySelectorAll('[data-route="admin"]').forEach((button) => {
+  document.querySelectorAll('[data-route="admin"], [data-route="playerData"], [data-route="leagueData"]').forEach((button) => {
     button.hidden = !admin;
   });
   document.querySelector("#refreshButton").hidden = !loggedIn;
@@ -510,9 +504,6 @@ function renderAdmin() {
   const league = managedLeague();
   const opsMatchday = selectedMatchday() || data.matchday;
   document.querySelector("#matchdayName").textContent = `Admin Ops · ${opsMatchday.name}`;
-  const leagueMembers = membersForLeague(league.id);
-  const availableUsers = availableUsersForLeague(league.id);
-  const emailOutbox = data.emailOutbox || [];
   const finishedOpsMatches = opsMatchday.matches.filter((match) => match.status === "FINISHED").length;
   root.innerHTML = `
     <section class="admin-layout">
@@ -520,27 +511,6 @@ function renderAdmin() {
         ${renderMatchdayList(opsMatchday.id)}
         <div class="admin-grid">
           ${renderLiveDataPanel(data)}
-
-          <section class="panel">
-            <div class="panel-head"><h2>Manage Leagues</h2><span class="label">${data.leagues.length} leagues</span></div>
-            <form class="admin-form" id="updateLeagueForm">
-              <select id="managedLeagueSelect" name="leagueId" aria-label="Select league to manage">
-                ${data.leagues.map((item) => `<option value="${item.id}" ${item.id === league.id ? "selected" : ""}>${item.name}</option>`).join("")}
-              </select>
-              <input name="name" value="${escapeHtml(league.name)}" aria-label="League name" />
-              <input name="seasonName" value="${escapeHtml(league.seasonName)}" aria-label="Season name" />
-              <select name="pairingMode" aria-label="Pairing mode">
-                ${renderPairingModeOptions(league.pairingMode)}
-              </select>
-              <button class="panel-button primary">Save League</button>
-            </form>
-            <div class="league-summary">
-              <span><strong>${league.memberCount}</strong> members</span>
-              <span><strong>${league.activeMemberCount}</strong> active</span>
-              <span><strong>${league.invitedMemberCount}</strong> invited</span>
-              <span><strong>${league.contestCount}</strong> contests</span>
-            </div>
-          </section>
 
           <section class="panel">
             <div class="panel-head"><h2>Matchday Ops</h2><span class="label">${opsMatchday.status}</span></div>
@@ -565,17 +535,6 @@ function renderAdmin() {
           </section>
 
           <section class="panel">
-          <div class="panel-head"><h2>Create League</h2><span class="label">Admin</span></div>
-          <form class="admin-form" id="createLeagueForm">
-            <input name="name" value="Weekend Rivals" aria-label="League name" />
-            <select name="pairingMode" aria-label="Pairing mode">
-              ${renderPairingModeOptions("MIXED")}
-            </select>
-            <button class="panel-button primary">Create League</button>
-          </form>
-          </section>
-
-          <section class="panel">
           <div class="panel-head"><h2>Void Card</h2><span class="label">Safety</span></div>
           <form class="admin-form" id="voidForm">
             <select name="cardId" aria-label="Card to void" ${opsMatchday.predictionCards?.length ? "" : "disabled"}>
@@ -586,37 +545,6 @@ function renderAdmin() {
             <input name="reason" value="Data unavailable" aria-label="Void reason" />
             <button class="panel-button danger" ${opsMatchday.predictionCards?.length ? "" : "disabled"}>Void Card</button>
           </form>
-          </section>
-
-          <section class="panel">
-          <div class="panel-head"><h2>League Members</h2><span class="label">${league.name}</span></div>
-          <div class="context-banner">
-            <strong>Managing: ${league.name}</strong>
-            <span>Invites and member changes below apply only to this selected league.</span>
-          </div>
-
-          <form class="admin-form" id="inviteForm">
-            <input value="Inviting to: ${escapeHtml(league.name)}" aria-label="Invite target league" disabled />
-            <input name="displayName" placeholder="Friend name" aria-label="Friend name" required />
-            <input name="email" type="email" placeholder="friend@example.com" aria-label="Friend email" required />
-            <button class="panel-button primary">Create Invite Link for ${league.name}</button>
-          </form>
-
-          <form class="admin-form" id="addExistingMemberForm">
-            <select name="userId" aria-label="Existing player to add" ${availableUsers.length ? "" : "disabled"}>
-              ${availableUsers.length
-                ? availableUsers.map((user) => `<option value="${user.id}">${user.displayName} · ${user.email}</option>`).join("")
-                : `<option>No available players outside this league</option>`}
-            </select>
-            <button class="panel-button" ${availableUsers.length ? "" : "disabled"}>Add Existing Player</button>
-          </form>
-
-          <div class="member-list">${leagueMembers.length ? leagueMembers.map(renderMemberRow).join("") : `<p class="muted">No members yet. Invite a friend to ${league.name} to start this league.</p>`}</div>
-          </section>
-
-          <section class="panel">
-          <div class="panel-head"><h2>Player Database</h2><span class="label">${data.users.length} users</span></div>
-          <div class="member-list">${data.users.map(renderUserDatabaseRow).join("")}</div>
           </section>
 
           <section class="panel">
@@ -633,26 +561,133 @@ function renderAdmin() {
 
       <aside class="right-rail">
         <section class="panel">
-          <div class="panel-head"><h2>Email Outbox</h2><span class="label">${emailOutbox.length} emails</span></div>
-          <div class="contest-list">${emailOutbox.length ? emailOutbox.map((email) => `
-            <div class="log-row">
-              <strong>${email.status} · ${email.to}</strong>
-              <span class="muted">${email.subject}</span>
-              <label class="invite-link-row">
-                <span>Invite link</span>
-                <input value="${email.inviteLink}" readonly />
-              </label>
-            </div>
-          `).join("") : `<p class="muted">Invite emails appear here when you create them. Add RESEND_API_KEY to send real email.</p>`}</div>
-        </section>
-
-        <section class="panel">
           <div class="panel-head"><h2>Raw Sync Logs</h2><button class="panel-button" id="exportCsv">Export CSV</button></div>
           <div class="contest-list">${data.syncLogs.map((item) => `
             <div class="log-row"><strong>${item.type}</strong><span class="muted">${item.message}</span><small>${new Date(item.createdAt).toLocaleString()}</small></div>
           `).join("")}</div>
         </section>
       </aside>
+    </section>
+  `;
+}
+
+function renderPlayerData() {
+  const data = state.data;
+  document.querySelector("#matchdayName").textContent = "Admin · Player Data";
+  root.innerHTML = `
+    <section class="admin-layout">
+      <div class="admin-main">
+        <section class="panel">
+          <div class="panel-head"><h2>Create User</h2><span class="label">Account</span></div>
+          <form class="admin-form user-edit-form" id="createUserForm">
+            <input name="displayName" placeholder="Name" aria-label="Name" required />
+            <input name="email" type="email" placeholder="user@example.com" aria-label="Email" required />
+            <select name="role" aria-label="Role">${renderUserRoleOptions("PLAYER")}</select>
+            <input name="password" type="text" placeholder="Password" aria-label="Password" required />
+            <button class="panel-button primary">Create User</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Player Database</h2><span class="label">${data.users.length} users</span></div>
+          <div class="member-list user-database-list">${data.users.map(renderUserDatabaseRow).join("")}</div>
+        </section>
+      </div>
+
+      <aside class="right-rail">
+        <section class="panel">
+          <div class="panel-head"><h2>Role Access</h2><span class="label">${data.users.filter((user) => user.role === "ADMIN").length} admins</span></div>
+          <div class="league-summary compact-summary">
+            <span><strong>${data.users.filter((user) => user.role === "PLAYER").length}</strong> players</span>
+            <span><strong>${data.users.filter((user) => user.hasPassword).length}</strong> passwords</span>
+          </div>
+        </section>
+      </aside>
+    </section>
+  `;
+}
+
+function renderLeagueData() {
+  const data = state.data;
+  const league = managedLeague();
+  const leagueMembers = membersForLeague(league.id);
+  const availableUsers = availableUsersForLeague(league.id);
+  document.querySelector("#matchdayName").textContent = `Admin · ${league.name}`;
+  root.innerHTML = `
+    <section class="admin-layout">
+      <div class="admin-main">
+        <div class="admin-grid">
+          <section class="panel">
+            <div class="panel-head"><h2>Manage League</h2><span class="label">${data.leagues.length} leagues</span></div>
+            <form class="admin-form" id="updateLeagueForm">
+              <select id="managedLeagueSelect" name="leagueId" aria-label="Select league to manage">
+                ${data.leagues.map((item) => `<option value="${item.id}" ${item.id === league.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
+              </select>
+              <input name="name" value="${escapeHtml(league.name)}" aria-label="League name" />
+              <input name="seasonName" value="${escapeHtml(league.seasonName)}" aria-label="Season name" />
+              <select name="pairingMode" aria-label="Pairing mode">
+                ${renderPairingModeOptions(league.pairingMode)}
+              </select>
+              <button class="panel-button primary">Save League</button>
+            </form>
+            <div class="league-summary">
+              <span><strong>${league.memberCount}</strong> members</span>
+              <span><strong>${league.activeMemberCount}</strong> active</span>
+              <span><strong>${league.contestCount}</strong> contests</span>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Create League</h2><span class="label">Admin</span></div>
+            <form class="admin-form" id="createLeagueForm">
+              <input name="name" value="Weekend Rivals" aria-label="League name" />
+              <select name="pairingMode" aria-label="Pairing mode">
+                ${renderPairingModeOptions("MIXED")}
+              </select>
+              <button class="panel-button primary">Create League</button>
+            </form>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head"><h2>League Members</h2><span class="label">${league.name}</span></div>
+          <form class="admin-form" id="addExistingMemberForm">
+            <select name="userId" aria-label="Existing player to add" ${availableUsers.length ? "" : "disabled"}>
+              ${availableUsers.length
+                ? availableUsers.map((user) => `<option value="${user.id}">${escapeHtml(user.displayName)} · ${escapeHtml(user.email)}</option>`).join("")
+                : `<option>No available players outside this league</option>`}
+            </select>
+            <button class="panel-button" ${availableUsers.length ? "" : "disabled"}>Add Existing Player</button>
+          </form>
+          <div class="member-list">${leagueMembers.length ? leagueMembers.map(renderMemberRow).join("") : `<p class="muted">No members yet.</p>`}</div>
+        </section>
+      </div>
+
+      <aside class="right-rail">
+        <section class="panel">
+          <div class="panel-head"><h2>Selected League</h2><span class="label">${league.pairingMode}</span></div>
+          <div class="league-summary compact-summary">
+            <span><strong>${league.seasonName}</strong> season</span>
+            <span><strong>${league.contestCount}</strong> matchups</span>
+          </div>
+        </section>
+      </aside>
+    </section>
+  `;
+}
+
+function renderAccount() {
+  const user = state.data.currentUser;
+  document.querySelector("#matchdayName").textContent = "Account";
+  root.innerHTML = `
+    <section class="panel account-page">
+      <div class="panel-head"><h2>Account</h2><span class="status-pill ${user.role.toLowerCase()}">${formatUserRole(user.role)}</span></div>
+      <form class="admin-form account-form" id="accountForm">
+        <input value="${escapeHtml(user.email)}" aria-label="Email" disabled />
+        <input name="displayName" value="${escapeHtml(user.displayName)}" aria-label="Name" required />
+        <input name="password" type="password" placeholder="New password" aria-label="New password" autocomplete="new-password" />
+        <button class="panel-button primary">Update Account</button>
+      </form>
     </section>
   `;
 }
@@ -709,42 +744,32 @@ function renderLiveDataPanel(data) {
 function renderUserDatabaseRow(user) {
   const role = user?.role === "ADMIN" ? "ADMIN" : "PLAYER";
   return `
-    <div class="member-row">
+    <form class="member-row user-data-row" id="updateUserForm">
+      <input type="hidden" name="userId" value="${escapeHtml(user.id)}" />
       <div>
-        <strong>${escapeHtml(user?.displayName || user?.id || "Unknown user")}</strong>
-        <span class="muted">${escapeHtml(user?.email || "No email")} · ID ${escapeHtml(user?.id || "missing")}</span>
+        <strong>${escapeHtml(user.email || "No email")}</strong>
+        <span class="muted">ID ${escapeHtml(user.id)} · ${user.hasPassword ? "Password set" : "Needs password"}</span>
       </div>
-      <span class="status-pill ${role.toLowerCase()}">${formatUserRole(role)}</span>
-      <div class="member-actions">
-        <span class="status-pill ${user?.hasPassword ? "active" : "invited"}">${user?.hasPassword ? "Password set" : "Needs password"}</span>
-      </div>
-    </div>
+      <input name="displayName" value="${escapeHtml(user.displayName || "")}" aria-label="Name" required />
+      <select name="role" aria-label="Role">${renderUserRoleOptions(role)}</select>
+      <input name="password" type="text" placeholder="New password" aria-label="New password" />
+      <button class="panel-button primary">Save</button>
+    </form>
   `;
 }
 
 function renderMemberRow(member) {
   const user = state.data.users.find((item) => item.id === member.userId);
   const profile = state.data.profiles.find((item) => item.userId === member.userId);
-  const active = member.status === "ACTIVE";
-  const inviteLink = member.inviteCode ? `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(member.inviteCode)}` : "";
   return `
     <div class="member-row">
       <div>
-        <strong>${user?.displayName || member.userId}</strong>
-        <span class="muted">${user?.email || "No email"}${profile ? ` · ${profile.timezone} · ${profile.favoriteTeam}` : ""}</span>
-        ${inviteLink ? `
-          <label class="invite-link-row">
-            <span>Invite link</span>
-            <input value="${inviteLink}" readonly />
-          </label>
-        ` : ""}
+        <strong>${escapeHtml(user?.displayName || member.userId)}</strong>
+        <span class="muted">${escapeHtml(user?.email || "No email")}${profile ? ` · ${escapeHtml(profile.timezone)} · ${escapeHtml(profile.favoriteTeam)}` : ""}</span>
       </div>
       <span class="status-pill ${member.status.toLowerCase()}">${member.status}</span>
       <div class="member-actions">
-        ${inviteLink ? `<button class="panel-button primary" data-copy-invite="${inviteLink}">Copy Link</button>` : ""}
-        <button class="panel-button" data-member-action="${active ? "INVITED" : "ACTIVE"}" data-member-user-id="${member.userId}">
-          ${active ? "Mark Invited" : "Mark Active"}
-        </button>
+        ${member.status !== "ACTIVE" ? `<button class="panel-button" data-member-action="ACTIVE" data-member-user-id="${member.userId}">Activate</button>` : ""}
         <button class="panel-button danger" data-member-action="REMOVED" data-member-user-id="${member.userId}">Remove</button>
       </div>
     </div>
@@ -909,6 +934,12 @@ function renderContestRow(contest, options = {}) {
 function renderPairingModeOptions(selected) {
   return Object.entries(PAIRING_MODE_LABELS).map(([mode, label]) => (
     `<option value="${mode}" ${mode === selected ? "selected" : ""}>${label}</option>`
+  )).join("");
+}
+
+function renderUserRoleOptions(selected) {
+  return ["PLAYER", "ADMIN"].map((role) => (
+    `<option value="${role}" ${role === selected ? "selected" : ""}>${formatUserRole(role)}</option>`
   )).join("");
 }
 
@@ -1314,6 +1345,7 @@ root.addEventListener("click", async (event) => {
 
   const routeButton = event.target.closest("[data-route-click]");
   if (routeButton) {
+    if (ADMIN_ROUTES.has(routeButton.dataset.routeClick) && !isAdmin()) return showToast("Admin access required.");
     state.route = routeButton.dataset.routeClick;
     render();
     return;
@@ -1391,18 +1423,12 @@ root.addEventListener("click", async (event) => {
 
   const memberAction = event.target.closest("[data-member-action]");
   if (memberAction) {
+    if (!isAdmin()) return showToast("Admin access required.");
     await mutate("/api/admin/update-member-status", {
       leagueId: managedLeague().id,
       userId: memberAction.dataset.memberUserId,
       status: memberAction.dataset.memberAction
     }, "Member updated.");
-    return;
-  }
-
-  const copyInvite = event.target.closest("[data-copy-invite]");
-  if (copyInvite) {
-    await copyText(copyInvite.dataset.copyInvite);
-    showToast("Invite link copied.");
     return;
   }
 
@@ -1441,11 +1467,22 @@ root.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (!isAdmin() && form.id !== "loginForm") {
+  if (form.id === "accountForm") {
+    await mutate("/api/player/update-account", formData, "Account updated.");
+    return;
+  }
+
+  if (!isAdmin()) {
     showToast("Admin access required.");
     return;
   }
 
+  if (form.id === "createUserForm") {
+    await mutate("/api/admin/create-user", formData, "User created.");
+  }
+  if (form.id === "updateUserForm") {
+    await mutate("/api/admin/update-user", formData, "User updated.");
+  }
   if (form.id === "createLeagueForm") {
     await mutate("/api/admin/create-league", formData, "League created.", (result) => {
       state.managedLeagueId = result.leagueId;
@@ -1457,9 +1494,6 @@ root.addEventListener("submit", async (event) => {
       state.managedLeagueId = result.leagueId;
       localStorage.setItem("pitchpick-managed-league-id", state.managedLeagueId);
     });
-  }
-  if (form.id === "inviteForm") {
-    await mutate("/api/admin/invite-player", { ...formData, leagueId: managedLeague().id }, "Invite created. Copy the link from League Members.");
   }
   if (form.id === "addExistingMemberForm") {
     await mutate("/api/admin/add-member", { ...formData, leagueId: managedLeague().id }, "Player added to league.");
@@ -1601,21 +1635,12 @@ function escapeHtml(value) {
   }[char]));
 }
 
-async function copyText(value) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  document.body.append(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  textarea.remove();
-}
-
 document.querySelectorAll("[data-route]").forEach((button) => {
   button.addEventListener("click", () => {
+    if (ADMIN_ROUTES.has(button.dataset.route) && !isAdmin()) {
+      showToast("Admin access required.");
+      return;
+    }
     state.route = button.dataset.route;
     render();
   });

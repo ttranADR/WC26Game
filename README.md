@@ -40,11 +40,11 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 Player accounts are stored in Neon with the rest of the league state. Each user row includes:
 
 - `id`: stable player id used by league memberships, picks, score predictions, and matchup assignments.
-- `email`: login and invite email.
+- `email`: login email.
 - `displayName`: name shown in matchups, standings, and admin tools.
 - `role`: `ADMIN` or `PLAYER`.
 - `passwordHash`: stored credential hash. The app does not store or send plain-text passwords in hydrated browser state.
-- `hasPassword`: browser-safe flag shown in the Admin **Player Database** panel.
+- `hasPassword`: browser-safe flag shown on the admin-only **Player Data** page.
 
 If `role` is `ADMIN`, the user sees the Admin page after login and the server allows Admin API calls for that user. If `role` is `PLAYER`, the Admin tab stays hidden and Admin API calls are rejected.
 
@@ -60,11 +60,13 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Dedicated Matchups tab with a full-tournament calendar for browsing mixed 1v1, 2v2, and half-league contests.
 - Matchday projected and final totals follow the scheduled matchup side, including 2v2 and half-league sums.
 - Player matchup views resolve through matchup assignment links: player ID + matchday + league -> matchup ID.
-- Admin Player Database panel shows each user's email, role, player id, and password credential status.
+- Admin-only Player Data page shows each user's email, role, player id, and password credential status.
+- Admin can create users directly, set passwords, update names, and update roles.
+- Users can update their own display name and password from Account.
 - Submit card answers and exact score prediction.
 - Lock-time validation on the backend.
 - Admin dashboard for league ops.
-- Create league, select/manage any league, edit league name/season/matchup style, invite players into the selected league, and view league member metadata.
+- Admin-only League Data page for creating leagues, selecting/managing leagues, editing league name/season/matchup style, and assigning existing players to leagues.
 - Sync fixtures, sync odds, generate cards, generate selected-matchday or full-season matchups.
 - Update WC Match Score refreshes actual results for the selected matchday before scoring or finalizing.
 - Lock, score, finalize, void card.
@@ -77,38 +79,16 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Dark/light mode.
 - Mobile responsive layout.
 
-## Managing Leagues
+## Managing Players And Leagues
 
-Open the Admin tab and use the **Manage Leagues** panel at the top.
+Admin-only setup is split across two data pages.
 
-1. Select the league you want to manage.
-2. Edit the league name, season, or matchup style.
-3. Click **Save League**.
-4. Use **League Members** to invite a new friend, add an existing player, mark a member active/invited, or remove a member.
-5. Use **Generate Season** to create the full matchup schedule, or **Shuffle Selected** to replace only the selected unfinalized matchday.
-6. Invites, matchups, scoring, finalizing, and CSV export now target the selected managed league.
-
-The invite form shows `Inviting to: {League Name}` so you can always see which league receives the friend invite.
-
-### Inviting Friends Locally
-
-This MVP supports real email when `RESEND_API_KEY` is configured. Without a key, it stores invite emails in the local **Email Outbox** so you can test the flow.
-
-To enable real email, create `.env` from `.env.example`, add `RESEND_API_KEY`, set a verified `INVITE_FROM_EMAIL`, and restart the server.
-
-To invite a friend:
-
-1. Go to **Admin**.
-2. Select the league in **Manage Leagues**.
-3. In **League Members**, enter your friend's name and email.
-4. Click **Create Invite Link**.
-5. If `RESEND_API_KEY` is set, the app sends the invite email.
-6. If no email key is set, copy the invite link from the member row or Email Outbox and send it manually.
-7. When the friend opens the link, their invite is marked **ACTIVE** and they are logged in as that player.
-
-For production email delivery, keep this flow behind server-side code and use Resend, Postmark, or another transactional email provider.
-
-The Player tab still shows the seeded current player league until real auth/member switching is added.
+1. Open **Player Data** to create users with name, email, role, and password.
+2. Use **Player Data** to update an existing user's name, role, or password.
+3. Open **League Data** to create/select leagues and edit league name, season, or matchup style.
+4. Use **League Members** on **League Data** to add existing player users into the selected league or remove them.
+5. Use **Admin** for matchday ops: sync data, update WC match scores, generate cards, generate matchups, score, finalize, and void cards.
+6. Use **Account** to update your own display name or password.
 
 ## Data Storage
 
@@ -129,7 +109,7 @@ DATABASE_URL=your_neon_pooled_connection_string
 REQUIRE_NEON_STORAGE=true
 ```
 
-When `DATABASE_URL` is set, the app stores player accounts, player profiles, league memberships, player card sets, submitted picks, exact-score predictions, matchup assignments, synced fixtures, odds snapshots, pairings, standings, sync logs, and invite state in Neon Postgres in a `pitchpick_state` JSONB row. Player accounts include login email, display name, role, and password hash. Keep `REQUIRE_NEON_STORAGE=true` in deployed environments so this player data cannot fall back to `data/db.json`. This keeps the MVP deployable without rewriting every feature into separate SQL tables first.
+When `DATABASE_URL` is set, the app stores player accounts, player profiles, league memberships, player card sets, submitted picks, exact-score predictions, matchup assignments, synced fixtures, odds snapshots, pairings, standings, and sync logs in Neon Postgres in a `pitchpick_state` JSONB row. Player accounts include login email, display name, role, and password hash. Keep `REQUIRE_NEON_STORAGE=true` in deployed environments so this player data cannot fall back to `data/db.json`. This keeps the MVP deployable without rewriting every feature into separate SQL tables first.
 
 Local JSON storage is only for mock development without live providers:
 
