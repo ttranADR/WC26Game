@@ -68,6 +68,8 @@ assert.equal(halfContest[0].participants.filter((part) => part.side === "B").len
 const mixedContests = createContests("league_test", "md_test_mixed", pairingUsers, "MIXED", { seedText: "pairing_test" });
 assert.ok(["SOLO", "DUO", "HALF"].includes(mixedContests[0].mode));
 assert.equal(mixedContests[0].requestedMode, "MIXED");
+assert.equal(createContests("league_test", "md_test_mixed_1", pairingUsers, "MIXED", { modeIndex: 1 })[0].mode, "DUO");
+assert.equal(createContests("league_test", "md_test_mixed_2", pairingUsers, "MIXED", { modeIndex: 2 })[0].mode, "HALF");
 
 const seasonPairingData = createSeedData();
 seasonPairingData.matchdays.push({
@@ -75,6 +77,14 @@ seasonPairingData.matchdays.push({
   name: "Pairing Future",
   date: "2026-06-14",
   lockAt: "2026-06-14T20:00:00.000Z",
+  status: "SCHEDULED",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}, {
+  id: "md_pairing_future_2",
+  name: "Pairing Future 2",
+  date: "2026-06-15",
+  lockAt: "2026-06-15T20:00:00.000Z",
   status: "SCHEDULED",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
@@ -90,6 +100,8 @@ const seasonPairingResult = await generatePairingsForMatchday(seasonPairingStore
 assert.match(seasonPairingResult.message, /season matchups/);
 assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_12"));
 assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_pairing_future"));
+assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_pairing_future_2"));
+assert.deepEqual(new Set(seasonPairingData.headToHeadContests.map((contest) => contest.mode)), new Set(["SOLO", "DUO", "HALF"]));
 
 const preserveData = createSeedData();
 preserveData.matchdays.push({

@@ -504,15 +504,16 @@ export function normalizePairingMode(mode, fallback = "MIXED") {
   return PAIRING_MODES.includes(value) ? value : fallback;
 }
 
-export function resolveContestMode(leagueId, matchDayId, mode, seedText = "") {
+export function resolveContestMode(leagueId, matchDayId, mode, seedText = "", modeIndex = null) {
   const normalized = normalizePairingMode(mode);
   if (normalized !== "MIXED") return normalized;
+  if (Number.isInteger(modeIndex)) return CONTEST_PAIRING_MODES[modeIndex % CONTEST_PAIRING_MODES.length];
   return shuffle(CONTEST_PAIRING_MODES, `${leagueId}_${matchDayId}_mixed_${seedText}`)[0];
 }
 
 export function createContests(leagueId, matchDayId, userIds, mode, options = {}) {
   const requestedMode = normalizePairingMode(mode);
-  const contestMode = resolveContestMode(leagueId, matchDayId, requestedMode, options.seedText);
+  const contestMode = resolveContestMode(leagueId, matchDayId, requestedMode, options.seedText, options.modeIndex);
   const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
   const shuffled = shuffle(uniqueUserIds, `${leagueId}_${matchDayId}_${requestedMode}_${contestMode}_${options.seedText || ""}`);
   const sides = createContestSides(shuffled, contestMode);

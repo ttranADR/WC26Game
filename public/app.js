@@ -740,6 +740,9 @@ function renderSeasonMatchups() {
   const seasonMatchups = managedSeasonMatchups();
   const generatedDays = new Set(seasonMatchups.map((item) => item.matchday.id)).size;
   const finalizedCount = seasonMatchups.filter(({ contest }) => contest.status === "FINAL").length;
+  const defaultSeasonPairingMode = league.pairingMode === "SOLO" ? "MIXED" : league.pairingMode;
+  const dayModeLabel = formatContestModeSummary(dayMatchups, defaultSeasonPairingMode);
+  const seasonModeLabel = formatContestModeSummary(seasonMatchups.map((item) => item.contest), defaultSeasonPairingMode);
   const currentUserContest = dayMatchups.find((contest) => (
     contest.participants.some((part) => part.userId === state.data.currentUser.id)
   ));
@@ -761,7 +764,17 @@ function renderSeasonMatchups() {
             <p class="label">${league.seasonName}</p>
             <h2>${league.name} Matchup Calendar</h2>
           </div>
-          ${isAdmin() ? `<button class="panel-button primary" data-admin-action="generate-pairings" data-pairing-scope="season" data-shuffle="true">Generate Season</button>` : `<span class="label">${formatPairingMode(league.pairingMode)}</span>`}
+          ${isAdmin() ? `
+            <div class="matchup-actions">
+              <label class="matchup-style-control">
+                <span>Style</span>
+                <select id="seasonPairingMode" aria-label="Season matchup style">
+                  ${renderPairingModeOptions(defaultSeasonPairingMode)}
+                </select>
+              </label>
+              <button class="panel-button primary" data-admin-action="generate-pairings" data-pairing-scope="season" data-shuffle="true">Generate Season</button>
+            </div>
+          ` : `<span class="label">${seasonModeLabel}</span>`}
         </div>
         <div class="league-summary matchup-summary">
           <span><strong>${state.data.matchdaySummaries.length}</strong> tournament days</span>
@@ -779,7 +792,7 @@ function renderSeasonMatchups() {
               <h2>${summary.name} Matchups</h2>
               <span class="muted">${dayMatchups.length} contest${dayMatchups.length === 1 ? "" : "s"} for ${league.name}</span>
             </div>
-            <div class="meter"><span>${formatPairingMode(league.pairingMode)}</span><strong>${dayMatchups.length}</strong></div>
+            <div class="meter"><span>${dayModeLabel}</span><strong>${dayMatchups.length}</strong></div>
           </div>
           <div class="contest-list season-day-matchups">
             ${dayMatchups.length
@@ -875,6 +888,12 @@ function renderPairingModeOptions(selected) {
 
 function formatPairingMode(mode) {
   return PAIRING_MODE_LABELS[mode] || mode || "Mixed";
+}
+
+function formatContestModeSummary(contests, fallback = "MIXED") {
+  const modes = [...new Set(contests.map((contest) => contest.mode).filter(Boolean))];
+  if (!modes.length) return formatPairingMode(fallback);
+  return modes.map(formatPairingMode).join(" / ");
 }
 
 function playerSeasonMatchups() {
@@ -1380,6 +1399,9 @@ async function runAdminAction(action, options = {}) {
     scope: syncScope
   };
   if (options.pairingScope) body.scope = options.pairingScope;
+  if (action === "generate-pairings" && options.pairingScope === "season") {
+    body.pairingMode = document.querySelector("#seasonPairingMode")?.value || managedLeague().pairingMode || "MIXED";
+  }
   if (options.shuffle === "true") {
     body.shuffle = true;
     body.shuffleSeed = `${Date.now()}`;

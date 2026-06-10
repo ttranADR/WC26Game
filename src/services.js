@@ -875,7 +875,7 @@ export async function generatePairingsForMatchday(store, input) {
 
     const generated = [];
     const skipped = [];
-    matchdays.forEach((matchday) => {
+    matchdays.forEach((matchday, matchdayIndex) => {
       const hasFinalContest = data.headToHeadContests.some((contest) => (
         contest.leagueId === leagueId &&
         contest.matchDayId === matchday.id &&
@@ -893,7 +893,10 @@ export async function generatePairingsForMatchday(store, input) {
       const seedText = input.shuffle || input.shuffleSeed
         ? `${input.shuffleSeed || Date.now()}_${matchday.id}`
         : input.seedText || "";
-      const contests = createContests(leagueId, matchday.id, userIds, league.pairingMode, { seedText });
+      const contests = createContests(leagueId, matchday.id, userIds, league.pairingMode, {
+        seedText,
+        modeIndex: input.scope === "season" ? matchdayIndex : null
+      });
       data.headToHeadContests.push(...contests);
       generated.push({ matchday, contests });
     });

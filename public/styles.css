@@ -1068,6 +1068,36 @@ select:focus-visible {
   margin-top: 16px;
 }
 
+.matchup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.matchup-style-control {
+  display: grid;
+  gap: 4px;
+}
+
+.matchup-style-control span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.matchup-style-control select {
+  min-height: 40px;
+  min-width: 150px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 850;
+}
+
 .compact-summary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
