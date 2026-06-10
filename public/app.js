@@ -191,6 +191,7 @@ function renderPlayer() {
   const yourScore = estimateProjectedScore(multiplier);
   const opponent = findOpponent(summary);
   const matchup = getContestDisplay(summary.userContest, data.currentUser.id);
+  const dayMatchupLabel = formatContestModeSummary(summary.contests, data.league.pairingMode);
 
   root.innerHTML = `
     <section class="arena">
@@ -199,7 +200,7 @@ function renderPlayer() {
         <div>
               <p class="label">${summary.isToday ? "Today" : summary.phaseLabel || "Matchday"} · ${summary.status}</p>
               <h1>${summary.name}</h1>
-              <span class="muted">${summary.matches.length} matches · ${formatDate(summary.date)}</span>
+              <span class="muted">${summary.matches.length} matches · ${summary.contests.length} league matchups · ${formatDate(summary.date)}</span>
         </div>
         <div class="avatar-score">
           <span class="avatar">${initials(data.currentUser.displayName)}</span>
@@ -241,8 +242,8 @@ function renderPlayer() {
           </section>
 
           <section class="panel">
-            <div class="panel-head"><h2>Season Matchups</h2><span class="label">${playerSeasonMatchups().length} days</span></div>
-            ${renderPlayerSeasonMatchups()}
+            <div class="panel-head"><h2>Matchday Matchups</h2><span class="label">${dayMatchupLabel}</span></div>
+            ${renderMatchdayContestList(summary)}
           </section>
 
           <section class="panel">
@@ -253,10 +254,14 @@ function renderPlayer() {
       </div>
 
       <div class="bottom-fixtures">
-        <div><p class="label">${summary.isToday ? "Today's matches" : "Selected matches"}</p><strong>${summary.matches.length} matches</strong></div>
+        <div class="fixture-summary">
+          <p class="label">${summary.isToday ? "Today's matches" : "Selected matches"}</p>
+          <strong>${summary.matches.length} matches</strong>
+          <span class="muted">${summary.contests.length} season matchups</span>
+        </div>
         ${summary.matches.length ? summary.matches.map((match) => `
           <button class="fixture-button ${match.id === selectedMatch?.id ? "active" : ""}" data-match-id="${match.id}">
-            <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)}</em>
+            <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)} · ${dayMatchupLabel}</em>
           </button>
         `).join("") : `<div class="empty-state fixture-empty">No matches are scheduled for this matchday yet.</div>`}
         <button class="submit-button" id="submitPicks" ${selectedMatch && !readOnlyCards && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
@@ -865,8 +870,9 @@ function renderContestRow(contest, options = {}) {
   const b = contest.participants.filter((part) => part.side === "B").map((part) => part.user?.displayName || part.userId);
   const matchdayLabel = options.matchday ? `${formatDate(options.matchday.date)} · ${options.matchday.name}` : "";
   const contestShapeLabel = formatContestShape(contest);
+  const featured = options.highlightUserId && contest.participants.some((part) => part.userId === options.highlightUserId);
   return `
-    <div class="contest">
+    <div class="contest ${featured ? "featured-contest" : ""}">
       <div class="contest-row-head">
         <strong>${matchdayLabel || contestShapeLabel}</strong>
         <span class="status-pill ${contest.status.toLowerCase()}">${contestShapeLabel} · ${contest.status}</span>
@@ -914,6 +920,19 @@ function renderPlayerSeasonMatchups() {
   const matchups = playerSeasonMatchups();
   if (!matchups.length) return `<p class="muted">No season matchups have been generated yet.</p>`;
   return `<div class="contest-list season-matchups">${matchups.map((summary) => renderContestRow(summary.userContest, { matchday: summary })).join("")}</div>`;
+}
+
+function renderMatchdayContestList(summary) {
+  if (!summary?.contests?.length) {
+    return `<p class="muted">No season matchups have been generated for this matchday yet.</p>`;
+  }
+  return `
+    <div class="contest-list season-matchups">
+      ${summary.contests.map((contest) => renderContestRow(contest, {
+        highlightUserId: state.data.currentUser.id
+      })).join("")}
+    </div>
+  `;
 }
 
 function getContestDisplay(contest, userId) {

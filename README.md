@@ -45,6 +45,7 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - Correct-score odds store every scoreline from `0-0` through `5-5` for each game.
 - All matchdays are grouped by World Cup phase and the current/today matchday is highlighted.
 - Dedicated Matchups tab with a full-tournament calendar for browsing mixed 1v1, 2v2, and half-league contests.
+- Matchday pages show the season-generated league matchups for that tournament day.
 - Submit card answers and exact score prediction.
 - Lock-time validation on the backend.
 - Admin dashboard for league ops.
