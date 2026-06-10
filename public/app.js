@@ -864,11 +864,12 @@ function renderContestRow(contest, options = {}) {
   const a = contest.participants.filter((part) => part.side === "A").map((part) => part.user?.displayName || part.userId);
   const b = contest.participants.filter((part) => part.side === "B").map((part) => part.user?.displayName || part.userId);
   const matchdayLabel = options.matchday ? `${formatDate(options.matchday.date)} · ${options.matchday.name}` : "";
+  const contestShapeLabel = formatContestShape(contest);
   return `
     <div class="contest">
       <div class="contest-row-head">
-        <strong>${matchdayLabel || formatPairingMode(contest.mode)}</strong>
-        <span class="status-pill ${contest.status.toLowerCase()}">${formatPairingMode(contest.mode)} · ${contest.status}</span>
+        <strong>${matchdayLabel || contestShapeLabel}</strong>
+        <span class="status-pill ${contest.status.toLowerCase()}">${contestShapeLabel} · ${contest.status}</span>
       </div>
       <div class="contest-sides">
         <div class="contest-side"><span>A</span><strong>${a.join(" + ") || "Side A"}</strong></div>
@@ -890,10 +891,17 @@ function formatPairingMode(mode) {
   return PAIRING_MODE_LABELS[mode] || mode || "Mixed";
 }
 
+function formatContestShape(contest) {
+  const aCount = contest.participants.filter((part) => part.side === "A").length;
+  const bCount = contest.participants.filter((part) => part.side === "B").length;
+  if (aCount && bCount) return `${aCount}v${bCount}`;
+  return formatPairingMode(contest.mode);
+}
+
 function formatContestModeSummary(contests, fallback = "MIXED") {
-  const modes = [...new Set(contests.map((contest) => contest.mode).filter(Boolean))];
-  if (!modes.length) return formatPairingMode(fallback);
-  return modes.map(formatPairingMode).join(" / ");
+  const shapes = [...new Set(contests.map(formatContestShape).filter(Boolean))];
+  if (!shapes.length) return formatPairingMode(fallback);
+  return shapes.join(" / ");
 }
 
 function playerSeasonMatchups() {

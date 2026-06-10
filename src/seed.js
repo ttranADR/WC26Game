@@ -543,11 +543,29 @@ export function createContests(leagueId, matchDayId, userIds, mode, options = {}
 function createContestSides(userIds, mode) {
   if (!userIds.length) return [];
   if (mode === "HALF") return [splitSide(userIds)];
+  if (mode === "SOLO") return createSoloSides(userIds);
   const groupSize = mode === "DUO" ? 4 : 2;
   const sides = [];
 
   for (let i = 0; i < userIds.length; i += groupSize) {
     sides.push(splitSide(userIds.slice(i, i + groupSize)));
+  }
+
+  return sides;
+}
+
+function createSoloSides(userIds) {
+  if (userIds.length <= 1) return [splitSide(userIds)];
+  const sides = [];
+  const lastSoloPairStart = userIds.length % 2 === 1 ? userIds.length - 3 : userIds.length;
+
+  for (let i = 0; i < lastSoloPairStart; i += 2) {
+    sides.push({ a: [userIds[i]], b: [userIds[i + 1]] });
+  }
+
+  if (userIds.length % 2 === 1) {
+    const lastThree = userIds.slice(-3);
+    sides.push({ a: [lastThree[0]], b: lastThree.slice(1) });
   }
 
   return sides;

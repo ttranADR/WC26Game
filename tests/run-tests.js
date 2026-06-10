@@ -54,6 +54,13 @@ assert.ok(soloContests.every((contest) => (
   contest.participants.filter((part) => part.side === "A").length === 1 &&
   contest.participants.filter((part) => part.side === "B").length === 1
 )));
+const oddSoloContests = createContests("league_test", "md_test_solo_odd", pairingUsers.slice(0, 5), "SOLO", { seedText: "pairing_test" });
+assert.equal(oddSoloContests.length, 2);
+assert.deepEqual(oddSoloContests.map((contest) => [
+  contest.participants.filter((part) => part.side === "A").length,
+  contest.participants.filter((part) => part.side === "B").length
+]), [[1, 1], [1, 2]]);
+assert.equal(oddSoloContests.some((contest) => contest.participantBName.includes(" + ")), true);
 const duoContests = createContests("league_test", "md_test_duo", pairingUsers, "DUO", { seedText: "pairing_test" });
 assert.equal(duoContests.length, 2);
 assert.ok(duoContests.every((contest) => (
