@@ -1242,6 +1242,7 @@ function estimateMultiplier() {
 
 function estimateProjectedScore(multiplier) {
   const selectedCards = [...state.dirtyCards.values()].filter((card) => card.selected).length;
+  if (!selectedCards) return 0;
   const yesAnswers = [...state.dirtyCards.values()].filter((card) => card.selected && card.answer === "YES").length;
   return Math.round(38 + selectedCards * 3 + yesAnswers * 2 + multiplier * 1.8);
 }

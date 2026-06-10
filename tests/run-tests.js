@@ -325,6 +325,53 @@ const groupScoreStore = createMemoryStore(groupScoreData);
 const groupProjectionState = await getAppState(groupScoreStore, "user_you");
 const groupProjectionSummary = groupProjectionState.matchdaySummaries.find((item) => item.id === "md_12");
 assert.ok(groupProjectionSummary.userContest.participants.every((part) => Number.isFinite(part.projectedScore)));
+
+const opponentProjectionData = createSeedData();
+opponentProjectionData.scorePredictions = opponentProjectionData.scorePredictions.filter((prediction) => prediction.userId !== "user_noah");
+opponentProjectionData.headToHeadContests = [{
+  id: "contest_md_12_projection",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_you",
+  participantBName: "user_noah",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_projection_a", side: "A", userId: "user_you" },
+    { id: "part_md_12_projection_b", side: "B", userId: "user_noah" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}];
+const opponentProjectionStore = createMemoryStore(opponentProjectionData);
+const opponentProjectionBefore = await getAppState(opponentProjectionStore, "user_you");
+const opponentContestBefore = opponentProjectionBefore.matchdaySummaries
+  .find((item) => item.id === "md_12")
+  .userContest;
+assert.equal(opponentContestBefore.participants.find((part) => part.userId === "user_noah").projectedScore, 0);
+const noahSet = opponentProjectionData.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_noah");
+const noahCards = opponentProjectionData.playerCards.filter((card) => card.playerCardSetId === noahSet.id);
+const noahSelectedCardIds = noahCards.slice(0, 5).map((card) => card.predictionCardId);
+await submitPicks(opponentProjectionStore, {
+  userId: "user_noah",
+  matchDayId: "md_12",
+  selectedCardIds: noahSelectedCardIds,
+  answers: Object.fromEntries(noahSelectedCardIds.map((cardId) => [cardId, "YES"])),
+  scorePrediction: {
+    tournamentMatchId: "match_bra_mar",
+    predictedHomeScore: 1,
+    predictedAwayScore: 0
+  }
+});
+const opponentProjectionAfter = await getAppState(opponentProjectionStore, "user_you");
+const opponentContestAfter = opponentProjectionAfter.matchdaySummaries
+  .find((item) => item.id === "md_12")
+  .userContest;
+assert.ok(opponentContestAfter.participants.find((part) => part.userId === "user_noah").projectedScore > 0);
 await finalizeMatchday(groupScoreStore, {
   leagueId: "league_1",
   matchDayId: "md_12",

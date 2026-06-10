@@ -1453,7 +1453,7 @@ function estimateStoredProjectedScore(data, matchDayId, userId) {
   const playerCards = data.playerCards.filter((card) => card.playerCardSetId === set?.id);
   const selectedCards = playerCards.filter((card) => card.selected);
   const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchDayId && prediction.userId === userId);
-  if (!selectedCards.length && !scorePrediction) return 0;
+  if (!scorePrediction || !selectedCards.length) return 0;
   const yesAnswers = selectedCards.filter((card) => card.playerAnswer === "YES").length;
   const multiplier = Number(scorePrediction?.oddsMultiplier || 2);
   return Math.round(38 + selectedCards.length * 3 + yesAnswers * 2 + multiplier * 1.8);
