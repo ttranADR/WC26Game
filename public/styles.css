@@ -1132,6 +1132,17 @@ select:focus-visible {
   background: color-mix(in srgb, var(--gold) 14%, transparent);
 }
 
+.status-pill.admin {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+.status-pill.player {
+  color: var(--text);
+  background: var(--surface);
+}
+
 .status-pill.scheduled {
   color: var(--blue);
   background: color-mix(in srgb, var(--blue) 12%, transparent);

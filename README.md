@@ -35,6 +35,19 @@ Open `http://localhost:4173` and log in before using the app.
 
 Players see only player-safe navigation. Admin users see the Admin tab. The backend also checks `x-user-id` on Admin API calls, so hiding the tab is not the only protection.
 
+## Player Database
+
+Player accounts are stored in Neon with the rest of the league state. Each user row includes:
+
+- `id`: stable player id used by league memberships, picks, score predictions, and matchup assignments.
+- `email`: login and invite email.
+- `displayName`: name shown in matchups, standings, and admin tools.
+- `role`: `ADMIN` or `PLAYER`.
+- `passwordHash`: stored credential hash. The app does not store or send plain-text passwords in hydrated browser state.
+- `hasPassword`: browser-safe flag shown in the Admin **Player Database** panel.
+
+If `role` is `ADMIN`, the user sees the Admin page after login and the server allows Admin API calls for that user. If `role` is `PLAYER`, the Admin tab stays hidden and Admin API calls are rejected.
+
 ## Implemented Features
 
 - Player matchday screen with 12 prediction cards.
@@ -46,6 +59,8 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - All matchdays are grouped by World Cup phase and the current/today matchday is highlighted.
 - Dedicated Matchups tab with a full-tournament calendar for browsing mixed 1v1, 2v2, and half-league contests.
 - Matchday projected and final totals follow the scheduled matchup side, including 2v2 and half-league sums.
+- Player matchup views resolve through matchup assignment links: player ID + matchday + league -> matchup ID.
+- Admin Player Database panel shows each user's email, role, player id, and password credential status.
 - Submit card answers and exact score prediction.
 - Lock-time validation on the backend.
 - Admin dashboard for league ops.
@@ -114,7 +129,7 @@ DATABASE_URL=your_neon_pooled_connection_string
 REQUIRE_NEON_STORAGE=true
 ```
 
-When `DATABASE_URL` is set, the app stores metadata, synced fixtures, odds snapshots, cards, picks, pairings, standings, sync logs, and invite state in Neon Postgres in a `pitchpick_state` JSONB row. This keeps the MVP deployable without rewriting every feature into separate SQL tables first.
+When `DATABASE_URL` is set, the app stores player accounts, player profiles, league memberships, player card sets, submitted picks, exact-score predictions, matchup assignments, synced fixtures, odds snapshots, pairings, standings, sync logs, and invite state in Neon Postgres in a `pitchpick_state` JSONB row. Player accounts include login email, display name, role, and password hash. Keep `REQUIRE_NEON_STORAGE=true` in deployed environments so this player data cannot fall back to `data/db.json`. This keeps the MVP deployable without rewriting every feature into separate SQL tables first.
 
 Local JSON storage is only for mock development without live providers:
 

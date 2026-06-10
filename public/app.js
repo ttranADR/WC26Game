@@ -615,6 +615,11 @@ function renderAdmin() {
           </section>
 
           <section class="panel">
+          <div class="panel-head"><h2>Player Database</h2><span class="label">${data.users.length} users</span></div>
+          <div class="member-list">${data.users.map(renderUserDatabaseRow).join("")}</div>
+          </section>
+
+          <section class="panel">
           <div class="panel-head"><h2>Selected Matchups</h2><span class="label">${managedSelectedContests(opsMatchday.id).length} contests</span></div>
           <div class="contest-list">${managedSelectedContests(opsMatchday.id).length ? managedSelectedContests(opsMatchday.id).map(renderContestRow).join("") : `<p class="muted">Generate matchups for ${opsMatchday.name} to fill this list.</p>`}</div>
           </section>
@@ -701,6 +706,22 @@ function renderLiveDataPanel(data) {
   `;
 }
 
+function renderUserDatabaseRow(user) {
+  const role = user?.role === "ADMIN" ? "ADMIN" : "PLAYER";
+  return `
+    <div class="member-row">
+      <div>
+        <strong>${escapeHtml(user?.displayName || user?.id || "Unknown user")}</strong>
+        <span class="muted">${escapeHtml(user?.email || "No email")} · ID ${escapeHtml(user?.id || "missing")}</span>
+      </div>
+      <span class="status-pill ${role.toLowerCase()}">${formatUserRole(role)}</span>
+      <div class="member-actions">
+        <span class="status-pill ${user?.hasPassword ? "active" : "invited"}">${user?.hasPassword ? "Password set" : "Needs password"}</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderMemberRow(member) {
   const user = state.data.users.find((item) => item.id === member.userId);
   const profile = state.data.profiles.find((item) => item.userId === member.userId);
@@ -739,12 +760,14 @@ function renderSeasonMatchups() {
   }
 
   const dayMatchups = managedSelectedContests(summary.id);
+  const visibleDayMatchups = visibleContestsForUser(dayMatchups);
   const seasonMatchups = managedSeasonMatchups();
-  const generatedDays = new Set(seasonMatchups.map((item) => item.matchday.id)).size;
-  const finalizedCount = seasonMatchups.filter(({ contest }) => contest.status === "FINAL").length;
+  const visibleSeasonMatchups = isAdmin() ? seasonMatchups : seasonMatchups.filter(({ contest }) => contestIncludesCurrentUser(contest));
+  const generatedDays = new Set(visibleSeasonMatchups.map((item) => item.matchday.id)).size;
+  const finalizedCount = visibleSeasonMatchups.filter(({ contest }) => contest.status === "FINAL").length;
   const defaultSeasonPairingMode = league.pairingMode === "SOLO" ? "MIXED" : league.pairingMode;
-  const dayModeLabel = formatContestModeSummary(dayMatchups, defaultSeasonPairingMode);
-  const seasonModeLabel = formatContestModeSummary(seasonMatchups.map((item) => item.contest), defaultSeasonPairingMode);
+  const dayModeLabel = formatContestModeSummary(visibleDayMatchups, defaultSeasonPairingMode);
+  const seasonModeLabel = formatContestModeSummary(visibleSeasonMatchups.map((item) => item.contest), defaultSeasonPairingMode);
   const currentUserContest = dayMatchups.find((contest) => (
     contest.participants.some((part) => part.userId === state.data.currentUser.id)
   ));
@@ -781,7 +804,7 @@ function renderSeasonMatchups() {
         <div class="league-summary matchup-summary">
           <span><strong>${state.data.matchdaySummaries.length}</strong> tournament days</span>
           <span><strong>${generatedDays}</strong> matchup days</span>
-          <span><strong>${seasonMatchups.length}</strong> contests</span>
+          <span><strong>${visibleSeasonMatchups.length}</strong> contests</span>
           <span><strong>${finalizedCount}</strong> finalized</span>
         </div>
       </section>
@@ -792,14 +815,14 @@ function renderSeasonMatchups() {
             <div>
               <p class="label">${formatDate(summary.date)} · ${summary.status}</p>
               <h2>${summary.name} Matchups</h2>
-              <span class="muted">${dayMatchups.length} contest${dayMatchups.length === 1 ? "" : "s"} for ${league.name}</span>
+              <span class="muted">${visibleDayMatchups.length} contest${visibleDayMatchups.length === 1 ? "" : "s"} for ${league.name}</span>
             </div>
-            <div class="meter"><span>${dayModeLabel}</span><strong>${dayMatchups.length}</strong></div>
+            <div class="meter"><span>${dayModeLabel}</span><strong>${visibleDayMatchups.length}</strong></div>
           </div>
           <div class="contest-list season-day-matchups">
-            ${dayMatchups.length
-              ? dayMatchups.map(renderContestRow).join("")
-              : `<div class="empty-state compact-empty">No matchups generated for this matchday yet.</div>`}
+            ${visibleDayMatchups.length
+              ? visibleDayMatchups.map(renderContestRow).join("")
+              : `<div class="empty-state compact-empty">${isAdmin() ? "No matchups generated for this matchday yet." : "Your matchup assignment is pending for this matchday."}</div>`}
           </div>
         </section>
 
@@ -808,7 +831,7 @@ function renderSeasonMatchups() {
             <div class="panel-head"><h2>${currentUserContest ? "Your Matchup" : "Day Snapshot"}</h2><span class="label">${summary.name}</span></div>
             ${currentUserContest
               ? renderContestRow(currentUserContest)
-              : `<div class="league-summary compact-summary"><span><strong>${dayMatchups.length}</strong> contests</span><span><strong>${summary.matches.length}</strong> games</span></div>`}
+              : `<div class="league-summary compact-summary"><span><strong>${visibleDayMatchups.length}</strong> contests</span><span><strong>${summary.matches.length}</strong> games</span></div>`}
           </section>
 
           <section class="panel">
@@ -893,6 +916,10 @@ function formatPairingMode(mode) {
   return PAIRING_MODE_LABELS[mode] || mode || "Mixed";
 }
 
+function formatUserRole(role) {
+  return role === "ADMIN" ? "Admin" : "Player";
+}
+
 function formatContestShape(contest) {
   const aCount = contest.participants.filter((part) => part.side === "A").length;
   const bCount = contest.participants.filter((part) => part.side === "B").length;
@@ -920,10 +947,9 @@ function renderPlayerSeasonMatchups() {
 
 function getPrimaryMatchup(summary = selectedMatchday()) {
   if (!summary) return null;
-  const userId = state.data.currentUser.id;
+  const matchupId = summary.matchupAssignment?.matchupId || summary.userContestId || summary.userContest?.id;
   return summary.userContest ||
-    summary.contests?.find((contest) => contest.participants.some((part) => part.userId === userId)) ||
-    summary.contests?.[0] ||
+    (matchupId ? summary.contests?.find((contest) => contest.id === matchupId) : null) ||
     null;
 }
 
@@ -935,7 +961,7 @@ function getMatchupSideDisplay(contest, userId, fallbackUserName = "You") {
       userParts: [],
       opponentParts: [],
       userLabel: fallbackUserName,
-      opponentLabel: "Matchup schedule pending"
+      opponentLabel: "Your matchup assignment is pending"
     };
   }
 
@@ -997,6 +1023,14 @@ function formatMatchupSideLabel(parts, fallback) {
 
 function participantName(part) {
   return part.user?.displayName || part.userId;
+}
+
+function visibleContestsForUser(contests) {
+  return isAdmin() ? contests : contests.filter(contestIncludesCurrentUser);
+}
+
+function contestIncludesCurrentUser(contest) {
+  return contest.participants.some((part) => part.userId === state.data.currentUser.id);
 }
 
 function formatScoreValue(value) {

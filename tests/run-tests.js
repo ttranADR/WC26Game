@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createCardsFromOdds, createContests, createSeedData } from "../src/seed.js";
+import { createCardsFromOdds, createContests, createSeedData, createStandings } from "../src/seed.js";
 import { createOddsApiProvider } from "../src/providers/oddsApiProvider.js";
 import { getExactScoreMultiplier, gradeCard, gradeExactPrediction } from "../src/scoring.js";
 import {
@@ -21,10 +21,88 @@ assert.equal(data.predictionCards.length, 12);
 
 const loginData = createSeedData();
 const loginStore = createMemoryStore(loginData);
-assert.equal((await loginUser(loginStore, { email: "user", password: "player123" })).user.id, "user_you");
+assert.ok(loginData.users.every((user) => user.email && ["ADMIN", "PLAYER"].includes(user.role) && user.passwordHash));
+const playerLogin = await loginUser(loginStore, { email: "user", password: "player123" });
+assert.equal(playerLogin.user.id, "user_you");
+assert.equal(playerLogin.user.email, "you@pitchpick.local");
+assert.equal(playerLogin.user.role, "PLAYER");
+assert.equal(playerLogin.user.hasPassword, true);
+assert.equal("passwordHash" in playerLogin.user, false);
+assert.equal(playerLogin.state.currentUser.role, "PLAYER");
+assert.equal(playerLogin.state.currentUser.hasPassword, true);
+assert.equal("passwordHash" in playerLogin.state.currentUser, false);
 assert.equal((await loginUser(loginStore, { email: "user@pitchpick.local", password: "player123" })).user.id, "user_you");
 assert.equal((await loginUser(loginStore, { email: "player@pitchpick.local", password: "player123" })).user.id, "user_you");
-assert.equal((await loginUser(loginStore, { email: "admin", password: "admin123" })).user.id, "admin_1");
+const adminLogin = await loginUser(loginStore, { email: "admin", password: "admin123" });
+assert.equal(adminLogin.user.id, "admin_1");
+assert.equal(adminLogin.user.email, "admin@pitchpick.local");
+assert.equal(adminLogin.user.role, "ADMIN");
+assert.equal(adminLogin.user.hasPassword, true);
+assert.equal("passwordHash" in adminLogin.user, false);
+assert.equal(adminLogin.state.currentUser.role, "ADMIN");
+assert.ok(adminLogin.state.users.every((user) => user.email && user.role && user.hasPassword && !("passwordHash" in user)));
+
+const assignmentState = await getAppState(createMemoryStore(createSeedData()), "user_you");
+const assignmentSummary = assignmentState.matchdaySummaries.find((item) => item.id === "md_12");
+assert.equal(assignmentSummary.matchupAssignment.matchupId, assignmentSummary.userContest.id);
+assert.equal(assignmentSummary.matchupAssignment.userId, "user_you");
+assert.ok(assignmentState.matchupAssignments.some((assignment) => (
+  assignment.userId === "user_you" &&
+  assignment.matchDayId === "md_12" &&
+  assignment.matchupId === assignmentSummary.userContest.id
+)));
+
+const multiLeagueData = createSeedData();
+multiLeagueData.leagues.push({
+  id: "league_2",
+  name: "Second League",
+  slug: "second-league",
+  seasonName: "World Cup 2026",
+  pairingMode: "SOLO",
+  createdByUserId: "admin_1",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+multiLeagueData.leagueMembers = multiLeagueData.leagueMembers.filter((member) => member.userId !== "user_maya");
+multiLeagueData.leagueMembers.push({
+  id: "member_league_2_user_maya",
+  leagueId: "league_2",
+  userId: "user_maya",
+  status: "ACTIVE",
+  joinedAt: new Date().toISOString()
+}, {
+  id: "member_league_2_user_liam",
+  leagueId: "league_2",
+  userId: "user_liam",
+  status: "ACTIVE",
+  joinedAt: new Date().toISOString()
+});
+multiLeagueData.leagueStandings.push(...createStandings("league_2", ["user_maya", "user_liam"]));
+multiLeagueData.headToHeadContests.push({
+  id: "contest_md_12_league_2_1",
+  leagueId: "league_2",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_maya",
+  participantBName: "user_liam",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_league_2_a", side: "A", userId: "user_maya" },
+    { id: "part_md_12_league_2_b", side: "B", userId: "user_liam" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+const multiLeagueState = await getAppState(createMemoryStore(multiLeagueData), "user_maya");
+const multiLeagueSummary = multiLeagueState.matchdaySummaries.find((item) => item.id === "md_12");
+assert.equal(multiLeagueState.league.id, "league_2");
+assert.equal(multiLeagueSummary.userContest.id, "contest_md_12_league_2_1");
+assert.equal(multiLeagueSummary.matchupAssignment.matchupId, "contest_md_12_league_2_1");
+assert.ok(multiLeagueSummary.contests.every((contest) => contest.leagueId === "league_2"));
 
 const over = data.predictionCards.find((card) => card.cardType === "TOTAL_GOALS_OVER");
 assert.equal(gradeCard(over, match).pointsAwarded, 10);
@@ -384,6 +462,11 @@ assert.doesNotThrow(() => assertStorageConfiguration({
   requireNeonStorage: "true",
   providers: ["football-data", "odds-api"]
 }));
+assert.throws(() => assertStorageConfiguration({
+  databaseUrl: "",
+  requireNeonStorage: "true",
+  providers: ["mock"]
+}), /Player accounts, picks, matchup assignments/);
 assert.throws(() => assertStorageConfiguration({
   databaseUrl: "",
   requireNeonStorage: "",

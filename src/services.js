@@ -1130,10 +1130,10 @@ function updateSide(data, leagueId, contest, side, scoreFor, scoreAgainst, cardS
 function hydrateState(data, currentUserId = "user_you") {
   ensureDemoScaffold(data);
   refreshMatchdayStatuses(data);
-  const league = data.leagues[0];
   const matchday = getTodayMatchday(data);
   data.users.forEach(ensureUserPassword);
   const currentUser = data.users.find((user) => user.id === currentUserId) || data.users.find((user) => user.id === "user_you");
+  const league = selectLeagueForUser(data, currentUser);
   ensurePlayableCardSetsForUser(data, currentUser.id);
   const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === currentUser.id);
   const playerCards = data.playerCards
@@ -1142,8 +1142,9 @@ function hydrateState(data, currentUserId = "user_you") {
       ...playerCard,
       card: data.predictionCards.find((card) => card.id === playerCard.predictionCardId)
     }));
-  const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchday.id && prediction.userId === currentUserId);
+  const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchday.id && prediction.userId === currentUser.id);
   const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+  const userScopedAssignments = currentUser.role === "ADMIN" ? null : currentUser.id;
 
   return {
     currentUser: publicUser(currentUser),
@@ -1166,18 +1167,29 @@ function hydrateState(data, currentUserId = "user_you") {
     correctScoreOdds: data.oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE"),
     playerCards,
     scorePrediction,
-    contests: hydrateContests(data, null, matchday.id),
+    contests: hydrateContests(data, league.id, matchday.id),
     seasonContests: hydrateContests(data),
+    matchupAssignments: hydrateMatchupAssignments(data, league.id, userScopedAssignments),
     standings: hydrateStandings(data, league.id),
     syncLogs: data.syncLogs.slice(0, 20),
     emailOutbox: (data.emailOutbox || []).slice(0, 20)
   };
 }
 
+function selectLeagueForUser(data, user) {
+  if (!user || user.role === "ADMIN") return data.leagues[0];
+  const membership = data.leagueMembers.find((member) => member.userId === user.id && member.status === "ACTIVE") ||
+    data.leagueMembers.find((member) => member.userId === user.id && member.status !== "REMOVED");
+  return data.leagues.find((league) => league.id === membership?.leagueId) || data.leagues[0];
+}
+
 function publicUser(user) {
   if (!user) return null;
   const { passwordHash, ...safeUser } = user;
-  return safeUser;
+  return {
+    ...safeUser,
+    hasPassword: Boolean(passwordHash)
+  };
 }
 
 function hydrateLeagues(data) {
@@ -1213,7 +1225,11 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
       const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchday.id && prediction.userId === userId);
       const contests = hydrateContests(data, leagueId, matchday.id);
       const userContest = contests.find((contest) => contest.participants.some((part) => part.userId === userId));
-      const userSide = userContest?.participants.find((part) => part.userId === userId)?.side;
+      const userPart = userContest?.participants.find((part) => part.userId === userId);
+      const userSide = userPart?.side;
+      const matchupAssignment = userContest && userPart
+        ? hydrateMatchupAssignment(userContest, userPart)
+        : null;
       const teammateNames = userContest
         ? userContest.participants
           .filter((part) => part.side === userSide && part.userId !== userId)
@@ -1240,6 +1256,8 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
         scorePrediction,
         contests,
         userContest,
+        userContestId: userContest?.id || null,
+        matchupAssignment,
         teammateNames,
         opponentNames,
         userSide,
@@ -1297,6 +1315,26 @@ function hydrateContests(data, leagueId, matchDayId) {
         projectedScore: estimateStoredProjectedScore(data, contest.matchDayId, part.userId)
       }))
     }));
+}
+
+function hydrateMatchupAssignments(data, leagueId, userId) {
+  return hydrateContests(data, leagueId)
+    .flatMap((contest) => contest.participants
+      .filter((part) => !userId || part.userId === userId)
+      .map((part) => hydrateMatchupAssignment(contest, part)));
+}
+
+function hydrateMatchupAssignment(contest, part) {
+  return {
+    id: part.id,
+    matchupId: contest.id,
+    contestId: contest.id,
+    leagueId: contest.leagueId,
+    matchDayId: contest.matchDayId,
+    userId: part.userId,
+    side: part.side,
+    status: contest.status
+  };
 }
 
 function estimateStoredProjectedScore(data, matchDayId, userId) {

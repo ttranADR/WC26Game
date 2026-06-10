@@ -18,7 +18,7 @@ export function assertStorageConfiguration({ databaseUrl, requireNeonStorage, pr
 
   throw new Error(
     "DATABASE_URL is required when using live data providers or REQUIRE_NEON_STORAGE=true. " +
-    "External API data must be synced into Neon before the app loads it."
+    "Player accounts, picks, matchup assignments, standings, and external API data must be stored in Neon."
   );
 }
 
