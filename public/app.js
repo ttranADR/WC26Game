@@ -119,7 +119,7 @@ function renderLogin(error = "") {
         <div>
           <p class="label">Welcome back</p>
           <h1>Log in to PitchPick</h1>
-          <p class="muted">Use a seeded demo account or an account created by an admin.</p>
+          <p class="muted">Use your email, name, or player id with the password set by an admin.</p>
         </div>
         ${error ? `<div class="form-error">${error}</div>` : ""}
         <label>
@@ -580,10 +580,10 @@ function renderPlayerData() {
         <section class="panel">
           <div class="panel-head"><h2>Create User</h2><span class="label">Account</span></div>
           <form class="admin-form user-edit-form" id="createUserForm">
-            <input name="displayName" placeholder="Name" aria-label="Name" required />
-            <input name="email" type="email" placeholder="user@example.com" aria-label="Email" required />
+            <input name="displayName" placeholder="Name" aria-label="Name" autocomplete="off" required />
+            <input name="email" type="email" placeholder="user@example.com" aria-label="Email" autocomplete="off" required />
             <select name="role" aria-label="Role">${renderUserRoleOptions("PLAYER")}</select>
-            <input name="password" type="text" placeholder="Password" aria-label="Password" required />
+            <input name="password" type="text" placeholder="Password" aria-label="Password" autocomplete="new-password" required />
             <button class="panel-button primary">Create User</button>
           </form>
         </section>
@@ -599,7 +599,7 @@ function renderPlayerData() {
           <div class="panel-head"><h2>Role Access</h2><span class="label">${data.users.filter((user) => user.role === "ADMIN").length} admins</span></div>
           <div class="league-summary compact-summary">
             <span><strong>${data.users.filter((user) => user.role === "PLAYER").length}</strong> players</span>
-            <span><strong>${data.users.filter((user) => user.hasPassword).length}</strong> passwords</span>
+            <span><strong>${data.users.filter((user) => user.hasPassword).length}</strong> protected</span>
           </div>
         </section>
       </aside>
@@ -748,12 +748,12 @@ function renderUserDatabaseRow(user) {
       <input type="hidden" name="userId" value="${escapeHtml(user.id)}" />
       <div>
         <strong>${escapeHtml(user.email || "No email")}</strong>
-        <span class="muted">ID ${escapeHtml(user.id)} · ${user.hasPassword ? "Password set" : "Needs password"}</span>
+        <span class="muted">ID ${escapeHtml(user.id)} · ${user.hasPassword ? "Password protected" : "Needs password"}</span>
       </div>
-      <input name="displayName" value="${escapeHtml(user.displayName || "")}" aria-label="Name" required />
+      <input name="displayName" value="${escapeHtml(user.displayName || "")}" aria-label="Name" autocomplete="off" required />
       <select name="role" aria-label="Role">${renderUserRoleOptions(role)}</select>
-      <input name="password" type="text" placeholder="New password" aria-label="New password" />
-      <button class="panel-button primary">Save</button>
+      <input name="password" type="text" placeholder="Reset password" aria-label="Reset password" autocomplete="new-password" />
+      <button class="panel-button primary">Save / Reset</button>
     </form>
   `;
 }

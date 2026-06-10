@@ -21,9 +21,9 @@ export async function getAppState(store, userId = "user_you") {
 export async function loginUser(store, input) {
   return store.update((data) => {
     ensureDemoScaffold(data);
-    const email = normalizeLoginIdentifier(input.email);
-    const password = String(input.password || "");
-    const user = data.users.find((item) => item.email.toLowerCase() === email);
+    const identifier = normalizeLoginIdentifier(input.email);
+    const password = String(input.password || "").trim();
+    const user = findLoginUser(data, identifier);
     if (!user || !verifyPassword(user, password)) {
       throw new Error("Invalid email or password.");
     }
@@ -47,6 +47,14 @@ function normalizeLoginIdentifier(value) {
     "user@pitchpick.local": "you@pitchpick.local"
   };
   return aliases[identifier] || identifier;
+}
+
+function findLoginUser(data, identifier) {
+  return data.users.find((item) => (
+    String(item.email || "").toLowerCase() === identifier ||
+    String(item.id || "").toLowerCase() === identifier ||
+    String(item.displayName || "").toLowerCase() === identifier
+  ));
 }
 
 function normalizeEmail(value) {
@@ -209,6 +217,7 @@ export async function updateUserAccount(store, input) {
 
     user.displayName = normalizeDisplayName(input.displayName || user.displayName);
     user.role = role;
+    const passwordUpdated = Boolean(String(input.password || "").trim());
     if (String(input.password || "").trim()) {
       user.passwordHash = hashPassword(normalizePassword(input.password));
     } else {
@@ -217,7 +226,13 @@ export async function updateUserAccount(store, input) {
     user.updatedAt = new Date().toISOString();
     if (role === "PLAYER") ensurePlayerProfile(data, user);
     data.syncLogs.unshift(log("UPDATE_USER", "SUCCESS", `Updated ${user.displayName}.`));
-    return { ok: true, user: publicUser(user), state: hydrateState(data, input.currentUserId) };
+    return {
+      ok: true,
+      message: passwordUpdated ? `Password reset for ${user.displayName}.` : `Updated ${user.displayName}.`,
+      passwordUpdated,
+      user: publicUser(user),
+      state: hydrateState(data, input.currentUserId)
+    };
   });
 }
 
@@ -225,6 +240,7 @@ export async function updateOwnAccount(store, input) {
   return store.update((data) => {
     const user = mustFind(data.users, input.currentUserId, "User");
     user.displayName = normalizeDisplayName(input.displayName || user.displayName);
+    const passwordUpdated = Boolean(String(input.password || "").trim());
     if (String(input.password || "").trim()) {
       user.passwordHash = hashPassword(normalizePassword(input.password));
     } else {
@@ -233,7 +249,13 @@ export async function updateOwnAccount(store, input) {
     user.updatedAt = new Date().toISOString();
     if (user.role === "PLAYER") ensurePlayerProfile(data, user);
     data.syncLogs.unshift(log("UPDATE_ACCOUNT", "SUCCESS", `${user.displayName} updated account settings.`));
-    return { ok: true, user: publicUser(user), state: hydrateState(data, user.id) };
+    return {
+      ok: true,
+      message: passwordUpdated ? "Password updated." : "Account updated.",
+      passwordUpdated,
+      user: publicUser(user),
+      state: hydrateState(data, user.id)
+    };
   });
 }
 

@@ -28,7 +28,7 @@ This MVP uses demo login with role checks. Players cannot see the Admin tab, and
 
 ## Login And Roles
 
-Open `http://localhost:4173` and log in before using the app.
+Open `http://localhost:4173` and log in before using the app. Login accepts email, display name, or player id.
 
 - Admin demo: `admin@pitchpick.local` / `admin123`
 - Player demo: `you@pitchpick.local` / `player123`
@@ -46,7 +46,7 @@ Player accounts are stored in Neon with the rest of the league state. Each user 
 - `passwordHash`: stored credential hash. The app does not store or send plain-text passwords in hydrated browser state.
 - `hasPassword`: browser-safe flag shown on the admin-only **Player Data** page.
 
-If `role` is `ADMIN`, the user sees the Admin page after login and the server allows Admin API calls for that user. If `role` is `PLAYER`, the Admin tab stays hidden and Admin API calls are rejected.
+If `role` is `ADMIN`, the user sees the Admin page after login and the server allows Admin API calls for that user. If `role` is `PLAYER`, the Admin tab stays hidden and Admin API calls are rejected. Admins can create or reset passwords, but cannot view the current stored password because only the hash is stored. After an admin reset, the player can log in with the new password using their email, display name, or player id.
 
 ## Implemented Features
 
@@ -60,7 +60,7 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Dedicated Matchups tab with a full-tournament calendar for browsing mixed 1v1, 2v2, and half-league contests.
 - Matchday projected and final totals follow the scheduled matchup side, including 2v2 and half-league sums.
 - Player matchup views resolve through matchup assignment links: player ID + matchday + league -> matchup ID.
-- Admin-only Player Data page shows each user's email, role, player id, and password credential status.
+- Admin-only Player Data page shows each user's email, role, player id, and protected password credential status.
 - Admin can create users directly, set passwords, update names, and update roles.
 - Users can update their own display name and password from Account.
 - Submit card answers and exact score prediction.

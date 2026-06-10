@@ -69,6 +69,19 @@ assert.equal(promotedUser.user.displayName, "Direct Admin");
 assert.equal(promotedUser.user.role, "ADMIN");
 await assert.rejects(() => loginUser(accountStore, { email: "direct@pitchpick.local", password: "direct123" }), /Invalid email or password/);
 assert.equal((await loginUser(accountStore, { email: "direct@pitchpick.local", password: "direct456" })).user.role, "ADMIN");
+assert.equal((await loginUser(accountStore, { email: "Direct Admin", password: " direct456 " })).user.id, createdUser.user.id);
+assert.equal((await loginUser(accountStore, { email: createdUser.user.id, password: "direct456" })).user.id, createdUser.user.id);
+const resetPlayer = await updateUserAccount(accountStore, {
+  currentUserId: "admin_1",
+  userId: "user_maya",
+  displayName: "Maya Reset",
+  role: "PLAYER",
+  password: "maya999"
+});
+assert.equal(resetPlayer.passwordUpdated, true);
+assert.equal((await loginUser(accountStore, { email: "maya@pitchpick.local", password: "maya999" })).user.id, "user_maya");
+assert.equal((await loginUser(accountStore, { email: "Maya Reset", password: "maya999" })).user.id, "user_maya");
+assert.equal((await loginUser(accountStore, { email: "user_maya", password: "maya999" })).user.id, "user_maya");
 const selfUpdated = await updateOwnAccount(accountStore, {
   currentUserId: createdUser.user.id,
   displayName: "Self Updated",
