@@ -56,6 +56,7 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - Raw sync logs and standings CSV export.
 - 1v1, 2v2, half-league, and mixed matchup schedules.
 - Odd-player 1v1 matchdays create one 1v2 contest instead of a bye.
+- Uneven-side matchups normalize score by player count, so a solo player in 1v2 has their fantasy score doubled against the two-player sum.
 - Finalized league points are preserved when future matchups are shuffled.
 - Idempotent scoring.
 - Dark/light mode.

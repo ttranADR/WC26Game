@@ -1071,8 +1071,8 @@ function calculateMatchdayScores(data, matchDayId, options = {}) {
 function updateContestScore(contest, playerTotals) {
   const aUsers = contest.participants.filter((part) => part.side === "A").map((part) => part.userId);
   const bUsers = contest.participants.filter((part) => part.side === "B").map((part) => part.userId);
-  contest.participantAScore = sumScores(aUsers, playerTotals);
-  contest.participantBScore = bUsers.length ? sumScores(bUsers, playerTotals) : 0;
+  contest.participantAScore = normalizedSideScore(aUsers, bUsers, playerTotals);
+  contest.participantBScore = bUsers.length ? normalizedSideScore(bUsers, aUsers, playerTotals) : 0;
   contest.status = "FINAL";
   contest.result = contest.participantAScore === contest.participantBScore
     ? "DRAW"
@@ -1333,6 +1333,13 @@ function hydrateStandings(data, leagueId) {
 
 function sumScores(userIds, playerTotals) {
   return Number(userIds.reduce((sum, userId) => sum + (playerTotals.get(userId) || 0), 0).toFixed(1));
+}
+
+function normalizedSideScore(sideUserIds, opposingUserIds, playerTotals) {
+  if (!sideUserIds.length) return 0;
+  const sideTotal = sumScores(sideUserIds, playerTotals);
+  const playerBaseline = Math.max(sideUserIds.length, opposingUserIds.length || sideUserIds.length);
+  return Number((sideTotal * (playerBaseline / sideUserIds.length)).toFixed(1));
 }
 
 function upsertLeagueMember(data, memberInput) {

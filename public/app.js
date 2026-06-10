@@ -51,10 +51,6 @@ const state = {
 const root = document.querySelector("#appRoot");
 const toast = document.querySelector("#toast");
 
-function initials(name) {
-  return String(name || "").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-}
-
 function setTheme(theme) {
   state.theme = theme;
   document.body.classList.toggle("theme-dark", theme === "dark");
@@ -200,14 +196,15 @@ function renderPlayer() {
               <h1>${summary.name}</h1>
               <span class="muted">${summary.matches.length} matches · ${formatDate(summary.date)}</span>
         </div>
-        <div class="avatar-score">
-          <span class="avatar">${matchup.userInitials}</span>
-          <div><span>${matchup.userLabel || data.currentUser.displayName}</span><strong>${matchup.userScore}</strong><small class="muted">Projected</small></div>
+        <div class="matchup-score">
+          <span>${matchup.userLabel || data.currentUser.displayName}</span>
+          <small class="muted">Projected</small>
+          <strong>${formatScoreValue(matchup.userScore)}</strong>
         </div>
-        <div class="versus">VS</div>
-        <div class="avatar-score">
-          <span class="avatar blue">${matchup.opponentInitials}</span>
-          <div><span>${matchup.opponentLabel || "Opponent"}</span><strong class="blue-score">${matchup.opponentScore}</strong><small class="muted">Projected</small></div>
+        <div class="matchup-score">
+          <span>${matchup.opponentLabel || "No opponent assigned"}</span>
+          <small class="muted">Projected</small>
+          <strong class="blue-score">${formatScoreValue(matchup.opponentScore)}</strong>
         </div>
         <div class="lock-card">
           <span class="muted">${locked ? "Auto-locked" : "Auto-locks in"}</span>
@@ -378,10 +375,15 @@ function renderMatchdayResult(summary) {
           <h1>${summary.name} Result</h1>
           <span class="muted">${summary.matches.map((match) => `${match.homeTeamCode} ${match.homeScore}-${match.awayScore} ${match.awayTeamCode}`).join(" · ")}</span>
         </div>
-        <div class="result-score ${summary.resultLabel.toLowerCase()}">
-          <span>${summary.resultLabel}</span>
-          <strong>${resultMatchup.userScore} - ${resultMatchup.opponentScore}</strong>
-          <small>${resultMatchup.opponentLabel ? `${resultMatchup.userLabel} vs ${resultMatchup.opponentLabel}` : "No opponent assigned"}</small>
+        <div class="matchup-score final ${summary.resultLabel.toLowerCase()}">
+          <span>${resultMatchup.userLabel || state.data.currentUser.displayName}</span>
+          <small class="muted">Final</small>
+          <strong>${formatScoreValue(resultMatchup.userScore)}</strong>
+        </div>
+        <div class="matchup-score final ${summary.resultLabel.toLowerCase()}">
+          <span>${resultMatchup.opponentLabel || "No opponent assigned"}</span>
+          <small class="muted">Final</small>
+          <strong class="blue-score">${formatScoreValue(resultMatchup.opponentScore)}</strong>
         </div>
         <div class="result-breakdown">
           <span><strong>${summary.cardPoints}</strong> card pts</span>
@@ -874,7 +876,7 @@ function renderContestRow(contest, options = {}) {
         <div class="contest-vs">vs</div>
         <div class="contest-side"><span>B</span><strong>${b.join(" + ") || "Bye"}</strong></div>
       </div>
-      <span class="muted">${contest.participantAScore} - ${contest.participantBScore}${contest.result ? ` · ${contest.result.replace("_", " ")}` : ""}</span>
+      <span class="muted">${formatScoreValue(contest.participantAScore)} - ${formatScoreValue(contest.participantBScore)}${contest.result ? ` · ${contest.result.replace("_", " ")}` : ""}</span>
     </div>
   `;
 }
@@ -922,9 +924,7 @@ function getMatchupSideDisplay(contest, userId, fallbackUserName = "You") {
       userParts: [],
       opponentParts: [],
       userLabel: fallbackUserName,
-      opponentLabel: "Opponent",
-      userInitials: initials(fallbackUserName),
-      opponentInitials: initials("Opponent")
+      opponentLabel: "No opponent assigned"
     };
   }
 
@@ -938,9 +938,7 @@ function getMatchupSideDisplay(contest, userId, fallbackUserName = "You") {
     userParts,
     opponentParts,
     userLabel: formatMatchupSideLabel(userParts, fallbackUserName),
-    opponentLabel: formatMatchupSideLabel(opponentParts, ""),
-    userInitials: formatMatchupSideInitials(userParts, fallbackUserName),
-    opponentInitials: formatMatchupSideInitials(opponentParts, "Opponent")
+    opponentLabel: formatMatchupSideLabel(opponentParts, "No opponent assigned")
   };
 }
 
@@ -955,8 +953,8 @@ function getProjectedMatchupDisplay(contest, userId, currentUserProjection) {
   }
   return {
     ...sideDisplay,
-    userScore: sumProjectedSide(sideDisplay.userParts, userId, currentUserProjection),
-    opponentScore: sumProjectedSide(sideDisplay.opponentParts, userId, currentUserProjection)
+    userScore: normalizedProjectedSideScore(sideDisplay.userParts, sideDisplay.opponentParts, userId, currentUserProjection),
+    opponentScore: normalizedProjectedSideScore(sideDisplay.opponentParts, sideDisplay.userParts, userId, currentUserProjection)
   };
 }
 
@@ -970,11 +968,14 @@ function getFinalMatchupDisplay(contest, userId, userScore = 0, opponentScore = 
   };
 }
 
-function sumProjectedSide(parts, userId, currentUserProjection) {
-  return parts.reduce((sum, part) => {
+function normalizedProjectedSideScore(parts, opposingParts, userId, currentUserProjection) {
+  if (!parts.length) return 0;
+  const rawScore = parts.reduce((sum, part) => {
     const score = part.userId === userId ? currentUserProjection : part.projectedScore;
     return sum + Number(score || 0);
   }, 0);
+  const playerBaseline = Math.max(parts.length, opposingParts.length || parts.length);
+  return Number((rawScore * (playerBaseline / parts.length)).toFixed(1));
 }
 
 function formatMatchupSideLabel(parts, fallback) {
@@ -984,14 +985,13 @@ function formatMatchupSideLabel(parts, fallback) {
   return `${names.slice(0, 2).join(" + ")} +${names.length - 2}`;
 }
 
-function formatMatchupSideInitials(parts, fallback) {
-  const names = parts.map(participantName).filter(Boolean);
-  if (!names.length) return initials(fallback);
-  return names.map((name) => initials(name).slice(0, 1)).join("").slice(0, 2).toUpperCase();
-}
-
 function participantName(part) {
   return part.user?.displayName || part.userId;
+}
+
+function formatScoreValue(value) {
+  const score = Number(value || 0);
+  return Number.isInteger(score) ? String(score) : score.toFixed(1);
 }
 
 function renderStandingsTable(rows) {

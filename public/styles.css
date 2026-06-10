@@ -499,7 +499,7 @@ select:focus-visible {
 
 .hero {
   display: grid;
-  grid-template-columns: 180px 1fr 58px 1fr 250px;
+  grid-template-columns: 180px 1fr 1fr 250px;
   align-items: center;
   min-height: 200px;
   padding: 18px 24px;
@@ -519,7 +519,7 @@ select:focus-visible {
 
 .result-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 230px 360px;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.7fr) minmax(150px, 0.7fr) 360px;
   gap: 16px;
   align-items: center;
   min-height: 178px;
@@ -539,39 +539,42 @@ select:focus-visible {
   line-height: 1.06;
 }
 
-.result-score,
+.matchup-score,
 .result-breakdown {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--surface) 90%, transparent);
 }
 
-.result-score {
+.matchup-score {
   display: grid;
-  gap: 5px;
-  justify-items: center;
-  padding: 16px;
-  text-align: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px 18px;
 }
 
-.result-score span {
+.matchup-score span {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.matchup-score small {
   color: var(--muted);
   font-size: 12px;
   font-weight: 950;
   text-transform: uppercase;
 }
 
-.result-score strong {
+.matchup-score strong {
   color: var(--green);
-  font-size: 34px;
+  font-size: 38px;
+  line-height: 1;
 }
 
-.result-score.loss strong {
-  color: var(--red);
-}
-
-.result-score.draw strong {
-  color: var(--gold);
+.matchup-score .blue-score {
+  color: var(--blue);
 }
 
 .result-breakdown {
@@ -596,61 +599,6 @@ select:focus-visible {
 .result-breakdown strong {
   color: var(--text);
   font-size: 22px;
-}
-
-.avatar-score {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  border: 4px solid color-mix(in srgb, var(--surface) 78%, transparent);
-  border-radius: 50%;
-  background: var(--green-dark);
-  color: white;
-  font-weight: 950;
-}
-
-.avatar.blue {
-  background: var(--blue);
-}
-
-.avatar.purple {
-  background: #9b4bd4;
-}
-
-.avatar-score strong {
-  display: block;
-  color: var(--green);
-  font-size: 38px;
-  line-height: 1;
-}
-
-.avatar-score .blue-score {
-  color: var(--blue);
-}
-
-.avatar-score span {
-  display: block;
-  font-size: 26px;
-  font-weight: 900;
-}
-
-.versus {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  background: var(--surface);
-  font-weight: 950;
 }
 
 .lock-card,
@@ -1496,7 +1444,7 @@ th {
   }
 
   .hero {
-    grid-template-columns: 1fr 42px 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
     padding: 14px;
   }
@@ -1524,24 +1472,21 @@ th {
   }
 
   .hero > div:first-child,
+  .result-hero > div:first-child,
+  .result-breakdown,
   .lock-card {
     grid-column: 1 / -1;
   }
 
-  .avatar-score {
-    justify-content: start;
+  .matchup-score {
+    padding: 12px;
   }
 
-  .avatar {
-    width: 52px;
-    height: 52px;
+  .matchup-score span {
+    font-size: 16px;
   }
 
-  .avatar-score span {
-    font-size: 18px;
-  }
-
-  .avatar-score strong {
+  .matchup-score strong {
     font-size: 28px;
   }
 

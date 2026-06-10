@@ -198,16 +198,7 @@ await finalizeMatchday(groupScoreStore, {
   matchDayId: "md_12",
   currentUserId: "admin_1"
 });
-const groupScoreByUser = new Map(groupScoreData.playerCardSets.filter((set) => set.matchDayId === "md_12").map((set) => {
-  const cardPoints = groupScoreData.playerCards
-    .filter((card) => card.playerCardSetId === set.id)
-    .reduce((sum, card) => sum + (card.pointsAwarded || 0), 0);
-  const exactPoints = groupScoreData.scorePredictions.find((prediction) => (
-    prediction.matchDayId === set.matchDayId &&
-    prediction.userId === set.userId
-  ))?.pointsAwarded || 0;
-  return [set.userId, cardPoints + exactPoints];
-}));
+const groupScoreByUser = getMatchdayScoreTotals(groupScoreData, "md_12");
 const groupContest = groupScoreData.headToHeadContests[0];
 assert.equal(groupContest.participantAScore, groupScoreByUser.get("user_you") + groupScoreByUser.get("user_maya"));
 assert.equal(groupContest.participantBScore, groupScoreByUser.get("user_liam") + groupScoreByUser.get("user_noah"));
@@ -215,6 +206,38 @@ const groupFinalState = await getAppState(groupScoreStore, "user_you");
 const groupFinalSummary = groupFinalState.matchdaySummaries.find((item) => item.id === "md_12");
 assert.equal(groupFinalSummary.userScore, groupContest.participantAScore);
 assert.equal(groupFinalSummary.opponentScore, groupContest.participantBScore);
+
+const unevenScoreData = createSeedData();
+unevenScoreData.headToHeadContests = [{
+  id: "contest_md_12_uneven",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_you",
+  participantBName: "user_maya + user_liam",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_uneven_a_1", side: "A", userId: "user_you" },
+    { id: "part_md_12_uneven_b_1", side: "B", userId: "user_maya" },
+    { id: "part_md_12_uneven_b_2", side: "B", userId: "user_liam" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}];
+const unevenScoreStore = createMemoryStore(unevenScoreData);
+await finalizeMatchday(unevenScoreStore, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const unevenScoreByUser = getMatchdayScoreTotals(unevenScoreData, "md_12");
+const unevenContest = unevenScoreData.headToHeadContests[0];
+assert.equal(unevenContest.participantAScore, Number((unevenScoreByUser.get("user_you") * 2).toFixed(1)));
+assert.equal(unevenContest.participantBScore, Number((unevenScoreByUser.get("user_maya") + unevenScoreByUser.get("user_liam")).toFixed(1)));
 
 const fallbackData = createSeedData();
 fallbackData.matchdays.push({
@@ -630,6 +653,19 @@ function createMemoryStore(data) {
       return result ?? data;
     }
   };
+}
+
+function getMatchdayScoreTotals(data, matchDayId) {
+  return new Map(data.playerCardSets.filter((set) => set.matchDayId === matchDayId).map((set) => {
+    const cardPoints = data.playerCards
+      .filter((card) => card.playerCardSetId === set.id)
+      .reduce((sum, card) => sum + (card.pointsAwarded || 0), 0);
+    const exactPoints = data.scorePredictions.find((prediction) => (
+      prediction.matchDayId === set.matchDayId &&
+      prediction.userId === set.userId
+    ))?.pointsAwarded || 0;
+    return [set.userId, cardPoints + exactPoints];
+  }));
 }
 
 function jsonResponse(body) {
