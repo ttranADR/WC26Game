@@ -1272,9 +1272,21 @@ function hydrateContests(data, leagueId, matchDayId) {
       ...contest,
       participants: contest.participants.map((part) => ({
         ...part,
-        user: data.users.find((user) => user.id === part.userId)
+        user: data.users.find((user) => user.id === part.userId),
+        projectedScore: estimateStoredProjectedScore(data, contest.matchDayId, part.userId)
       }))
     }));
+}
+
+function estimateStoredProjectedScore(data, matchDayId, userId) {
+  const set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId);
+  const playerCards = data.playerCards.filter((card) => card.playerCardSetId === set?.id);
+  const selectedCards = playerCards.filter((card) => card.selected);
+  const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchDayId && prediction.userId === userId);
+  if (!selectedCards.length && !scorePrediction) return 0;
+  const yesAnswers = selectedCards.filter((card) => card.playerAnswer === "YES").length;
+  const multiplier = Number(scorePrediction?.oddsMultiplier || 2);
+  return Math.round(38 + selectedCards.length * 3 + yesAnswers * 2 + multiplier * 1.8);
 }
 
 function hydrateStandings(data, leagueId) {

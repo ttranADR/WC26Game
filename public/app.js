@@ -52,7 +52,7 @@ const root = document.querySelector("#appRoot");
 const toast = document.querySelector("#toast");
 
 function initials(name) {
-  return name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  return String(name || "").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 }
 
 function setTheme(theme) {
@@ -188,10 +188,8 @@ function renderPlayer() {
   const activeOdd = getActiveExactOdd(exactOdds);
   const multiplier = activeOdd?.priceDecimal || estimateMultiplier();
   const potential = Number((multiplier * 5).toFixed(1));
-  const yourScore = estimateProjectedScore(multiplier);
-  const opponent = findOpponent(summary);
-  const matchup = getContestDisplay(summary.userContest, data.currentUser.id);
-  const dayMatchupLabel = formatContestModeSummary(summary.contests, data.league.pairingMode);
+  const currentPlayerProjection = estimateProjectedScore(multiplier);
+  const matchup = getProjectedMatchupDisplay(summary.userContest, data.currentUser.id, currentPlayerProjection);
 
   root.innerHTML = `
     <section class="arena">
@@ -200,16 +198,16 @@ function renderPlayer() {
         <div>
               <p class="label">${summary.isToday ? "Today" : summary.phaseLabel || "Matchday"} · ${summary.status}</p>
               <h1>${summary.name}</h1>
-              <span class="muted">${summary.matches.length} matches · ${summary.contests.length} league matchups · ${formatDate(summary.date)}</span>
+              <span class="muted">${summary.matches.length} matches · ${formatDate(summary.date)}</span>
         </div>
         <div class="avatar-score">
-          <span class="avatar">${initials(data.currentUser.displayName)}</span>
-          <div><span>${data.currentUser.displayName}</span><strong>${yourScore}</strong><small class="muted">Projected</small></div>
+          <span class="avatar">${matchup.userInitials}</span>
+          <div><span>${matchup.userLabel || data.currentUser.displayName}</span><strong>${matchup.userScore}</strong><small class="muted">Projected</small></div>
         </div>
         <div class="versus">VS</div>
         <div class="avatar-score">
-          <span class="avatar blue">${initials(opponent?.displayName || "Maya")}</span>
-          <div><span>${matchup.opponentLabel || opponent?.displayName || "Maya"}</span><strong class="blue-score">72</strong><small class="muted">Projected</small></div>
+          <span class="avatar blue">${matchup.opponentInitials}</span>
+          <div><span>${matchup.opponentLabel || "Opponent"}</span><strong class="blue-score">${matchup.opponentScore}</strong><small class="muted">Projected</small></div>
         </div>
         <div class="lock-card">
           <span class="muted">${locked ? "Auto-locked" : "Auto-locks in"}</span>
@@ -237,13 +235,8 @@ function renderPlayer() {
           ${renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards })}
 
           <section class="panel">
-            <div class="panel-head"><h2>Opponent</h2><span class="label">${formatPairingMode(summary.userContest?.mode || data.league.pairingMode)}</span></div>
+            <div class="panel-head"><h2>Matchup</h2><span class="label">${formatPairingMode(summary.userContest?.mode || data.league.pairingMode)}</span></div>
             ${renderContest(summary)}
-          </section>
-
-          <section class="panel">
-            <div class="panel-head"><h2>Matchday Matchups</h2><span class="label">${dayMatchupLabel}</span></div>
-            ${renderMatchdayContestList(summary)}
           </section>
 
           <section class="panel">
@@ -254,14 +247,10 @@ function renderPlayer() {
       </div>
 
       <div class="bottom-fixtures">
-        <div class="fixture-summary">
-          <p class="label">${summary.isToday ? "Today's matches" : "Selected matches"}</p>
-          <strong>${summary.matches.length} matches</strong>
-          <span class="muted">${summary.contests.length} season matchups</span>
-        </div>
+        <div><p class="label">${summary.isToday ? "Today's matches" : "Selected matches"}</p><strong>${summary.matches.length} matches</strong></div>
         ${summary.matches.length ? summary.matches.map((match) => `
           <button class="fixture-button ${match.id === selectedMatch?.id ? "active" : ""}" data-match-id="${match.id}">
-            <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)} · ${dayMatchupLabel}</em>
+            <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)}</em>
           </button>
         `).join("") : `<div class="empty-state fixture-empty">No matches are scheduled for this matchday yet.</div>`}
         <button class="submit-button" id="submitPicks" ${selectedMatch && !readOnlyCards && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
@@ -379,6 +368,7 @@ function renderMatchdayList(activeId, options = {}) {
 
 function renderMatchdayResult(summary) {
   const exactMatch = summary.matches.find((match) => match.id === summary.scorePrediction?.tournamentMatchId);
+  const resultMatchup = getFinalMatchupDisplay(summary.userContest, state.data.currentUser.id, summary.userScore, summary.opponentScore);
   root.innerHTML = `
     <section class="arena">
       ${renderMatchdayList(summary.id)}
@@ -390,13 +380,13 @@ function renderMatchdayResult(summary) {
         </div>
         <div class="result-score ${summary.resultLabel.toLowerCase()}">
           <span>${summary.resultLabel}</span>
-          <strong>${summary.userScore} - ${summary.opponentScore}</strong>
-          <small>${summary.opponentNames.length ? `vs ${summary.opponentNames.join(" + ")}` : "No opponent assigned"}</small>
+          <strong>${resultMatchup.userScore} - ${resultMatchup.opponentScore}</strong>
+          <small>${resultMatchup.opponentLabel ? `${resultMatchup.userLabel} vs ${resultMatchup.opponentLabel}` : "No opponent assigned"}</small>
         </div>
         <div class="result-breakdown">
           <span><strong>${summary.cardPoints}</strong> card pts</span>
           <span><strong>${summary.exactPoints}</strong> exact pts</span>
-          <span><strong>${summary.totalPoints}</strong> total fantasy</span>
+          <span><strong>${summary.totalPoints}</strong> your fantasy</span>
         </div>
       </div>
 
@@ -870,9 +860,8 @@ function renderContestRow(contest, options = {}) {
   const b = contest.participants.filter((part) => part.side === "B").map((part) => part.user?.displayName || part.userId);
   const matchdayLabel = options.matchday ? `${formatDate(options.matchday.date)} · ${options.matchday.name}` : "";
   const contestShapeLabel = formatContestShape(contest);
-  const featured = options.highlightUserId && contest.participants.some((part) => part.userId === options.highlightUserId);
   return `
-    <div class="contest ${featured ? "featured-contest" : ""}">
+    <div class="contest">
       <div class="contest-row-head">
         <strong>${matchdayLabel || contestShapeLabel}</strong>
         <span class="status-pill ${contest.status.toLowerCase()}">${contestShapeLabel} · ${contest.status}</span>
@@ -922,32 +911,84 @@ function renderPlayerSeasonMatchups() {
   return `<div class="contest-list season-matchups">${matchups.map((summary) => renderContestRow(summary.userContest, { matchday: summary })).join("")}</div>`;
 }
 
-function renderMatchdayContestList(summary) {
-  if (!summary?.contests?.length) {
-    return `<p class="muted">No season matchups have been generated for this matchday yet.</p>`;
+function getMatchupSideDisplay(contest, userId, fallbackUserName = "You") {
+  if (!contest?.participants?.length) {
+    return {
+      userSide: "A",
+      opponentSide: "B",
+      userParts: [],
+      opponentParts: [],
+      userLabel: fallbackUserName,
+      opponentLabel: "Opponent",
+      userInitials: initials(fallbackUserName),
+      opponentInitials: initials("Opponent")
+    };
   }
-  return `
-    <div class="contest-list season-matchups">
-      ${summary.contests.map((contest) => renderContestRow(contest, {
-        highlightUserId: state.data.currentUser.id
-      })).join("")}
-    </div>
-  `;
+
+  const userSide = contest.participants.find((part) => part.userId === userId)?.side || "A";
+  const opponentSide = userSide === "A" ? "B" : "A";
+  const userParts = contest.participants.filter((part) => part.side === userSide);
+  const opponentParts = contest.participants.filter((part) => part.side === opponentSide);
+  return {
+    userSide,
+    opponentSide,
+    userParts,
+    opponentParts,
+    userLabel: formatMatchupSideLabel(userParts, fallbackUserName),
+    opponentLabel: formatMatchupSideLabel(opponentParts, ""),
+    userInitials: formatMatchupSideInitials(userParts, fallbackUserName),
+    opponentInitials: formatMatchupSideInitials(opponentParts, "Opponent")
+  };
 }
 
-function getContestDisplay(contest, userId) {
-  if (!contest) return { teammateLabel: "", opponentLabel: "" };
-  const userSide = contest.participants.find((part) => part.userId === userId)?.side;
-  const teammates = contest.participants
-    .filter((part) => part.side === userSide && part.userId !== userId)
-    .map((part) => part.user?.displayName || part.userId);
-  const opponents = contest.participants
-    .filter((part) => part.side !== userSide)
-    .map((part) => part.user?.displayName || part.userId);
+function getProjectedMatchupDisplay(contest, userId, currentUserProjection) {
+  const sideDisplay = getMatchupSideDisplay(contest, userId, state.data.currentUser?.displayName || "You");
+  if (!contest) {
+    return {
+      ...sideDisplay,
+      userScore: currentUserProjection,
+      opponentScore: 0
+    };
+  }
   return {
-    teammateLabel: teammates.join(" + "),
-    opponentLabel: opponents.join(" + ")
+    ...sideDisplay,
+    userScore: sumProjectedSide(sideDisplay.userParts, userId, currentUserProjection),
+    opponentScore: sumProjectedSide(sideDisplay.opponentParts, userId, currentUserProjection)
   };
+}
+
+function getFinalMatchupDisplay(contest, userId, userScore = 0, opponentScore = 0) {
+  const sideDisplay = getMatchupSideDisplay(contest, userId, state.data.currentUser?.displayName || "You");
+  if (!contest) sideDisplay.opponentLabel = "";
+  return {
+    ...sideDisplay,
+    userScore,
+    opponentScore
+  };
+}
+
+function sumProjectedSide(parts, userId, currentUserProjection) {
+  return parts.reduce((sum, part) => {
+    const score = part.userId === userId ? currentUserProjection : part.projectedScore;
+    return sum + Number(score || 0);
+  }, 0);
+}
+
+function formatMatchupSideLabel(parts, fallback) {
+  const names = parts.map(participantName).filter(Boolean);
+  if (!names.length) return fallback;
+  if (names.length <= 2) return names.join(" + ");
+  return `${names.slice(0, 2).join(" + ")} +${names.length - 2}`;
+}
+
+function formatMatchupSideInitials(parts, fallback) {
+  const names = parts.map(participantName).filter(Boolean);
+  if (!names.length) return initials(fallback);
+  return names.map((name) => initials(name).slice(0, 1)).join("").slice(0, 2).toUpperCase();
+}
+
+function participantName(part) {
+  return part.user?.displayName || part.userId;
 }
 
 function renderStandingsTable(rows) {
@@ -1125,13 +1166,6 @@ function estimateProjectedScore(multiplier) {
   const selectedCards = [...state.dirtyCards.values()].filter((card) => card.selected).length;
   const yesAnswers = [...state.dirtyCards.values()].filter((card) => card.selected && card.answer === "YES").length;
   return Math.round(38 + selectedCards * 3 + yesAnswers * 2 + multiplier * 1.8);
-}
-
-function findOpponent(summary = selectedMatchday()) {
-  const contest = summary?.userContest ||
-    state.data.contests.find((item) => item.participants.some((part) => part.userId === state.data.currentUser.id));
-  const userSide = contest?.participants.find((part) => part.userId === state.data.currentUser.id)?.side;
-  return contest?.participants.find((part) => part.side !== userSide)?.user;
 }
 
 function formatCountdown(lockAt) {

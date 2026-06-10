@@ -166,6 +166,55 @@ const preservedStanding = preserveData.leagueStandings.find((standing) => standi
 assert.equal(preservedStanding.leaguePoints, 3);
 assert.equal(preservedStanding.fantasyPointsFor, 10);
 
+const groupScoreData = createSeedData();
+groupScoreData.headToHeadContests = [{
+  id: "contest_md_12_group",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "DUO",
+  requestedMode: "DUO",
+  status: "SCHEDULED",
+  participantAName: "user_you + user_maya",
+  participantBName: "user_liam + user_noah",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_group_a_1", side: "A", userId: "user_you" },
+    { id: "part_md_12_group_a_2", side: "A", userId: "user_maya" },
+    { id: "part_md_12_group_b_1", side: "B", userId: "user_liam" },
+    { id: "part_md_12_group_b_2", side: "B", userId: "user_noah" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}];
+const groupScoreStore = createMemoryStore(groupScoreData);
+const groupProjectionState = await getAppState(groupScoreStore, "user_you");
+const groupProjectionSummary = groupProjectionState.matchdaySummaries.find((item) => item.id === "md_12");
+assert.ok(groupProjectionSummary.userContest.participants.every((part) => Number.isFinite(part.projectedScore)));
+await finalizeMatchday(groupScoreStore, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const groupScoreByUser = new Map(groupScoreData.playerCardSets.filter((set) => set.matchDayId === "md_12").map((set) => {
+  const cardPoints = groupScoreData.playerCards
+    .filter((card) => card.playerCardSetId === set.id)
+    .reduce((sum, card) => sum + (card.pointsAwarded || 0), 0);
+  const exactPoints = groupScoreData.scorePredictions.find((prediction) => (
+    prediction.matchDayId === set.matchDayId &&
+    prediction.userId === set.userId
+  ))?.pointsAwarded || 0;
+  return [set.userId, cardPoints + exactPoints];
+}));
+const groupContest = groupScoreData.headToHeadContests[0];
+assert.equal(groupContest.participantAScore, groupScoreByUser.get("user_you") + groupScoreByUser.get("user_maya"));
+assert.equal(groupContest.participantBScore, groupScoreByUser.get("user_liam") + groupScoreByUser.get("user_noah"));
+const groupFinalState = await getAppState(groupScoreStore, "user_you");
+const groupFinalSummary = groupFinalState.matchdaySummaries.find((item) => item.id === "md_12");
+assert.equal(groupFinalSummary.userScore, groupContest.participantAScore);
+assert.equal(groupFinalSummary.opponentScore, groupContest.participantBScore);
+
 const fallbackData = createSeedData();
 fallbackData.matchdays.push({
   id: "md_no_direct_odds",

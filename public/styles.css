@@ -1014,11 +1014,6 @@ select:focus-visible {
   background: var(--surface-2);
 }
 
-.featured-contest {
-  border-color: var(--green);
-  background: linear-gradient(180deg, var(--selected), transparent 70%), var(--surface-2);
-}
-
 .contest-row-head,
 .contest-sides {
   display: grid;
@@ -1263,11 +1258,6 @@ th {
   grid-column: 1 / -1;
   font-style: normal;
   font-size: 12px;
-}
-
-.fixture-summary {
-  display: grid;
-  gap: 2px;
 }
 
 .submit-button,
