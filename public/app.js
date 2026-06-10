@@ -185,7 +185,8 @@ function renderPlayer() {
   const multiplier = activeOdd?.priceDecimal || estimateMultiplier();
   const potential = Number((multiplier * 5).toFixed(1));
   const currentPlayerProjection = estimateProjectedScore(multiplier);
-  const matchup = getProjectedMatchupDisplay(summary.userContest, data.currentUser.id, currentPlayerProjection);
+  const displayContest = getPrimaryMatchup(summary);
+  const matchup = getProjectedMatchupDisplay(displayContest, data.currentUser.id, currentPlayerProjection);
 
   root.innerHTML = `
     <section class="arena">
@@ -202,7 +203,7 @@ function renderPlayer() {
           <strong>${formatScoreValue(matchup.userScore)}</strong>
         </div>
         <div class="matchup-score">
-          <span>${matchup.opponentLabel || "No opponent assigned"}</span>
+          <span>${matchup.opponentLabel}</span>
           <small class="muted">Projected</small>
           <strong class="blue-score">${formatScoreValue(matchup.opponentScore)}</strong>
         </div>
@@ -232,7 +233,7 @@ function renderPlayer() {
           ${renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards })}
 
           <section class="panel">
-            <div class="panel-head"><h2>Matchup</h2><span class="label">${formatPairingMode(summary.userContest?.mode || data.league.pairingMode)}</span></div>
+            <div class="panel-head"><h2>Matchup</h2><span class="label">${formatPairingMode(displayContest?.mode || data.league.pairingMode)}</span></div>
             ${renderContest(summary)}
           </section>
 
@@ -365,7 +366,8 @@ function renderMatchdayList(activeId, options = {}) {
 
 function renderMatchdayResult(summary) {
   const exactMatch = summary.matches.find((match) => match.id === summary.scorePrediction?.tournamentMatchId);
-  const resultMatchup = getFinalMatchupDisplay(summary.userContest, state.data.currentUser.id, summary.userScore, summary.opponentScore);
+  const resultContest = getPrimaryMatchup(summary);
+  const resultMatchup = getFinalMatchupDisplay(resultContest, state.data.currentUser.id);
   root.innerHTML = `
     <section class="arena">
       ${renderMatchdayList(summary.id)}
@@ -381,7 +383,7 @@ function renderMatchdayResult(summary) {
           <strong>${formatScoreValue(resultMatchup.userScore)}</strong>
         </div>
         <div class="matchup-score final ${summary.resultLabel.toLowerCase()}">
-          <span>${resultMatchup.opponentLabel || "No opponent assigned"}</span>
+          <span>${resultMatchup.opponentLabel}</span>
           <small class="muted">Final</small>
           <strong class="blue-score">${formatScoreValue(resultMatchup.opponentScore)}</strong>
         </div>
@@ -423,8 +425,8 @@ function renderMatchdayResult(summary) {
           </section>
 
           <section class="panel">
-            <div class="panel-head"><h2>Contest</h2><span class="label">${formatPairingMode(summary.userContest?.mode || state.data.league.pairingMode)}</span></div>
-            ${summary.userContest ? renderContestRow(summary.userContest) : `<p class="muted">No contest was assigned.</p>`}
+            <div class="panel-head"><h2>Contest</h2><span class="label">${formatPairingMode(resultContest?.mode || state.data.league.pairingMode)}</span></div>
+            ${resultContest ? renderContestRow(resultContest) : `<p class="muted">Generate matchups for this matchday to show the scheduled contest.</p>`}
           </section>
 
           <section class="panel">
@@ -854,9 +856,9 @@ function renderRules() {
 }
 
 function renderContest(summary = selectedMatchday()) {
-  const contest = summary?.userContest ||
+  const contest = getPrimaryMatchup(summary) ||
     state.data.contests.find((item) => item.participants.some((part) => part.userId === state.data.currentUser.id));
-  if (!contest) return `<p class="muted">No contest assigned yet.</p>`;
+  if (!contest) return `<p class="muted">Generate matchups for this matchday to show the scheduled contest.</p>`;
   return renderContestRow(contest);
 }
 
@@ -916,6 +918,15 @@ function renderPlayerSeasonMatchups() {
   return `<div class="contest-list season-matchups">${matchups.map((summary) => renderContestRow(summary.userContest, { matchday: summary })).join("")}</div>`;
 }
 
+function getPrimaryMatchup(summary = selectedMatchday()) {
+  if (!summary) return null;
+  const userId = state.data.currentUser.id;
+  return summary.userContest ||
+    summary.contests?.find((contest) => contest.participants.some((part) => part.userId === userId)) ||
+    summary.contests?.[0] ||
+    null;
+}
+
 function getMatchupSideDisplay(contest, userId, fallbackUserName = "You") {
   if (!contest?.participants?.length) {
     return {
@@ -924,7 +935,7 @@ function getMatchupSideDisplay(contest, userId, fallbackUserName = "You") {
       userParts: [],
       opponentParts: [],
       userLabel: fallbackUserName,
-      opponentLabel: "No opponent assigned"
+      opponentLabel: "Matchup schedule pending"
     };
   }
 
@@ -938,7 +949,7 @@ function getMatchupSideDisplay(contest, userId, fallbackUserName = "You") {
     userParts,
     opponentParts,
     userLabel: formatMatchupSideLabel(userParts, fallbackUserName),
-    opponentLabel: formatMatchupSideLabel(opponentParts, "No opponent assigned")
+    opponentLabel: formatMatchupSideLabel(opponentParts, "Bye")
   };
 }
 
@@ -958,13 +969,12 @@ function getProjectedMatchupDisplay(contest, userId, currentUserProjection) {
   };
 }
 
-function getFinalMatchupDisplay(contest, userId, userScore = 0, opponentScore = 0) {
+function getFinalMatchupDisplay(contest, userId) {
   const sideDisplay = getMatchupSideDisplay(contest, userId, state.data.currentUser?.displayName || "You");
-  if (!contest) sideDisplay.opponentLabel = "";
   return {
     ...sideDisplay,
-    userScore,
-    opponentScore
+    userScore: sideDisplay.userSide === "A" ? contest?.participantAScore || 0 : contest?.participantBScore || 0,
+    opponentScore: sideDisplay.opponentSide === "A" ? contest?.participantAScore || 0 : contest?.participantBScore || 0
   };
 }
 
