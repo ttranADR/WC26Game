@@ -51,6 +51,7 @@ Players see only player-safe navigation. Admin users see the Admin tab. The back
 - Admin dashboard for league ops.
 - Create league, select/manage any league, edit league name/season/matchup style, invite players into the selected league, and view league member metadata.
 - Sync fixtures, sync odds, generate cards, generate selected-matchday or full-season matchups.
+- Update WC Match Score refreshes actual results for the selected matchday before scoring or finalizing.
 - Lock, score, finalize, void card.
 - Raw sync logs and standings CSV export.
 - 1v1, 2v2, half-league, and mixed matchup schedules.

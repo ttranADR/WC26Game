@@ -10,7 +10,8 @@ import {
   loginUser,
   submitPicks,
   syncDailyTournamentData,
-  syncOdds
+  syncOdds,
+  updateMatchScoresForMatchday
 } from "../src/services.js";
 import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig.js";
 
@@ -536,6 +537,47 @@ try {
 }
 
 const dailyData = createSeedData();
+const scoreUpdateData = createSeedData();
+scoreUpdateData.tournamentMatches
+  .filter((matchItem) => matchItem.matchDayId === "md_12")
+  .forEach((matchItem) => {
+    matchItem.status = "SCHEDULED";
+    matchItem.homeScore = null;
+    matchItem.awayScore = null;
+    matchItem.firstGoalMinute = null;
+  });
+const scoreUpdateStore = createMemoryStore(scoreUpdateData);
+const scoreUpdateDates = [];
+const scoreUpdateResult = await updateMatchScoresForMatchday(scoreUpdateStore, {
+  async getFixturesByDate(date) {
+    scoreUpdateDates.push(date);
+    return [{
+      externalProvider: "mock",
+      externalId: "fix_bra_mar",
+      homeTeam: "Brazil",
+      awayTeam: "Morocco",
+      homeTeamCode: "BRA",
+      awayTeamCode: "MAR",
+      kickoffAt: `${date}T20:00:00.000Z`,
+      status: "FINISHED",
+      homeScore: 4,
+      awayScore: 2,
+      firstGoalMinute: 9,
+      rawData: { test: true }
+    }];
+  }
+}, {
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+assert.deepEqual(scoreUpdateDates, ["2026-06-12"]);
+assert.match(scoreUpdateResult.message, /Updated WC match scores for Matchday 12/);
+const updatedBrazilMatch = scoreUpdateData.tournamentMatches.find((item) => item.id === "match_bra_mar");
+assert.equal(updatedBrazilMatch.status, "FINISHED");
+assert.equal(updatedBrazilMatch.homeScore, 4);
+assert.equal(updatedBrazilMatch.awayScore, 2);
+assert.equal(updatedBrazilMatch.firstGoalMinute, 9);
+
 const dailyStore = createMemoryStore(dailyData);
 const fixtureDates = [];
 const dailyOddsDates = [];

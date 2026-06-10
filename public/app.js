@@ -509,6 +509,7 @@ function renderAdmin() {
   const leagueMembers = membersForLeague(league.id);
   const availableUsers = availableUsersForLeague(league.id);
   const emailOutbox = data.emailOutbox || [];
+  const finishedOpsMatches = opsMatchday.matches.filter((match) => match.status === "FINISHED").length;
   root.innerHTML = `
     <section class="admin-layout">
       <div class="admin-main">
@@ -543,11 +544,13 @@ function renderAdmin() {
             <div class="ops-summary">
               <span><strong>${formatDate(opsMatchday.date)}</strong><small>${opsMatchday.matches.length} matches</small></span>
               <span><strong>${formatTime(opsMatchday.lockAt)}</strong><small>Auto-lock</small></span>
+              <span><strong>${finishedOpsMatches}/${opsMatchday.matches.length}</strong><small>Final scores</small></span>
               <span><strong>${opsMatchday.predictionCardCount || 0}</strong><small>Cards</small></span>
             </div>
             <div class="actions">
               <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
               <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
+              <button class="panel-button primary" data-admin-action="update-match-scores">Update WC Match Score</button>
               <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
               <button class="panel-button" data-admin-action="generate-pairings">Generate Selected</button>
               <button class="panel-button" data-admin-action="generate-pairings" data-shuffle="true">Shuffle Selected</button>

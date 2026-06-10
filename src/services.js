@@ -415,6 +415,27 @@ export async function syncDailyTournamentData(store, providers, input = {}) {
   });
 }
 
+export async function updateMatchScoresForMatchday(store, provider, input = {}) {
+  const matchDayId = input.matchDayId || "md_12";
+  await syncFixtures(store, provider, { ...input, matchDayId, scope: undefined });
+
+  return store.update((data) => {
+    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
+    const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
+    const finishedCount = matches.filter((match) => match.status === "FINISHED").length;
+    const scoreText = matches.length
+      ? `${finishedCount}/${matches.length} matches finished`
+      : "no matches found";
+    const message = `Updated WC match scores for ${matchday.name}: ${scoreText}.`;
+    data.syncLogs.unshift(log("UPDATE_MATCH_SCORES", "SUCCESS", message));
+    return {
+      ok: true,
+      message,
+      state: hydrateState(data, input.currentUserId)
+    };
+  });
+}
+
 export async function syncLiveData(store, providers, input = {}) {
   const fixtureProvider = providers.fixtureProvider || providers;
   const oddsProvider = providers.oddsProvider || providers;

@@ -31,6 +31,7 @@ import {
   syncLiveData,
   syncOdds,
   updateLeague,
+  updateMatchScoresForMatchday,
   updateLeagueMemberStatus,
   voidCard
 } from "./src/services.js";
@@ -201,6 +202,12 @@ async function handleApi(req, res) {
     if (method === "POST" && url.pathname === "/api/admin/sync-daily-tournament-data") {
       await requireAdmin(req);
       sendJson(res, 200, await syncDailyTournamentData(store, { fixtureProvider, oddsProvider }, await readJsonWithUser(req)));
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/api/admin/update-match-scores") {
+      await requireAdmin(req);
+      sendJson(res, 200, await updateMatchScoresForMatchday(store, fixtureProvider, await readJsonWithUser(req)));
       return;
     }
 
