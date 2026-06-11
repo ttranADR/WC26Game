@@ -529,6 +529,7 @@ function renderAdmin() {
               <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
               <button class="panel-button primary" data-admin-action="update-match-scores">Update WC Match Score</button>
               <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
+              <button class="panel-button primary" data-admin-action="generate-cards" data-card-scope="season">Generate Season Cards</button>
               <button class="panel-button" data-admin-action="generate-pairings">Generate Selected</button>
               <button class="panel-button" data-admin-action="generate-pairings" data-shuffle="true">Shuffle Selected</button>
               <button class="panel-button primary" data-admin-action="generate-pairings" data-pairing-scope="season" data-shuffle="true">Generate Season</button>
@@ -1541,6 +1542,7 @@ async function runAdminAction(action, options = {}) {
     matchDayId: summary?.id || state.data.matchday.id,
     scope: syncScope
   };
+  if (options.cardScope) body.scope = options.cardScope;
   if (options.pairingScope) body.scope = options.pairingScope;
   if (action === "generate-pairings" && options.pairingScope === "season") {
     body.pairingMode = document.querySelector("#seasonPairingMode")?.value || managedLeague().pairingMode || "MIXED";

@@ -585,6 +585,116 @@ assert.equal(staleAdminData.playerCards.some((card) => (
   card.predictionCardId === "old_card_1"
 )), false);
 
+const seasonCardData = createSeedData();
+seasonCardData.matchdays.forEach((matchday) => {
+  matchday.status = "FINAL";
+  matchday.date = "2000-01-01";
+  matchday.lockAt = "2000-01-01T20:00:00.000Z";
+});
+seasonCardData.tournamentMatches.forEach((matchItem) => {
+  matchItem.status = "FINISHED";
+  matchItem.kickoffAt = "2000-01-01T20:00:00.000Z";
+});
+seasonCardData.matchdays.push({
+  id: "md_cards_future_1",
+  name: "Cards Future 1",
+  date: "2099-06-14",
+  lockAt: "2099-06-14T20:00:00.000Z",
+  status: "SCHEDULED",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}, {
+  id: "md_cards_future_2",
+  name: "Cards Future 2",
+  date: "2099-06-15",
+  lockAt: "2099-06-15T20:00:00.000Z",
+  status: "SCHEDULED",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}, {
+  id: "md_cards_past",
+  name: "Cards Past",
+  date: "2000-01-02",
+  lockAt: "2000-01-02T20:00:00.000Z",
+  status: "FINAL",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+seasonCardData.tournamentMatches.push({
+  id: "match_cards_future_1",
+  externalProvider: "mock",
+  externalId: "fix_cards_future_1",
+  matchDayId: "md_cards_future_1",
+  homeTeam: "Portugal",
+  awayTeam: "Senegal",
+  homeTeamCode: "POR",
+  awayTeamCode: "SEN",
+  kickoffAt: "2099-06-14T20:00:00.000Z",
+  status: "SCHEDULED",
+  homeScore: null,
+  awayScore: null,
+  firstGoalMinute: null,
+  firstGoalTeam: null,
+  redCardShown: null,
+  topScorerName: "Cristiano Ronaldo",
+  topScorerScored: null,
+  rawData: { test: true, topScorerName: "Cristiano Ronaldo" },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}, {
+  id: "match_cards_future_2",
+  externalProvider: "mock",
+  externalId: "fix_cards_future_2",
+  matchDayId: "md_cards_future_2",
+  homeTeam: "Spain",
+  awayTeam: "Japan",
+  homeTeamCode: "ESP",
+  awayTeamCode: "JPN",
+  kickoffAt: "2099-06-15T20:00:00.000Z",
+  status: "SCHEDULED",
+  homeScore: null,
+  awayScore: null,
+  firstGoalMinute: null,
+  firstGoalTeam: null,
+  redCardShown: null,
+  topScorerName: "Alvaro Morata",
+  topScorerScored: null,
+  rawData: { test: true, topScorerName: "Alvaro Morata" },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}, {
+  id: "match_cards_past",
+  externalProvider: "mock",
+  externalId: "fix_cards_past",
+  matchDayId: "md_cards_past",
+  homeTeam: "Past",
+  awayTeam: "Match",
+  homeTeamCode: "PAS",
+  awayTeamCode: "MAT",
+  kickoffAt: "2000-01-02T20:00:00.000Z",
+  status: "FINISHED",
+  homeScore: 1,
+  awayScore: 0,
+  firstGoalMinute: 20,
+  rawData: { test: true },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+const seasonCardStore = createMemoryStore(seasonCardData);
+const seasonCardResult = await generateCardsForMatchday(seasonCardStore, {
+  scope: "season",
+  currentUserId: "admin_1"
+});
+assert.match(seasonCardResult.message, /Generated 24 season prediction cards for 2 matchdays/);
+assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_future_1").length, 12);
+assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_future_2").length, 12);
+assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_past").length, 0);
+assert.ok(seasonCardData.predictionCards
+  .filter((card) => card.matchDayId === "md_cards_future_1")
+  .every((card) => card.tournamentMatchId === "match_cards_future_1"));
+assert.ok(seasonCardData.playerCardSets.some((set) => set.matchDayId === "md_cards_future_1" && set.userId === "user_you"));
+assert.ok(seasonCardData.playerCards.some((card) => card.playerCardSetId === "set_md_cards_future_2_user_you"));
+
 const exact = gradeExactPrediction({
   predictedHomeScore: 2,
   predictedAwayScore: 1

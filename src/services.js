@@ -1060,24 +1060,43 @@ function titleize(value) {
 
 export async function generateCardsForMatchday(store, input) {
   return store.update((data) => {
-    const matchDayId = input.matchDayId || "md_12";
-    const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
-    const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
-    const scopedCards = createCardsFromOdds(matchDayId, matches, data.oddsSnapshots, `${matchDayId}_scoped_${Date.now()}`);
-    const allOddsCards = scopedCards.length < CARD_SET_SIZE
-      ? createCardsFromOdds(matchDayId, data.tournamentMatches, data.oddsSnapshots, `${matchDayId}_all_${Date.now()}`)
-      : [];
-    const templateCards = scopedCards.length + allOddsCards.length < CARD_SET_SIZE
-      ? createCardPool(matchDayId, matches.length ? matches : data.tournamentMatches, data.oddsSnapshots)
-      : [];
-    const cards = normalizeGeneratedCards(matchDayId, mergeGeneratedCards(scopedCards, allOddsCards, templateCards));
-    if (!cards.length) throw new Error(`No odds-backed card data found for ${matchday.name}. Sync odds before generating cards.`);
-    data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchDayId);
-    data.predictionCards.push(...cards);
-    rebuildPlayerCardsForMatchday(data, matchDayId);
-    data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} prediction cards for ${matchday.name}.`));
-    return { ok: true, message: `Generated ${cards.length} prediction cards.`, state: hydrateState(data, input.currentUserId) };
+    refreshMatchdayStatuses(data);
+    const matchdays = getCardTargetMatchdays(data, input);
+    const generated = [];
+    const skipped = [];
+
+    matchdays.forEach((matchday) => {
+      const cards = buildCardsForMatchday(data, matchday.id, { allowGlobalOddsFallback: input.scope !== "season" });
+      if (!cards.length) {
+        skipped.push(matchday.name);
+        return;
+      }
+      data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchday.id);
+      data.predictionCards.push(...cards);
+      rebuildPlayerCardsForMatchday(data, matchday.id);
+      generated.push({ matchday, cards });
+    });
+
+    if (!generated.length) throw new Error(input.scope === "season" ? "No future matchdays with games are available for card generation." : "No card data found for this matchday.");
+    const scopeText = input.scope === "season" ? "season prediction cards" : "prediction cards";
+    const skippedText = skipped.length ? ` Skipped ${skipped.length} matchday${skipped.length === 1 ? "" : "s"} without games.` : "";
+    const message = `Generated ${generated.reduce((sum, item) => sum + item.cards.length, 0)} ${scopeText} for ${generated.length} matchday${generated.length === 1 ? "" : "s"}.${skippedText}`;
+    data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", message));
+    return { ok: true, message, state: hydrateState(data, input.currentUserId) };
   });
+}
+
+function buildCardsForMatchday(data, matchDayId, options = {}) {
+  const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
+  const scopedCards = createCardsFromOdds(matchDayId, matches, data.oddsSnapshots, `${matchDayId}_scoped_${Date.now()}`);
+  const allOddsCards = options.allowGlobalOddsFallback && scopedCards.length < CARD_SET_SIZE
+    ? createCardsFromOdds(matchDayId, data.tournamentMatches, data.oddsSnapshots, `${matchDayId}_all_${Date.now()}`)
+    : [];
+  const templateMatches = matches.length ? matches : options.allowGlobalOddsFallback ? data.tournamentMatches : [];
+  const templateCards = scopedCards.length + allOddsCards.length < CARD_SET_SIZE
+    ? createCardPool(matchDayId, templateMatches, data.oddsSnapshots)
+    : [];
+  return normalizeGeneratedCards(matchDayId, mergeGeneratedCards(scopedCards, allOddsCards, templateCards));
 }
 
 function mergeGeneratedCards(...cardLists) {
@@ -1107,6 +1126,21 @@ function normalizeGeneratedCards(matchDayId, cards) {
 
 function generatedCardKey(card) {
   return getCardMeaningKey(card);
+}
+
+function getCardTargetMatchdays(data, input) {
+  if (input.scope === "season") {
+    const now = new Date();
+    return data.matchdays
+      .slice()
+      .sort(sortMatchdaysForSchedule)
+      .filter((matchday) => {
+        if (matchday.status === "FINAL") return false;
+        const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+        return matches.length > 0 && hasFutureKickoff(matchday, matches, now);
+      });
+  }
+  return [mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday")];
 }
 
 export async function generatePairingsForMatchday(store, input) {
