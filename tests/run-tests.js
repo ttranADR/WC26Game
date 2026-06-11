@@ -202,6 +202,21 @@ assert.ok(duoContests.every((contest) => (
   contest.participants.filter((part) => part.side === "A").length === 2 &&
   contest.participants.filter((part) => part.side === "B").length === 2
 )));
+const oddDuoContests = createContests("league_test", "md_test_duo_odd", pairingUsers.slice(0, 5), "DUO", { seedText: "pairing_test" });
+assert.equal(oddDuoContests.length, 1);
+assert.deepEqual(oddDuoContests.map((contest) => [
+  contest.participants.filter((part) => part.side === "A").length,
+  contest.participants.filter((part) => part.side === "B").length
+]), [[3, 2]]);
+assert.equal(oddDuoContests[0].participants.length, 5);
+const ninePlayerDuoContests = createContests("league_test", "md_test_duo_nine", [...pairingUsers, "p9"], "DUO", { seedText: "pairing_test" });
+assert.equal(ninePlayerDuoContests.length, 2);
+assert.deepEqual(ninePlayerDuoContests.map((contest) => contest.participants.length).sort((a, b) => a - b), [4, 5]);
+assert.ok(ninePlayerDuoContests.some((contest) => (
+  contest.participants.filter((part) => part.side === "A").length === 3 &&
+  contest.participants.filter((part) => part.side === "B").length === 2
+)));
+assert.equal(ninePlayerDuoContests.some((contest) => !contest.participants.some((part) => part.side === "B")), false);
 const halfContest = createContests("league_test", "md_test_half", pairingUsers.slice(0, 5), "HALF", { seedText: "pairing_test" });
 assert.equal(halfContest.length, 1);
 assert.equal(halfContest[0].participants.filter((part) => part.side === "A").length, 3);

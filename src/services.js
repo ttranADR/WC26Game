@@ -708,7 +708,7 @@ function withCompleteCorrectScoreOdds(matches, providerOdds, capturedAt) {
         tournamentMatchId: match.id,
         provider: "pitchpick-generated",
         marketKey: "CORRECT_SCORE",
-        bookmaker: "PitchPick",
+        bookmaker: "World Cup 26 Prediction",
         outcomeName: score,
         priceDecimal: price,
         priceAmerican: null,

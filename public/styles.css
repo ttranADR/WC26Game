@@ -84,7 +84,14 @@ button {
   font-size: 24px;
 }
 
+.brand strong {
+  max-width: 132px;
+  font-size: 16px;
+  line-height: 1.15;
+}
+
 .brand-mark {
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   width: 40px;

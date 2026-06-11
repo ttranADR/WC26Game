@@ -1,9 +1,9 @@
 export async function sendInviteEmail({ to, displayName, leagueName, inviteLink }) {
-  const subject = `You're invited to ${leagueName} on PitchPick`;
+  const subject = `You're invited to ${leagueName} on World Cup 26 Prediction`;
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
       <h1>Join ${escapeHtml(leagueName)}</h1>
-      <p>${escapeHtml(displayName || "Friend")}, you have been invited to play PitchPick.</p>
+      <p>${escapeHtml(displayName || "Friend")}, you have been invited to play World Cup 26 Prediction.</p>
       <p><a href="${inviteLink}" style="display:inline-block;background:#18c964;color:white;padding:12px 16px;border-radius:8px;text-decoration:none;font-weight:bold">Accept invite</a></p>
       <p>Or paste this link into your browser:</p>
       <p>${inviteLink}</p>
@@ -28,7 +28,7 @@ export async function sendInviteEmail({ to, displayName, leagueName, inviteLink 
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      from: process.env.INVITE_FROM_EMAIL || "PitchPick <onboarding@resend.dev>",
+      from: process.env.INVITE_FROM_EMAIL || "World Cup 26 Prediction <onboarding@resend.dev>",
       to,
       subject,
       html

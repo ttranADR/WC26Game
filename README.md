@@ -1,6 +1,6 @@
-# PitchPick Full-Stack MVP
+# World Cup 26 Prediction
 
-PitchPick is a World Cup prediction game for friend leagues. This version is a Node app with a browser frontend, Neon Postgres storage for deployed/live data, local JSON storage for mock development, football/odds API sync, admin tools, player submissions, scoring, exact-score multipliers, and standings.
+World Cup 26 Prediction is a World Cup prediction game for friend leagues. This version is a Node app with a browser frontend, Neon Postgres storage for deployed/live data, local JSON storage for mock development, football/odds API sync, admin tools, player submissions, scoring, exact-score multipliers, and standings.
 
 ## Run Locally
 
@@ -74,6 +74,7 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Raw sync logs and standings CSV export.
 - 1v1, 2v2, half-league, and mixed matchup schedules.
 - Odd-player 1v1 matchdays create one 1v2 contest instead of a bye.
+- Odd-player 2v2 matchdays fold the extra player into a 3v2 contest instead of a bye.
 - Uneven-side matchups normalize score by player count, so a solo player in 1v2 has their fantasy score doubled against the two-player sum.
 - Finalized league points are preserved when future matchups are shuffled.
 - Idempotent scoring.
@@ -96,10 +97,10 @@ Admin-only setup is split across two data pages.
 The production data flow is:
 
 ```text
-External fixtures/odds APIs -> protected sync endpoint/job -> Neon Postgres -> PitchPick backend -> browser app
+External fixtures/odds APIs -> protected sync endpoint/job -> Neon Postgres -> World Cup 26 Prediction backend -> browser app
 ```
 
-The browser app never calls paid sports APIs directly. It loads app state from the PitchPick backend, and the backend reads that state from the configured store. In deployed/live mode, that store must be Neon.
+The browser app never calls paid sports APIs directly. It loads app state from the World Cup 26 Prediction backend, and the backend reads that state from the configured store. In deployed/live mode, that store must be Neon.
 
 See [docs/live-data-pipeline.md](docs/live-data-pipeline.md) for the fixture and odds ingestion design.
 
@@ -192,7 +193,7 @@ Use the Admin tab's **Live Data** panel:
 1. Click **Initial Load** one time after deployment. It imports all available World Cup fixtures from football-data, stores them in Neon, then bulk-imports all available World Cup odds from odds-api.
 2. Use **Update Date** each matchday before the first match starts. It updates fixture status/results and odds only for the selected date.
 
-Both actions run through the Render backend. The browser calls PitchPick admin endpoints; it never calls football-data or odds-api directly.
+Both actions run through the Render backend. The browser calls World Cup 26 Prediction admin endpoints; it never calls football-data or odds-api directly.
 
 ## Render + Neon Deployment
 

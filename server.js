@@ -56,7 +56,7 @@ const store = databaseUrl ? createNeonStore(databaseUrl) : createStore(dataPath)
 const fixtureProvider = createProvider(fixtureProviderName);
 const oddsProvider = createProvider(oddsProviderName);
 const port = Number(process.env.PORT || 4173);
-console.log(`PitchPick storage: ${getStorageMode(databaseUrl)}; fixtures: ${fixtureProviderName}; odds: ${oddsProviderName}`);
+console.log(`World Cup 26 Prediction storage: ${getStorageMode(databaseUrl)}; fixtures: ${fixtureProviderName}; odds: ${oddsProviderName}`);
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -282,7 +282,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`PitchPick full-stack app running at http://localhost:${port}`);
+  console.log(`World Cup 26 Prediction app running at http://localhost:${port}`);
 });
 
 function getRequestUserId(req) {

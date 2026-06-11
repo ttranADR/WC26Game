@@ -1,6 +1,6 @@
 # Live Data Pipeline
 
-PitchPick uses external sports APIs as ingestion sources, not as the runtime source of truth for the browser app.
+World Cup 26 Prediction uses external sports APIs as ingestion sources, not as the runtime source of truth for the browser app.
 
 ## Source Of Truth
 
@@ -9,7 +9,7 @@ External fixture API -> backend sync -> Neon -> backend state API -> browser app
 External odds API    -> backend sync -> Neon -> backend state API -> browser app
 ```
 
-The browser app only calls PitchPick backend endpoints such as `/api/state` and admin/player mutation routes. It does not call fixture or odds APIs directly.
+The browser app only calls World Cup 26 Prediction backend endpoints such as `/api/state` and admin/player mutation routes. It does not call fixture or odds APIs directly.
 
 ## Fixture System
 
@@ -82,7 +82,7 @@ The stored outcomes cover every scoreline from `0-0` through `5-5`, inclusive. T
 5-0, 5-1, ... 5-5
 ```
 
-When the odds API returns a bookmaker quote for a scoreline, PitchPick stores the provider quote. When a scoreline is missing, PitchPick stores a transparent fallback row with `provider: "pitchpick-generated"` and `bookmaker: "PitchPick"` so exact-score scoring always has a multiplier available.
+When the odds API returns a bookmaker quote for a scoreline, World Cup 26 Prediction stores the provider quote. When a scoreline is missing, World Cup 26 Prediction stores a transparent fallback row with `provider: "pitchpick-generated"` and `bookmaker: "World Cup 26 Prediction"` so exact-score scoring always has a multiplier available.
 
 ## Required Production Configuration
 

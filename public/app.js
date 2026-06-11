@@ -114,14 +114,14 @@ function render() {
 }
 
 function renderLogin(error = "") {
-  document.querySelector("#leagueName").textContent = "PitchPick";
+  document.querySelector("#leagueName").textContent = "World Cup 26 Prediction";
   document.querySelector("#matchdayName").textContent = "Log in";
   root.innerHTML = `
     <section class="login-screen">
       <form class="login-card" id="loginForm">
         <div>
           <p class="label">Welcome back</p>
-          <h1>Log in to PitchPick</h1>
+          <h1>Log in to World Cup 26 Prediction</h1>
           <p class="muted">Use your email, name, or player id with the password set by an admin.</p>
         </div>
         ${error ? `<div class="form-error">${error}</div>` : ""}

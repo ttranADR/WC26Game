@@ -544,11 +544,30 @@ function createContestSides(userIds, mode) {
   if (!userIds.length) return [];
   if (mode === "HALF") return [splitSide(userIds)];
   if (mode === "SOLO") return createSoloSides(userIds);
-  const groupSize = mode === "DUO" ? 4 : 2;
+  if (mode === "DUO") return createDuoSides(userIds);
+  const groupSize = 2;
   const sides = [];
 
   for (let i = 0; i < userIds.length; i += groupSize) {
     sides.push(splitSide(userIds.slice(i, i + groupSize)));
+  }
+
+  return sides;
+}
+
+function createDuoSides(userIds) {
+  const sides = [];
+
+  for (let i = 0; i < userIds.length;) {
+    const remaining = userIds.length - i;
+    if (remaining <= 5) {
+      sides.push(splitSide(userIds.slice(i)));
+      break;
+    }
+
+    const groupSize = remaining % 4 === 1 ? 5 : 4;
+    sides.push(splitSide(userIds.slice(i, i + groupSize)));
+    i += groupSize;
   }
 
   return sides;
