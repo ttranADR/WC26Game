@@ -573,7 +573,7 @@ async function syncMatchEventsForMatchday(store, provider, matchDayId) {
         firstGoalMinute: match.firstGoalMinute,
         firstGoalTeam: match.firstGoalTeam,
         redCardShown: match.redCardShown,
-        topScorerName: match.topScorerName,
+        topScorerName: getTopScorerCardName(data, match.id) || match.topScorerName,
         topScorerScored: match.topScorerScored
       }))
   ));
@@ -1049,6 +1049,14 @@ function normalizePersonName(value) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+function getTopScorerCardName(data, tournamentMatchId) {
+  return data.predictionCards.find((card) => (
+    card.tournamentMatchId === tournamentMatchId &&
+    card.cardType === "TOP_SCORER_SCORES" &&
+    card.gradingRule?.scorerName
+  ))?.gradingRule.scorerName || null;
+}
+
 function titleize(value) {
   return String(value || "")
     .toLowerCase()
@@ -1066,7 +1074,7 @@ export async function generateCardsForMatchday(store, input) {
     const skipped = [];
 
     matchdays.forEach((matchday) => {
-      const cards = buildCardsForMatchday(data, matchday.id, { allowGlobalOddsFallback: input.scope !== "season" });
+      const cards = buildCardsForMatchday(data, matchday.id);
       if (!cards.length) {
         skipped.push(matchday.name);
         return;
@@ -1086,17 +1094,33 @@ export async function generateCardsForMatchday(store, input) {
   });
 }
 
-function buildCardsForMatchday(data, matchDayId, options = {}) {
-  const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
+function buildCardsForMatchday(data, matchDayId) {
+  const matches = data.tournamentMatches
+    .filter((match) => match.matchDayId === matchDayId)
+    .map(projectMatchForCardGeneration);
+  if (!matches.length) return [];
   const scopedCards = createCardsFromOdds(matchDayId, matches, data.oddsSnapshots, `${matchDayId}_scoped_${Date.now()}`);
-  const allOddsCards = options.allowGlobalOddsFallback && scopedCards.length < CARD_SET_SIZE
-    ? createCardsFromOdds(matchDayId, data.tournamentMatches, data.oddsSnapshots, `${matchDayId}_all_${Date.now()}`)
+  const templateCards = scopedCards.length < CARD_SET_SIZE
+    ? createCardPool(matchDayId, matches, data.oddsSnapshots)
     : [];
-  const templateMatches = matches.length ? matches : options.allowGlobalOddsFallback ? data.tournamentMatches : [];
-  const templateCards = scopedCards.length + allOddsCards.length < CARD_SET_SIZE
-    ? createCardPool(matchDayId, templateMatches, data.oddsSnapshots)
-    : [];
-  return normalizeGeneratedCards(matchDayId, mergeGeneratedCards(scopedCards, allOddsCards, templateCards));
+  return normalizeGeneratedCards(matchDayId, mergeGeneratedCards(scopedCards, templateCards));
+}
+
+function projectMatchForCardGeneration(match) {
+  return {
+    id: match.id,
+    externalProvider: match.externalProvider,
+    externalId: match.externalId,
+    matchDayId: match.matchDayId,
+    matchdayNumber: match.matchdayNumber,
+    stage: match.stage,
+    group: match.group,
+    homeTeam: match.homeTeam,
+    awayTeam: match.awayTeam,
+    homeTeamCode: match.homeTeamCode,
+    awayTeamCode: match.awayTeamCode,
+    kickoffAt: match.kickoffAt
+  };
 }
 
 function mergeGeneratedCards(...cardLists) {
@@ -1140,7 +1164,12 @@ function getCardTargetMatchdays(data, input) {
         return matches.length > 0 && hasFutureKickoff(matchday, matches, now);
       });
   }
-  return [mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday")];
+  const matchday = mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday");
+  const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
+  if (matches.length && !hasFutureKickoff(matchday, matches)) {
+    throw new Error("Generate prediction cards before kickoff. This matchday already has match results or has started.");
+  }
+  return [matchday];
 }
 
 export async function generatePairingsForMatchday(store, input) {

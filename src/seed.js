@@ -255,8 +255,7 @@ export function createCardPool(matchDayId, matches, oddsSnapshots = []) {
     homeTeam: "Brazil",
     awayTeam: "Morocco",
     homeTeamCode: "BRA",
-    awayTeamCode: "MAR",
-    topScorerName: "Vinicius Junior"
+    awayTeamCode: "MAR"
   };
   const activeMatches = matches.length ? matches : [fallbackMatch];
   const perMatch = activeMatches.map((matchItem) => createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots));
@@ -438,7 +437,7 @@ function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
   const firstScoreSide = findFavoredSide(matchItem, oddsSnapshots);
   const firstScoreName = firstScoreSide === "HOME" ? matchItem.homeTeam : matchItem.awayTeam;
   const firstScoreCode = firstScoreSide === "HOME" ? homeCode : awayCode;
-  const topScorerName = getTopScorerName(matchItem);
+  const featuredScorerName = getFeaturedScorerName(matchItem, firstScoreSide);
   const candidates = [
     ["WIN_MARGIN", `${homeCode} Win`, `Will ${matchItem.homeTeam} beat ${matchItem.awayTeam}?`, { team: "HOME", marginAtLeast: 1 }, "MATCH_WINNER", matchItem.homeTeam],
     ["WIN_MARGIN", `${awayCode} Win`, `Will ${matchItem.awayTeam} beat ${matchItem.homeTeam}?`, { team: "AWAY", marginAtLeast: 1 }, "MATCH_WINNER", matchItem.awayTeam],
@@ -451,7 +450,7 @@ function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
     ["CLEAN_SHEET", "Clean Sheet", `Will either team keep a clean sheet in ${label}?`, {}, "BOTH_TEAMS_SCORE", "No"],
     ["FIRST_TEAM_TO_SCORE", `${firstScoreCode} Scores First`, `Will ${firstScoreName} score first in ${label}?`, { team: firstScoreSide }, null, null],
     ["RED_CARD", "Red Card", `Will ${label} have a red card?`, {}, null, null],
-    ...(topScorerName ? [["TOP_SCORER_SCORES", `${topScorerName} Scores`, `Will ${topScorerName} score in ${label}?`, { scorerName: topScorerName }, null, null]] : []),
+    ...(featuredScorerName ? [["TOP_SCORER_SCORES", `${featuredScorerName} Scores`, `Will ${featuredScorerName} score in ${label}?`, { scorerName: featuredScorerName }, null, null]] : []),
     ["WIN_MARGIN", `${homeCode} by 2+`, `Will ${matchItem.homeTeam} win by 2 or more goals?`, { team: "HOME", marginAtLeast: 2 }, "MATCH_WINNER", matchItem.homeTeam],
     ["WEAKER_TEAM_SCORES", `${weakerName} Scores`, `Will ${weakerName} score at least 1 goal?`, { weakerTeam: weakerSide, scoresAtLeast: 1 }, null, null],
     ["FIRST_GOAL_BEFORE", "Early First Goal", `Will the first goal in ${label} happen before minute 30?`, { minute: 30 }, null, null]
@@ -513,8 +512,37 @@ function findFavoredSide(matchItem, oddsSnapshots) {
   return "HOME";
 }
 
-function getTopScorerName(matchItem) {
-  return matchItem.topScorerName || matchItem.rawData?.topScorerName || null;
+function getFeaturedScorerName(matchItem, preferredSide = "HOME") {
+  const preferredTeam = preferredSide === "AWAY" ? matchItem.awayTeam : matchItem.homeTeam;
+  const fallbackTeam = preferredSide === "AWAY" ? matchItem.homeTeam : matchItem.awayTeam;
+  return scorerForTeam(preferredTeam) || scorerForTeam(fallbackTeam);
+}
+
+function scorerForTeam(teamName) {
+  const scorers = new Map([
+    ["argentina", "Lionel Messi"],
+    ["brazil", "Vinicius Junior"],
+    ["canada", "Jonathan David"],
+    ["costa rica", "Manfred Ugalde"],
+    ["czech", "Patrik Schick"],
+    ["czech republic", "Patrik Schick"],
+    ["england", "Harry Kane"],
+    ["france", "Kylian Mbappe"],
+    ["germany", "Jamal Musiala"],
+    ["japan", "Takumi Minamino"],
+    ["korea", "Son Heung-min"],
+    ["south korea", "Son Heung-min"],
+    ["mexico", "Santiago Gimenez"],
+    ["morocco", "Youssef En-Nesyri"],
+    ["portugal", "Cristiano Ronaldo"],
+    ["rsa", "Percy Tau"],
+    ["senegal", "Sadio Mane"],
+    ["south africa", "Percy Tau"],
+    ["spain", "Alvaro Morata"],
+    ["united states", "Christian Pulisic"],
+    ["usa", "Christian Pulisic"]
+  ]);
+  return scorers.get(normalizeOddOutcome(teamName)) || null;
 }
 
 function difficultyFromProbability(probability) {

@@ -207,6 +207,41 @@ assert.ok(templateQuestionCards.some((card) => card.cardType === "FIRST_TEAM_TO_
 assert.ok(templateQuestionCards.some((card) => card.cardType === "RED_CARD"));
 assert.ok(templateQuestionCards.some((card) => card.cardType === "TOP_SCORER_SCORES"));
 assert.equal(new Set(templateQuestionCards.map(getCardMeaningKey)).size, templateQuestionCards.length);
+const resultLoadedCards = createCardPool("md_result_independent", [{
+  ...match,
+  homeScore: 9,
+  awayScore: 9,
+  firstGoalMinute: 1,
+  firstGoalTeam: "AWAY",
+  redCardShown: true,
+  topScorerName: "Actual Result Scorer",
+  topScorerScored: true,
+  rawData: { topScorerName: "Actual Result Scorer" }
+}], data.oddsSnapshots);
+const resultFreeCards = createCardPool("md_result_independent", [{
+  ...match,
+  homeScore: null,
+  awayScore: null,
+  firstGoalMinute: null,
+  firstGoalTeam: null,
+  redCardShown: null,
+  topScorerName: null,
+  topScorerScored: null,
+  rawData: {}
+}], data.oddsSnapshots);
+const comparableCardShape = (cards) => cards.map((card) => ({
+  cardType: card.cardType,
+  title: card.title,
+  questionText: card.questionText,
+  gradingRule: card.gradingRule,
+  meaningKey: getCardMeaningKey(card)
+}));
+assert.deepEqual(comparableCardShape(resultLoadedCards), comparableCardShape(resultFreeCards));
+assert.equal(resultLoadedCards.some((card) => card.questionText.includes("Actual Result Scorer")), false);
+assert.ok(resultLoadedCards.some((card) => (
+  card.cardType === "TOP_SCORER_SCORES" &&
+  card.gradingRule.scorerName === "Vinicius Junior"
+)));
 const mirroredTotalCards = createCardsFromOdds("md_mirror", [match], [{
   id: "odds_mirror_over",
   tournamentMatchId: match.id,
@@ -522,6 +557,9 @@ const fallbackResult = await generateCardsForMatchday(fallbackStore, {
 const fallbackSummary = fallbackResult.state.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
 assert.equal(fallbackSummary.predictionCardCount, 12);
 assert.equal(fallbackSummary.playerCards.length, 12);
+assert.ok(fallbackData.predictionCards
+  .filter((card) => card.matchDayId === "md_no_direct_odds")
+  .every((card) => card.tournamentMatchId === "match_no_direct_odds"));
 fallbackData.matchdays.find((item) => item.id === "md_no_direct_odds").status = "FINAL";
 fallbackData.tournamentMatches.find((item) => item.id === "match_no_direct_odds").status = "FINISHED";
 const refreshedFutureState = await getAppState(fallbackStore, "user_you");
@@ -584,6 +622,19 @@ assert.equal(staleAdminData.playerCards.some((card) => (
   card.playerCardSetId === "set_md_12_admin_1" &&
   card.predictionCardId === "old_card_1"
 )), false);
+
+const startedCardData = createSeedData();
+startedCardData.matchdays.find((item) => item.id === "md_12").lockAt = "2000-01-01T20:00:00.000Z";
+startedCardData.tournamentMatches
+  .filter((matchItem) => matchItem.matchDayId === "md_12")
+  .forEach((matchItem) => {
+    matchItem.kickoffAt = "2000-01-01T20:00:00.000Z";
+    matchItem.status = "FINISHED";
+  });
+await assert.rejects(() => generateCardsForMatchday(createMemoryStore(startedCardData), {
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+}), /before kickoff/);
 
 const seasonCardData = createSeedData();
 seasonCardData.matchdays.forEach((matchday) => {
