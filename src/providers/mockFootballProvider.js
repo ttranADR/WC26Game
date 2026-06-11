@@ -1,11 +1,13 @@
 export function createMockFootballProvider() {
   return {
+    supportsMatchEvents: true,
+
     async getFixturesByDate(date) {
       return [
-        fixture("fix_bra_mar", "Brazil", "Morocco", "BRA", "MAR", `${date}T20:00:00.000Z`, 2, 1, 18),
-        fixture("fix_arg_jpn", "Argentina", "Japan", "ARG", "JPN", `${date}T23:00:00.000Z`, 1, 1, 43),
-        fixture("fix_ger_can", "Germany", "Canada", "GER", "CAN", `${date}T02:00:00.000Z`, 3, 0, 12),
-        fixture("fix_esp_crc", "Spain", "Costa Rica", "ESP", "CRC", `${date}T05:00:00.000Z`, 2, 0, 36)
+        fixture("fix_bra_mar", "Brazil", "Morocco", "BRA", "MAR", `${date}T20:00:00.000Z`, 2, 1, 18, "HOME", false, "Vinicius Junior", true),
+        fixture("fix_arg_jpn", "Argentina", "Japan", "ARG", "JPN", `${date}T23:00:00.000Z`, 1, 1, 43, "AWAY", false, "Lionel Messi", false),
+        fixture("fix_ger_can", "Germany", "Canada", "GER", "CAN", `${date}T02:00:00.000Z`, 3, 0, 12, "HOME", true, "Jamal Musiala", true),
+        fixture("fix_esp_crc", "Spain", "Costa Rica", "ESP", "CRC", `${date}T05:00:00.000Z`, 2, 0, 36, "HOME", false, "Alvaro Morata", false)
       ];
     },
 
@@ -31,16 +33,29 @@ export function createMockFootballProvider() {
 
     async getMatchEvents(matchId) {
       const goalMinutes = {
-        fix_bra_mar: [18, 52, 76],
-        fix_arg_jpn: [43, 61],
-        fix_ger_can: [12, 44, 72],
-        fix_esp_crc: [36, 69]
+        fix_bra_mar: [[18, "HOME", "Vinicius Junior"], [52, "AWAY", "Youssef En-Nesyri"], [76, "HOME", "Rodrygo"]],
+        fix_arg_jpn: [[43, "AWAY", "Takumi Minamino"], [61, "HOME", "Julian Alvarez"]],
+        fix_ger_can: [[12, "HOME", "Jamal Musiala"], [44, "HOME", "Kai Havertz"], [72, "HOME", "Florian Wirtz"]],
+        fix_esp_crc: [[36, "HOME", "Alvaro Morata"], [69, "HOME", "Dani Olmo"]]
       };
-      return (goalMinutes[matchId] || []).map((minute, index) => ({
+      const goalEvents = (goalMinutes[matchId] || []).map(([minute, teamSide, playerName], index) => ({
         id: `${matchId}_event_${index + 1}`,
         type: "GOAL",
+        teamSide,
+        playerName,
         minute
       }));
+      if (matchId === "fix_ger_can") {
+        goalEvents.push({
+          id: `${matchId}_event_red_1`,
+          type: "CARD",
+          detail: "Red Card",
+          teamSide: "AWAY",
+          playerName: "Canada Defender",
+          minute: 67
+        });
+      }
+      return goalEvents;
     }
   };
 }
@@ -59,7 +74,7 @@ function createCorrectScorePrices() {
   return scores;
 }
 
-function fixture(externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, kickoffAt, homeScore, awayScore, firstGoalMinute) {
+function fixture(externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, kickoffAt, homeScore, awayScore, firstGoalMinute, firstGoalTeam, redCardShown, topScorerName, topScorerScored) {
   return {
     externalProvider: "mock",
     externalId,
@@ -72,7 +87,11 @@ function fixture(externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, kic
     homeScore,
     awayScore,
     firstGoalMinute,
-    rawData: { source: "mock" }
+    firstGoalTeam,
+    redCardShown,
+    topScorerName,
+    topScorerScored,
+    rawData: { source: "mock", topScorerName }
   };
 }
 

@@ -1,4 +1,4 @@
-import { createCardsFromOdds, createCardPool, createContests, createStandings, normalizePairingMode } from "./seed.js";
+import { createCardsFromOdds, createCardPool, createContests, createStandings, getCardMeaningKey, normalizePairingMode } from "./seed.js";
 import { gradeCard, gradeExactPrediction, getExactScoreMultiplier } from "./scoring.js";
 import { defaultPasswordForRole, ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
 import { sendInviteEmail } from "./email.js";
@@ -537,6 +537,9 @@ export async function syncDailyTournamentData(store, providers, input = {}) {
 export async function updateMatchScoresForMatchday(store, provider, input = {}) {
   const matchDayId = input.matchDayId || "md_12";
   await syncFixtures(store, provider, { ...input, matchDayId, scope: undefined });
+  if (provider.supportsMatchEvents && typeof provider.getMatchEvents === "function") {
+    await syncMatchEventsForMatchday(store, provider, matchDayId);
+  }
 
   return store.update((data) => {
     const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
@@ -552,6 +555,48 @@ export async function updateMatchScoresForMatchday(store, provider, input = {}) 
       message,
       state: hydrateState(data, input.currentUserId)
     };
+  });
+}
+
+async function syncMatchEventsForMatchday(store, provider, matchDayId) {
+  const targets = await store.update((data) => (
+    data.tournamentMatches
+      .filter((match) => match.matchDayId === matchDayId)
+      .map((match) => ({
+        id: match.id,
+        externalId: match.externalId,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+        status: match.status,
+        firstGoalMinute: match.firstGoalMinute,
+        firstGoalTeam: match.firstGoalTeam,
+        redCardShown: match.redCardShown,
+        topScorerName: match.topScorerName,
+        topScorerScored: match.topScorerScored
+      }))
+  ));
+
+  const eventUpdates = [];
+  for (const match of targets) {
+    const events = await provider.getMatchEvents(match.externalId || match.id);
+    eventUpdates.push({
+      matchId: match.id,
+      metadata: summarizeMatchEvents(match, events)
+    });
+  }
+
+  return store.update((data) => {
+    eventUpdates.forEach((update) => {
+      const match = data.tournamentMatches.find((item) => item.id === update.matchId);
+      if (!match) return;
+      Object.assign(match, update.metadata, {
+        matchEventsUpdatedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    });
+    return { ok: true };
   });
 }
 
@@ -808,6 +853,9 @@ function upsertTournamentMatch(data, fixture, matchDayId) {
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
+  ["firstGoalMinute", "firstGoalTeam", "redCardShown", "topScorerName", "topScorerScored"].forEach((field) => {
+    if (next[field] == null && existing?.[field] != null) next[field] = existing[field];
+  });
   if (existing) Object.assign(existing, next);
   else data.tournamentMatches.push(next);
 }
@@ -938,6 +986,69 @@ function cleanId(value) {
   return String(value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
+function summarizeMatchEvents(match, events = []) {
+  const sortedEvents = [...events].sort((a, b) => Number(a.minute || 0) - Number(b.minute || 0));
+  const goalEvents = sortedEvents
+    .filter(isGoalEvent)
+    .map((event) => ({
+      event,
+      minute: Number.isFinite(Number(event.minute)) ? Number(event.minute) : null,
+      side: inferEventTeamSide(match, event),
+      playerName: event.playerName || event.rawData?.player?.name || event.rawData?.player_name || null
+    }))
+    .filter((event) => event.side);
+  const firstGoal = goalEvents[0] || null;
+  const totalGoals = Number(match.homeScore || 0) + Number(match.awayScore || 0);
+  const hasEvents = events.length > 0;
+  const topScorerKey = normalizePersonName(match.topScorerName);
+  const topScorerScored = topScorerKey
+    ? goalEvents.some((event) => normalizePersonName(event.playerName) === topScorerKey)
+    : null;
+
+  return {
+    firstGoalMinute: firstGoal?.minute ?? (totalGoals === 0 ? null : match.firstGoalMinute ?? null),
+    firstGoalTeam: firstGoal?.side ?? (totalGoals === 0 ? "NONE" : match.firstGoalTeam ?? null),
+    redCardShown: hasEvents ? sortedEvents.some(isRedCardEvent) : (totalGoals === 0 && match.status === "FINISHED" ? false : match.redCardShown ?? null),
+    topScorerScored: topScorerKey && (hasEvents || totalGoals === 0)
+      ? topScorerScored
+      : match.topScorerScored ?? null
+  };
+}
+
+function isGoalEvent(event) {
+  const type = normalizeEventText(event.type);
+  const detail = normalizeEventText(event.detail);
+  return type.includes("goal") || detail.includes("goal");
+}
+
+function isRedCardEvent(event) {
+  const text = `${normalizeEventText(event.type)} ${normalizeEventText(event.detail)}`;
+  return text.includes("red") && text.includes("card");
+}
+
+function inferEventTeamSide(match, event) {
+  const side = String(event.teamSide || "").trim().toUpperCase();
+  if (["HOME", "AWAY"].includes(side)) return side;
+  const teamName = event.teamName || event.rawData?.team?.name || event.rawData?.participant_name || event.rawData?.participant?.name || "";
+  const normalizedTeam = normalizeTeamName(teamName);
+  if (!normalizedTeam) return null;
+  if (normalizedTeam === normalizeTeamName(match.homeTeam)) return "HOME";
+  if (normalizedTeam === normalizeTeamName(match.awayTeam)) return "AWAY";
+  return null;
+}
+
+function normalizeEventText(value) {
+  return String(value || "").toLowerCase().replace(/[_-]+/g, " ");
+}
+
+function normalizePersonName(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
 function titleize(value) {
   return String(value || "")
     .toLowerCase()
@@ -964,8 +1075,8 @@ export async function generateCardsForMatchday(store, input) {
     data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchDayId);
     data.predictionCards.push(...cards);
     rebuildPlayerCardsForMatchday(data, matchDayId);
-    data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} cards from stored odds for ${matchday.name}.`));
-    return { ok: true, message: `Generated ${cards.length} odds-backed cards.`, state: hydrateState(data, input.currentUserId) };
+    data.syncLogs.unshift(log("GENERATE_CARDS", "SUCCESS", `Generated ${cards.length} prediction cards for ${matchday.name}.`));
+    return { ok: true, message: `Generated ${cards.length} prediction cards.`, state: hydrateState(data, input.currentUserId) };
   });
 }
 
@@ -995,12 +1106,7 @@ function normalizeGeneratedCards(matchDayId, cards) {
 }
 
 function generatedCardKey(card) {
-  return [
-    card.tournamentMatchId,
-    card.cardType,
-    card.expectedAnswer,
-    JSON.stringify(card.gradingRule)
-  ].join("::");
+  return getCardMeaningKey(card);
 }
 
 export async function generatePairingsForMatchday(store, input) {
@@ -1749,13 +1855,13 @@ function ensurePlayableMatchday(data) {
 
 function createPlayableMatches(matchDayId, now) {
   const base = [
-    ["match_bra_mar", "Brazil", "Morocco", "BRA", "MAR", 2],
-    ["match_arg_jpn", "Argentina", "Japan", "ARG", "JPN", 5],
-    ["match_ger_can", "Germany", "Canada", "GER", "CAN", 8],
-    ["match_esp_crc", "Spain", "Costa Rica", "ESP", "CRC", 11]
+    ["match_bra_mar", "Brazil", "Morocco", "BRA", "MAR", 2, "Vinicius Junior"],
+    ["match_arg_jpn", "Argentina", "Japan", "ARG", "JPN", 5, "Lionel Messi"],
+    ["match_ger_can", "Germany", "Canada", "GER", "CAN", 8, "Jamal Musiala"],
+    ["match_esp_crc", "Spain", "Costa Rica", "ESP", "CRC", 11, "Alvaro Morata"]
   ];
 
-  return base.map(([baseId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, hoursFromNow], index) => ({
+  return base.map(([baseId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, hoursFromNow, topScorerName], index) => ({
     id: `${baseId}_${matchDayId}`,
     externalProvider: "mock",
     externalId: `fix_${matchDayId}_${index + 1}`,
@@ -1769,7 +1875,11 @@ function createPlayableMatches(matchDayId, now) {
     homeScore: null,
     awayScore: null,
     firstGoalMinute: null,
-    rawData: { seed: "today" },
+    firstGoalTeam: null,
+    redCardShown: null,
+    topScorerName,
+    topScorerScored: null,
+    rawData: { seed: "today", topScorerName },
     createdAt: now.toISOString(),
     updatedAt: now.toISOString()
   }));
@@ -1833,7 +1943,11 @@ function ensureDemoMatchdayHistory(data) {
       homeScore: 2,
       awayScore: 0,
       firstGoalMinute: 22,
-      rawData: { seed: "history" },
+      firstGoalTeam: "HOME",
+      redCardShown: false,
+      topScorerName: "Kylian Mbappe",
+      topScorerScored: true,
+      rawData: { seed: "history", topScorerName: "Kylian Mbappe" },
       createdAt: now,
       updatedAt: now
     },
@@ -1851,7 +1965,11 @@ function ensureDemoMatchdayHistory(data) {
       homeScore: 1,
       awayScore: 1,
       firstGoalMinute: 39,
-      rawData: { seed: "history" },
+      firstGoalTeam: "AWAY",
+      redCardShown: false,
+      topScorerName: "Harry Kane",
+      topScorerScored: false,
+      rawData: { seed: "history", topScorerName: "Harry Kane" },
       createdAt: now,
       updatedAt: now
     }

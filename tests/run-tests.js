@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createCardsFromOdds, createContests, createSeedData, createStandings } from "../src/seed.js";
+import { createCardPool, createCardsFromOdds, createContests, createSeedData, createStandings, getCardMeaningKey } from "../src/seed.js";
 import { createOddsApiProvider } from "../src/providers/oddsApiProvider.js";
 import { getExactScoreMultiplier, gradeCard, gradeExactPrediction } from "../src/scoring.js";
 import {
@@ -172,13 +172,60 @@ const exactScoreCard = {
   gradingRule: { homeScore: 2, awayScore: 1 }
 };
 assert.equal(gradeCard(exactScoreCard, match).pointsAwarded, 10);
+assert.equal(gradeCard({
+  status: "ACTIVE",
+  cardType: "FIRST_TEAM_TO_SCORE",
+  expectedAnswer: "YES",
+  gradingRule: { team: "HOME" }
+}, match).pointsAwarded, 10);
+assert.equal(gradeCard({
+  status: "ACTIVE",
+  cardType: "RED_CARD",
+  expectedAnswer: "NO",
+  gradingRule: {}
+}, match).pointsAwarded, 10);
+assert.equal(gradeCard({
+  status: "ACTIVE",
+  cardType: "TOP_SCORER_SCORES",
+  expectedAnswer: "YES",
+  gradingRule: { scorerName: match.topScorerName }
+}, match).pointsAwarded, 10);
 
 const oddsGeneratedCards = createCardsFromOdds("md_12", data.tournamentMatches, data.oddsSnapshots, "test_odds_cards");
 assert.equal(oddsGeneratedCards.length, 12);
-assert.ok(oddsGeneratedCards.every((card) => card.sourceOddsSnapshotIds.length === 1));
+assert.ok(oddsGeneratedCards.some((card) => card.sourceOddsSnapshotIds.length === 1));
+assert.ok(oddsGeneratedCards.some((card) => card.sourceOddsSnapshotIds.length === 0));
 assert.ok(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"));
+assert.ok(oddsGeneratedCards.some((card) => card.cardType === "FIRST_TEAM_TO_SCORE"));
+assert.ok(oddsGeneratedCards.some((card) => card.cardType === "RED_CARD"));
+assert.ok(oddsGeneratedCards.some((card) => card.cardType === "TOP_SCORER_SCORES"));
+assert.equal(new Set(oddsGeneratedCards.map(getCardMeaningKey)).size, oddsGeneratedCards.length);
 assert.ok(oddsGeneratedCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
 assert.ok(data.predictionCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
+const templateQuestionCards = createCardPool("md_question_mix", [match], data.oddsSnapshots);
+assert.ok(templateQuestionCards.some((card) => card.cardType === "FIRST_TEAM_TO_SCORE"));
+assert.ok(templateQuestionCards.some((card) => card.cardType === "RED_CARD"));
+assert.ok(templateQuestionCards.some((card) => card.cardType === "TOP_SCORER_SCORES"));
+assert.equal(new Set(templateQuestionCards.map(getCardMeaningKey)).size, templateQuestionCards.length);
+const mirroredTotalCards = createCardsFromOdds("md_mirror", [match], [{
+  id: "odds_mirror_over",
+  tournamentMatchId: match.id,
+  marketKey: "TOTAL_GOALS",
+  outcomeName: "Over 2.5",
+  priceDecimal: 1.8,
+  impliedProbability: 0.5556
+}, {
+  id: "odds_mirror_under",
+  tournamentMatchId: match.id,
+  marketKey: "TOTAL_GOALS",
+  outcomeName: "Under 2.5",
+  priceDecimal: 2.1,
+  impliedProbability: 0.4762
+}], "mirror_test");
+assert.equal(mirroredTotalCards.filter((card) => (
+  ["TOTAL_GOALS_OVER", "TOTAL_GOALS_UNDER"].includes(card.cardType) &&
+  card.gradingRule.threshold === 2.5
+)).length, 1);
 
 const pairingUsers = ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"];
 const soloContests = createContests("league_test", "md_test_solo", pairingUsers.slice(0, 4), "SOLO", { seedText: "pairing_test" });
@@ -830,10 +877,15 @@ scoreUpdateData.tournamentMatches
     matchItem.homeScore = null;
     matchItem.awayScore = null;
     matchItem.firstGoalMinute = null;
+    matchItem.firstGoalTeam = null;
+    matchItem.redCardShown = null;
+    matchItem.topScorerScored = null;
   });
 const scoreUpdateStore = createMemoryStore(scoreUpdateData);
 const scoreUpdateDates = [];
+const scoreUpdateEventIds = [];
 const scoreUpdateResult = await updateMatchScoresForMatchday(scoreUpdateStore, {
+  supportsMatchEvents: true,
   async getFixturesByDate(date) {
     scoreUpdateDates.push(date);
     return [{
@@ -850,18 +902,37 @@ const scoreUpdateResult = await updateMatchScoresForMatchday(scoreUpdateStore, {
       firstGoalMinute: 9,
       rawData: { test: true }
     }];
+  },
+  async getMatchEvents(matchId) {
+    scoreUpdateEventIds.push(matchId);
+    return [{
+      type: "GOAL",
+      teamSide: "HOME",
+      playerName: "Vinicius Junior",
+      minute: 9
+    }, {
+      type: "CARD",
+      detail: "Red Card",
+      teamSide: "AWAY",
+      playerName: "Morocco Defender",
+      minute: 72
+    }];
   }
 }, {
   matchDayId: "md_12",
   currentUserId: "admin_1"
 });
 assert.deepEqual(scoreUpdateDates, ["2026-06-12"]);
+assert.deepEqual(scoreUpdateEventIds, ["fix_bra_mar", "fix_arg_jpn", "fix_ger_can", "fix_esp_crc"]);
 assert.match(scoreUpdateResult.message, /Updated WC match scores for Matchday 12/);
 const updatedBrazilMatch = scoreUpdateData.tournamentMatches.find((item) => item.id === "match_bra_mar");
 assert.equal(updatedBrazilMatch.status, "FINISHED");
 assert.equal(updatedBrazilMatch.homeScore, 4);
 assert.equal(updatedBrazilMatch.awayScore, 2);
 assert.equal(updatedBrazilMatch.firstGoalMinute, 9);
+assert.equal(updatedBrazilMatch.firstGoalTeam, "HOME");
+assert.equal(updatedBrazilMatch.redCardShown, true);
+assert.equal(updatedBrazilMatch.topScorerScored, true);
 
 const dailyStore = createMemoryStore(dailyData);
 const fixtureDates = [];

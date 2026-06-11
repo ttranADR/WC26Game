@@ -31,11 +31,33 @@ export function gradeCard(card, match) {
     case "WEAKER_TEAM_SCORES":
       result = card.gradingRule.weakerTeam === "HOME" ? home >= 1 : away >= 1;
       break;
+    case "FIRST_TEAM_TO_SCORE":
+      if (home + away === 0) {
+        result = false;
+        break;
+      }
+      if (!["HOME", "AWAY"].includes(match.firstGoalTeam)) {
+        return { isCorrect: null, pointsAwarded: 0, voidReason: "First scoring team is unavailable" };
+      }
+      result = match.firstGoalTeam === card.gradingRule.team;
+      break;
     case "FIRST_GOAL_BEFORE":
       if (match.firstGoalMinute == null) {
         return { isCorrect: null, pointsAwarded: 0, voidReason: "First goal timing is unavailable" };
       }
       result = match.firstGoalMinute < card.gradingRule.minute;
+      break;
+    case "RED_CARD":
+      if (match.redCardShown == null) {
+        return { isCorrect: null, pointsAwarded: 0, voidReason: "Red-card data is unavailable" };
+      }
+      result = Boolean(match.redCardShown);
+      break;
+    case "TOP_SCORER_SCORES":
+      if (match.topScorerScored == null) {
+        return { isCorrect: null, pointsAwarded: 0, voidReason: "Top-scorer result is unavailable" };
+      }
+      result = Boolean(match.topScorerScored);
       break;
     case "BOTH_TEAMS_SCORE":
       result = home >= 1 && away >= 1;

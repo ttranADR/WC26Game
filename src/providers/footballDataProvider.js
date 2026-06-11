@@ -26,6 +26,8 @@ export function createFootballDataProvider({
   }
 
   return {
+    supportsMatchEvents: false,
+
     async getFixturesByDate(date) {
       return getCompetitionMatches(`dateFrom=${date}&dateTo=${date}`);
     },
@@ -64,6 +66,10 @@ function mapFixture(row) {
     homeScore: normalizeScore(row.score?.fullTime?.home),
     awayScore: normalizeScore(row.score?.fullTime?.away),
     firstGoalMinute: null,
+    firstGoalTeam: null,
+    redCardShown: null,
+    topScorerName: null,
+    topScorerScored: null,
     rawData: row
   };
 }

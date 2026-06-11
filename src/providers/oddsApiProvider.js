@@ -27,6 +27,8 @@ function createTheOddsApiV4Provider(apiKey) {
   }
 
   return {
+    supportsMatchEvents: false,
+
     async getFixturesByDate() {
       return [];
     },
@@ -120,6 +122,8 @@ function createOddsApiIoV3Provider(apiKey) {
   }
 
   return {
+    supportsMatchEvents: false,
+
     async getFixturesByDate() {
       return [];
     },

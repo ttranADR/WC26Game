@@ -43,10 +43,10 @@ export function createSeedData() {
   };
 
   const matches = [
-    match("match_bra_mar", "fix_bra_mar", "Brazil", "Morocco", "BRA", "MAR", "2026-06-12T20:00:00.000Z", 2, 1, 18),
-    match("match_arg_jpn", "fix_arg_jpn", "Argentina", "Japan", "ARG", "JPN", "2026-06-12T23:00:00.000Z", 1, 1, 43),
-    match("match_ger_can", "fix_ger_can", "Germany", "Canada", "GER", "CAN", "2026-06-13T02:00:00.000Z", 3, 0, 12),
-    match("match_esp_crc", "fix_esp_crc", "Spain", "Costa Rica", "ESP", "CRC", "2026-06-13T05:00:00.000Z", 2, 0, 36)
+    match("match_bra_mar", "fix_bra_mar", "Brazil", "Morocco", "BRA", "MAR", "2026-06-12T20:00:00.000Z", 2, 1, 18, "HOME", false, "Vinicius Junior", true),
+    match("match_arg_jpn", "fix_arg_jpn", "Argentina", "Japan", "ARG", "JPN", "2026-06-12T23:00:00.000Z", 1, 1, 43, "AWAY", false, "Lionel Messi", false),
+    match("match_ger_can", "fix_ger_can", "Germany", "Canada", "GER", "CAN", "2026-06-13T02:00:00.000Z", 3, 0, 12, "HOME", true, "Jamal Musiala", true),
+    match("match_esp_crc", "fix_esp_crc", "Spain", "Costa Rica", "ESP", "CRC", "2026-06-13T05:00:00.000Z", 2, 0, 36, "HOME", false, "Alvaro Morata", false)
   ];
 
   const odds = createOdds(matches);
@@ -117,7 +117,7 @@ function user(id, email, displayName, role) {
   };
 }
 
-function match(id, externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, kickoffAt, homeScore, awayScore, firstGoalMinute) {
+function match(id, externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, kickoffAt, homeScore, awayScore, firstGoalMinute, firstGoalTeam, redCardShown, topScorerName, topScorerScored) {
   return {
     id,
     externalProvider: "mock",
@@ -132,7 +132,11 @@ function match(id, externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, k
     homeScore,
     awayScore,
     firstGoalMinute,
-    rawData: { seed: true },
+    firstGoalTeam,
+    redCardShown,
+    topScorerName,
+    topScorerScored,
+    rawData: { seed: true, topScorerName },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -190,6 +194,7 @@ export function createCardsFromOdds(matchDayId, matches, oddsSnapshots = [], see
   const picked = [];
   const seen = new Set();
   const marketCounts = new Map();
+  const oddsCardTarget = Math.max(MIN_SELECTED_CARDS, CARD_SET_SIZE - 3);
   const marketCaps = new Map([
     ["CORRECT_SCORE", 3],
     ["MATCH_WINNER", 5],
@@ -198,8 +203,8 @@ export function createCardsFromOdds(matchDayId, matches, oddsSnapshots = [], see
   ]);
 
   for (const card of candidates) {
-    if (picked.length >= CARD_SET_SIZE) break;
-    const key = cardUniquenessKey(card);
+    if (picked.length >= oddsCardTarget) break;
+    const key = getCardMeaningKey(card);
     const marketCount = marketCounts.get(card.sourceMarketKey) || 0;
     const marketCap = marketCaps.get(card.sourceMarketKey) || CARD_SET_SIZE;
     if (seen.has(key) || marketCount >= marketCap) continue;
@@ -209,8 +214,27 @@ export function createCardsFromOdds(matchDayId, matches, oddsSnapshots = [], see
   }
 
   for (const card of candidates) {
+    if (picked.length >= oddsCardTarget) break;
+    const key = getCardMeaningKey(card);
+    if (seen.has(key)) continue;
+    picked.push(card);
+    seen.add(key);
+  }
+
+  const templateCards = matches
+    .flatMap((matchItem) => createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots))
+    .filter((card) => !card.sourceOddsSnapshotIds?.length);
+  const priorityTemplateCards = ["FIRST_TEAM_TO_SCORE", "RED_CARD", "TOP_SCORER_SCORES"]
+    .flatMap((cardType) => shuffle(templateCards.filter((card) => card.cardType === cardType), `${seedText}_${cardType}`).slice(0, 1));
+  const priorityKeys = new Set(priorityTemplateCards.map(getCardMeaningKey));
+  const templateCandidates = [
+    ...priorityTemplateCards,
+    ...shuffle(templateCards.filter((card) => !priorityKeys.has(getCardMeaningKey(card))), `${seedText}_templates`)
+  ];
+
+  for (const card of templateCandidates) {
     if (picked.length >= CARD_SET_SIZE) break;
-    const key = cardUniquenessKey(card);
+    const key = getCardMeaningKey(card);
     if (seen.has(key)) continue;
     picked.push(card);
     seen.add(key);
@@ -231,7 +255,8 @@ export function createCardPool(matchDayId, matches, oddsSnapshots = []) {
     homeTeam: "Brazil",
     awayTeam: "Morocco",
     homeTeamCode: "BRA",
-    awayTeamCode: "MAR"
+    awayTeamCode: "MAR",
+    topScorerName: "Vinicius Junior"
   };
   const activeMatches = matches.length ? matches : [fallbackMatch];
   const perMatch = activeMatches.map((matchItem) => createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots));
@@ -345,7 +370,22 @@ function createCardFromOdd(matchDayId, matchItem, odd) {
   return null;
 }
 
-function cardUniquenessKey(card) {
+export function getCardMeaningKey(card) {
+  if (["TOTAL_GOALS_OVER", "TOTAL_GOALS_UNDER"].includes(card.cardType)) {
+    return [card.tournamentMatchId, "TOTAL_GOALS", card.gradingRule?.threshold].join("::");
+  }
+  if (["BOTH_TEAMS_SCORE", "CLEAN_SHEET"].includes(card.cardType)) {
+    return [card.tournamentMatchId, "BOTH_TEAMS_SCORE"].join("::");
+  }
+  if (card.cardType === "FIRST_TEAM_TO_SCORE") {
+    return [card.tournamentMatchId, "FIRST_TEAM_TO_SCORE"].join("::");
+  }
+  if (card.cardType === "RED_CARD") {
+    return [card.tournamentMatchId, "RED_CARD"].join("::");
+  }
+  if (card.cardType === "TOP_SCORER_SCORES") {
+    return [card.tournamentMatchId, "TOP_SCORER_SCORES", normalizeOddOutcome(card.gradingRule?.scorerName)].join("::");
+  }
   return [
     card.tournamentMatchId,
     card.cardType,
@@ -395,6 +435,10 @@ function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
   const awayCode = matchItem.awayTeamCode || matchItem.awayTeam.slice(0, 3).toUpperCase();
   const weakerSide = findWeakerSide(matchItem, oddsSnapshots);
   const weakerName = weakerSide === "HOME" ? matchItem.homeTeam : matchItem.awayTeam;
+  const firstScoreSide = findFavoredSide(matchItem, oddsSnapshots);
+  const firstScoreName = firstScoreSide === "HOME" ? matchItem.homeTeam : matchItem.awayTeam;
+  const firstScoreCode = firstScoreSide === "HOME" ? homeCode : awayCode;
+  const topScorerName = getTopScorerName(matchItem);
   const candidates = [
     ["WIN_MARGIN", `${homeCode} Win`, `Will ${matchItem.homeTeam} beat ${matchItem.awayTeam}?`, { team: "HOME", marginAtLeast: 1 }, "MATCH_WINNER", matchItem.homeTeam],
     ["WIN_MARGIN", `${awayCode} Win`, `Will ${matchItem.awayTeam} beat ${matchItem.homeTeam}?`, { team: "AWAY", marginAtLeast: 1 }, "MATCH_WINNER", matchItem.awayTeam],
@@ -405,12 +449,15 @@ function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
     ["TOTAL_GOALS_UNDER", "Under 3.5 Goals", `Will ${label} have under 3.5 total goals?`, { threshold: 3.5 }, "TOTAL_GOALS", "Under 3.5"],
     ["BOTH_TEAMS_SCORE", "Both Teams Score", `Will both teams score in ${label}?`, {}, "BOTH_TEAMS_SCORE", "Yes"],
     ["CLEAN_SHEET", "Clean Sheet", `Will either team keep a clean sheet in ${label}?`, {}, "BOTH_TEAMS_SCORE", "No"],
+    ["FIRST_TEAM_TO_SCORE", `${firstScoreCode} Scores First`, `Will ${firstScoreName} score first in ${label}?`, { team: firstScoreSide }, null, null],
+    ["RED_CARD", "Red Card", `Will ${label} have a red card?`, {}, null, null],
+    ...(topScorerName ? [["TOP_SCORER_SCORES", `${topScorerName} Scores`, `Will ${topScorerName} score in ${label}?`, { scorerName: topScorerName }, null, null]] : []),
     ["WIN_MARGIN", `${homeCode} by 2+`, `Will ${matchItem.homeTeam} win by 2 or more goals?`, { team: "HOME", marginAtLeast: 2 }, "MATCH_WINNER", matchItem.homeTeam],
     ["WEAKER_TEAM_SCORES", `${weakerName} Scores`, `Will ${weakerName} score at least 1 goal?`, { weakerTeam: weakerSide, scoresAtLeast: 1 }, null, null],
     ["FIRST_GOAL_BEFORE", "Early First Goal", `Will the first goal in ${label} happen before minute 30?`, { minute: 30 }, null, null]
   ];
 
-  return candidates.map(([cardType, title, questionText, gradingRule, marketKey, outcomeName], index) => {
+  const cards = candidates.map(([cardType, title, questionText, gradingRule, marketKey, outcomeName], index) => {
     const sourceOdd = marketKey ? findBestOdd(oddsSnapshots, matchItem.id, marketKey, outcomeName) : null;
     const probability = balancedCardProbability(sourceOdd?.impliedProbability ?? (index % 2 === 0 ? 0.51 : 0.48));
     return {
@@ -424,8 +471,17 @@ function createMatchCardCandidates(matchDayId, matchItem, oddsSnapshots) {
       estimatedProbability: probability,
       difficultyLabel: difficultyFromProbability(probability),
       sourceOddsSnapshotIds: sourceOdd?.id ? [sourceOdd.id] : [],
+      sourceMarketKey: marketKey || "QUESTION_TEMPLATE",
       status: "ACTIVE"
     };
+  });
+
+  const seen = new Set();
+  return cards.filter((card) => {
+    const key = getCardMeaningKey(card);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -448,6 +504,17 @@ function findWeakerSide(matchItem, oddsSnapshots) {
   const awayOdd = findBestOdd(oddsSnapshots, matchItem.id, "MATCH_WINNER", matchItem.awayTeam);
   if (homeOdd && awayOdd) return Number(homeOdd.priceDecimal) > Number(awayOdd.priceDecimal) ? "HOME" : "AWAY";
   return "AWAY";
+}
+
+function findFavoredSide(matchItem, oddsSnapshots) {
+  const homeOdd = findBestOdd(oddsSnapshots, matchItem.id, "MATCH_WINNER", matchItem.homeTeam);
+  const awayOdd = findBestOdd(oddsSnapshots, matchItem.id, "MATCH_WINNER", matchItem.awayTeam);
+  if (homeOdd && awayOdd) return Number(homeOdd.priceDecimal) <= Number(awayOdd.priceDecimal) ? "HOME" : "AWAY";
+  return "HOME";
+}
+
+function getTopScorerName(matchItem) {
+  return matchItem.topScorerName || matchItem.rawData?.topScorerName || null;
 }
 
 function difficultyFromProbability(probability) {

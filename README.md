@@ -53,6 +53,8 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Player matchday screen with 12 prediction cards.
 - Select at least 5 and up to 12 cards.
 - Yes is green, No is red.
+- Prediction card generation filters mirrored meanings, so a set will not include duplicate yes/no-equivalent cards like Over 2.5 and Under 2.5 for the same match.
+- Card questions include match winners, totals, both teams to score, first team to score, red-card checks, top-scorer scoring checks, and exact-score cards.
 - Correct selected cards score +10; incorrect selected cards score -10.
 - Exact Score Boost reads all correct-score ratios from backend odds snapshots.
 - Correct-score odds store every scoreline from `0-0` through `5-5` for each game.

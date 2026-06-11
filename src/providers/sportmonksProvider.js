@@ -11,6 +11,8 @@ export function createSportmonksProvider(apiKey = process.env.SPORTMONKS_KEY) {
   }
 
   return {
+    supportsMatchEvents: true,
+
     async getFixturesByDate(date) {
       const rows = await call(`/fixtures/date/${date}?include=participants;scores;state`);
       return rows.map(mapFixture);
@@ -30,6 +32,9 @@ export function createSportmonksProvider(apiKey = process.env.SPORTMONKS_KEY) {
       return (rows.events || []).map((event) => ({
         id: String(event.id),
         type: event.type?.name,
+        detail: event.type?.name || event.result || event.addition || "",
+        teamName: event.participant_name || event.team?.name || event.participant?.name,
+        playerName: event.player_name || event.player?.name,
         minute: event.minute,
         rawData: event
       }));
@@ -53,6 +58,10 @@ function mapFixture(row) {
     homeScore: score.find((item) => item.description === "CURRENT" && item.score?.participant === "home")?.score?.goals ?? null,
     awayScore: score.find((item) => item.description === "CURRENT" && item.score?.participant === "away")?.score?.goals ?? null,
     firstGoalMinute: null,
+    firstGoalTeam: null,
+    redCardShown: null,
+    topScorerName: null,
+    topScorerScored: null,
     rawData: row
   };
 }

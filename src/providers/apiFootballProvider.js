@@ -14,6 +14,8 @@ export function createApiFootballProvider(apiKey = process.env.API_FOOTBALL_KEY)
   }
 
   return {
+    supportsMatchEvents: true,
+
     async getFixturesByDate(date) {
       const rows = await call(`/fixtures?date=${date}`);
       return rows.map(mapFixture);
@@ -35,6 +37,8 @@ export function createApiFootballProvider(apiKey = process.env.API_FOOTBALL_KEY)
         id: `${matchId}_event_${index + 1}`,
         type: event.type,
         detail: event.detail,
+        teamName: event.team?.name,
+        playerName: event.player?.name,
         minute: event.time?.elapsed,
         rawData: event
       }));
@@ -55,6 +59,10 @@ function mapFixture(row) {
     homeScore: row.goals.home,
     awayScore: row.goals.away,
     firstGoalMinute: null,
+    firstGoalTeam: null,
+    redCardShown: null,
+    topScorerName: null,
+    topScorerScored: null,
     rawData: row
   };
 }
