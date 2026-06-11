@@ -16,6 +16,8 @@ const api = {
 const MIN_SELECTED_CARDS = 5;
 const MAX_SELECTED_CARDS = 12;
 const CARD_SET_SIZE = 12;
+const CARD_POINTS_CORRECT = 10;
+const EXACT_SCORE_POINTS_MULTIPLIER = 5;
 const DEFAULT_OTHER_SCORE_MULTIPLIER = 19.5;
 const PAIRING_MODE_LABELS = {
   MIXED: "Mixed",
@@ -177,8 +179,8 @@ function renderPlayer() {
   const exactOdds = selectedMatch ? getExactOdds(selectedMatch.id) : [];
   const activeOdd = getActiveExactOdd(exactOdds);
   const multiplier = activeOdd?.priceDecimal || estimateMultiplier();
-  const potential = Number((multiplier * 5).toFixed(1));
-  const currentPlayerProjection = estimateProjectedScore(multiplier);
+  const potential = exactScoreBoostPoints(multiplier);
+  const currentPlayerProjection = estimateProjectedScore(potential);
   const displayContest = getPrimaryMatchup(summary);
   const matchup = getProjectedMatchupDisplay(displayContest, data.currentUser.id, currentPlayerProjection);
 
@@ -470,7 +472,7 @@ function renderCard(playerCard, options = {}) {
         <button class="answer-button ${dirty.answer === "YES" ? "yes-active" : ""}" data-answer="YES" ${locked ? "disabled" : ""}>Yes</button>
         <button class="answer-button ${dirty.answer === "NO" ? "no-active" : ""}" data-answer="NO" ${locked ? "disabled" : ""}>No</button>
       </div>
-      <div class="card-foot"><strong>${formatProbability(playerCard.card.estimatedProbability)} prob</strong><span>+10 / -10</span></div>
+      <div class="card-foot"><strong>${CARD_POINTS_CORRECT} pts</strong><span>Correct pick</span></div>
     </article>
   `;
 }
@@ -1154,12 +1156,6 @@ function scoreKey(score) {
   return `${score.home}-${score.away}`;
 }
 
-function formatProbability(probability) {
-  const percent = Math.round(Number(probability || 0) * 100);
-  const balancedPercent = Number.isFinite(percent) ? Math.min(60, Math.max(40, percent)) : 50;
-  return `${balancedPercent}%`;
-}
-
 function groupMatchdaysByCalendarMonth(matchdays) {
   const months = new Map();
   matchdays.forEach((matchday) => {
@@ -1240,11 +1236,14 @@ function estimateMultiplier() {
   return Math.min(8, Math.max(1, Number(base.toFixed(1)))) || (selectedMatch ? 2.2 : 1);
 }
 
-function estimateProjectedScore(multiplier) {
+function exactScoreBoostPoints(multiplier) {
+  return Number((Number(multiplier || 0) * EXACT_SCORE_POINTS_MULTIPLIER).toFixed(1));
+}
+
+function estimateProjectedScore(exactScoreBoost = 0) {
   const selectedCards = [...state.dirtyCards.values()].filter((card) => card.selected).length;
   if (!selectedCards) return 0;
-  const yesAnswers = [...state.dirtyCards.values()].filter((card) => card.selected && card.answer === "YES").length;
-  return Math.round(38 + selectedCards * 3 + yesAnswers * 2 + multiplier * 1.8);
+  return Number((selectedCards * CARD_POINTS_CORRECT + exactScoreBoost).toFixed(1));
 }
 
 function formatCountdown(lockAt) {

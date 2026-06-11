@@ -371,7 +371,12 @@ const opponentProjectionAfter = await getAppState(opponentProjectionStore, "user
 const opponentContestAfter = opponentProjectionAfter.matchdaySummaries
   .find((item) => item.id === "md_12")
   .userContest;
-assert.ok(opponentContestAfter.participants.find((part) => part.userId === "user_noah").projectedScore > 0);
+const noahProjection = opponentContestAfter.participants.find((part) => part.userId === "user_noah").projectedScore;
+const noahExactPrediction = opponentProjectionData.scorePredictions.find((prediction) => (
+  prediction.matchDayId === "md_12" &&
+  prediction.userId === "user_noah"
+));
+assert.equal(noahProjection, Number((noahSelectedCardIds.length * 10 + noahExactPrediction.oddsMultiplier * 5).toFixed(1)));
 await finalizeMatchday(groupScoreStore, {
   leagueId: "league_1",
   matchDayId: "md_12",
