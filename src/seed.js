@@ -196,7 +196,6 @@ export function createCardsFromOdds(matchDayId, matches, oddsSnapshots = [], see
   const marketCounts = new Map();
   const oddsCardTarget = Math.max(MIN_SELECTED_CARDS, CARD_SET_SIZE - 3);
   const marketCaps = new Map([
-    ["CORRECT_SCORE", 3],
     ["MATCH_WINNER", 5],
     ["TOTAL_GOALS", 5],
     ["BOTH_TEAMS_SCORE", 4]
@@ -354,18 +353,6 @@ function createCardFromOdd(matchDayId, matchItem, odd) {
     };
   }
 
-  if (odd.marketKey === "CORRECT_SCORE") {
-    const score = parseCorrectScore(odd.outcomeName);
-    if (!score) return null;
-    return {
-      ...base,
-      cardType: "EXACT_SCORE",
-      title: `${homeCode} ${score.homeScore}-${score.awayScore} ${awayCode}`,
-      questionText: `Will ${label} finish ${score.homeScore}-${score.awayScore}?`,
-      gradingRule: score
-    };
-  }
-
   return null;
 }
 
@@ -401,15 +388,6 @@ function parseGoalTotal(value) {
   const match = String(value || "").match(/\b(over|under)\s*(\d+(?:\.\d+)?)\b/i);
   if (!match) return null;
   return [match[1].toUpperCase(), Number(match[2])];
-}
-
-function parseCorrectScore(value) {
-  const match = String(value || "").match(/\b(\d+)\s*-\s*(\d+)\b/);
-  if (!match) return null;
-  return {
-    homeScore: Number(match[1]),
-    awayScore: Number(match[2])
-  };
 }
 
 function probabilityFromOdd(odd) {

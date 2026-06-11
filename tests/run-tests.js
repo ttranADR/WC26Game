@@ -195,10 +195,11 @@ const oddsGeneratedCards = createCardsFromOdds("md_12", data.tournamentMatches, 
 assert.equal(oddsGeneratedCards.length, 12);
 assert.ok(oddsGeneratedCards.some((card) => card.sourceOddsSnapshotIds.length === 1));
 assert.ok(oddsGeneratedCards.some((card) => card.sourceOddsSnapshotIds.length === 0));
-assert.ok(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"));
+assert.equal(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"), false);
 assert.ok(oddsGeneratedCards.some((card) => card.cardType === "FIRST_TEAM_TO_SCORE"));
 assert.ok(oddsGeneratedCards.some((card) => card.cardType === "RED_CARD"));
 assert.ok(oddsGeneratedCards.some((card) => card.cardType === "TOP_SCORER_SCORES"));
+assert.equal(oddsGeneratedCards.some((card) => /\b\d+\s*-\s*\d+\b/.test(card.questionText)), false);
 assert.equal(new Set(oddsGeneratedCards.map(getCardMeaningKey)).size, oddsGeneratedCards.length);
 assert.ok(oddsGeneratedCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
 assert.ok(data.predictionCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));

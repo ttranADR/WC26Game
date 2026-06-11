@@ -55,7 +55,7 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Yes is green, No is red.
 - Prediction card generation filters mirrored meanings, so a set will not include duplicate yes/no-equivalent cards like Over 2.5 and Under 2.5 for the same match.
 - Prediction card generation uses schedule, teams, pre-match odds, and question templates only; final scores and match result events are used later for scoring, not card creation.
-- Card questions include match winners, totals, both teams to score, first team to score, red-card checks, top-scorer scoring checks, and exact-score cards.
+- Card questions include match winners, totals, both teams to score, first team to score, red-card checks, and top-scorer scoring checks. Exact score stays in the separate Exact Score Boost flow.
 - Correct selected cards score +10; incorrect selected cards score -10.
 - Exact Score Boost reads all correct-score ratios from backend odds snapshots.
 - Correct-score odds store every scoreline from `0-0` through `5-5` for each game.
