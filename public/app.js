@@ -26,7 +26,7 @@ const PAIRING_MODE_LABELS = {
   DUO: "2v2",
   HALF: "Half league"
 };
-const ADMIN_ROUTES = new Set(["admin", "playerData", "leagueData"]);
+const ADMIN_ROUTES = new Set(["admin", "submitCheck", "playerData", "leagueData"]);
 
 async function request(path, options = {}) {
   const headers = { "content-type": "application/json" };
@@ -104,6 +104,7 @@ function render() {
   });
 
   if (state.route === "admin") renderAdmin();
+  else if (state.route === "submitCheck") renderSubmitCheck();
   else if (state.route === "playerData") renderPlayerData();
   else if (state.route === "leagueData") renderLeagueData();
   else if (state.route === "matchups") renderSeasonMatchups();
@@ -147,7 +148,7 @@ function renderLogin(error = "") {
 function updateChrome() {
   const loggedIn = Boolean(state.data?.currentUser);
   const admin = isAdmin();
-  document.querySelectorAll('[data-route="admin"], [data-route="playerData"], [data-route="leagueData"]').forEach((button) => {
+  document.querySelectorAll('[data-route="admin"], [data-route="submitCheck"], [data-route="playerData"], [data-route="leagueData"]').forEach((button) => {
     button.hidden = !admin;
   });
   document.querySelector("#refreshButton").hidden = !loggedIn;
@@ -573,6 +574,94 @@ function renderAdmin() {
       </aside>
     </section>
   `;
+}
+
+function renderSubmitCheck() {
+  const data = state.data;
+  const league = managedLeague();
+  const summary = selectedMatchday() || data.matchday;
+  const submissionCheck = submissionCheckForMatchday(summary.id);
+  const rows = submissionCheck?.rows || [];
+  const submittedRows = rows.filter((row) => row.submitted);
+  const missingRows = rows.filter((row) => !row.submitted);
+  const generatedCards = summary.predictionCardCount || 0;
+  document.querySelector("#matchdayName").textContent = `Submit Check · ${summary.name}`;
+  root.innerHTML = `
+    <section class="admin-layout">
+      <div class="admin-main">
+        ${renderMatchdayList(summary.id, {
+          summaryLabel: "Submit check",
+          summaryMeta: `${submissionCheck?.submittedCount || 0}/${submissionCheck?.totalCount || 0} submitted`,
+          getDayMetric: (matchday) => submissionCheckForMatchday(matchday.id)?.submittedCount || 0,
+          formatDayMetricLabel: () => "submitted"
+        })}
+
+        <section class="panel">
+          <div class="panel-head"><h2>${escapeHtml(summary.name)}</h2><span class="label">${escapeHtml(league.name)}</span></div>
+          <div class="ops-summary">
+            <span><strong>${submissionCheck?.submittedCount || 0}</strong><small>Submitted</small></span>
+            <span><strong>${submissionCheck?.missingCount || 0}</strong><small>Missing</small></span>
+            <span><strong>${generatedCards}</strong><small>Cards</small></span>
+            <span><strong>${summary.matches.length}</strong><small>Games</small></span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Missing</h2><span class="label">${missingRows.length} players</span></div>
+          <div class="member-list submit-check-list">
+            ${missingRows.length ? missingRows.map(renderSubmissionRow).join("") : `<p class="empty-state">Everyone has submitted for this matchday.</p>`}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Submitted</h2><span class="label">${submittedRows.length} players</span></div>
+          <div class="member-list submit-check-list">
+            ${submittedRows.length ? submittedRows.map(renderSubmissionRow).join("") : `<p class="empty-state">No submissions yet.</p>`}
+          </div>
+        </section>
+      </div>
+
+      <aside class="right-rail">
+        <section class="panel">
+          <div class="panel-head"><h2>Checklist</h2><span class="label">${summary.status}</span></div>
+          <div class="league-summary compact-summary">
+            <span><strong>${formatDate(summary.date)}</strong> matchday</span>
+            <span><strong>${formatTime(summary.lockAt)}</strong> lock</span>
+            <span><strong>${MIN_SELECTED_CARDS}</strong> cards required</span>
+          </div>
+        </section>
+      </aside>
+    </section>
+  `;
+}
+
+function renderSubmissionRow(row) {
+  const status = row.submitted ? "submitted" : "missing";
+  const detail = row.submitted
+    ? `Submitted ${formatDateTime(row.submittedAt)}`
+    : missingSubmissionReason(row);
+  return `
+    <div class="member-row submit-check-row">
+      <div>
+        <strong>${escapeHtml(row.displayName)}</strong>
+        <span>${escapeHtml(row.email)}</span>
+      </div>
+      <div class="submission-meta">
+        <span>${row.selectedCount}/${row.requiredCount} cards</span>
+        <span>${row.exactScore ? `Exact ${escapeHtml(row.exactScore)}` : "No exact score"}</span>
+      </div>
+      <span class="status-pill ${status}">${row.submitted ? "Submitted" : "Missing"}</span>
+      <small>${escapeHtml(detail)}</small>
+    </div>
+  `;
+}
+
+function missingSubmissionReason(row) {
+  if (!row.hasCardSet || row.cardCount === 0) return "No card set assigned";
+  if (row.selectedCount < row.requiredCount && !row.hasExactScore) return "Needs cards and exact score";
+  if (row.selectedCount < row.requiredCount) return "Needs more selected cards";
+  if (!row.hasExactScore) return "Needs exact score";
+  return "Not submitted";
 }
 
 function renderPlayerData() {
@@ -1264,12 +1353,21 @@ function formatDate(value) {
   return new Date(`${value}T00:00:00`).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+function formatDateTime(value) {
+  if (!value) return "n/a";
+  return new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 function selectedMatchday() {
   const summaries = state.data?.matchdaySummaries || [];
   return summaries.find((matchday) => matchday.id === state.selectedMatchdayId) ||
     summaries.find((matchday) => matchday.id === state.data?.todayMatchdayId) ||
     summaries[0] ||
     null;
+}
+
+function submissionCheckForMatchday(matchDayId) {
+  return (state.data?.submissionChecks || []).find((check) => check.matchDayId === matchDayId) || null;
 }
 
 function normalizeSelectedMatchday() {

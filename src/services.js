@@ -1449,6 +1449,7 @@ function hydrateState(data, currentUserId = "user_you") {
     todayMatchdayId: matchday.id,
     todayDate: getLocalDateKey(),
     matchdaySummaries: hydrateMatchdaySummaries(data, league.id, currentUser.id),
+    submissionChecks: currentUser.role === "ADMIN" ? hydrateSubmissionChecks(data, league.id) : [],
     matchday,
     matches,
     tournamentMatches: data.tournamentMatches,
@@ -1556,6 +1557,53 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
         userScore: userScore ?? 0,
         opponentScore: opponentScore ?? 0,
         resultLabel: getContestResultLabel(userContest, userSide)
+      };
+    });
+}
+
+function hydrateSubmissionChecks(data, leagueId) {
+  const members = data.leagueMembers
+    .filter((member) => member.leagueId === leagueId && member.status === "ACTIVE")
+    .map((member) => ({
+      member,
+      user: data.users.find((user) => user.id === member.userId)
+    }))
+    .filter((entry) => entry.user);
+
+  return data.matchdays
+    .slice()
+    .sort(sortMatchdaysForSchedule)
+    .map((matchday) => {
+      const rows = members.map(({ member, user }) => {
+        const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === user.id);
+        const playerCards = data.playerCards.filter((card) => card.playerCardSetId === cardSet?.id);
+        const selectedCards = playerCards.filter((card) => card.selected);
+        const scorePrediction = data.scorePredictions.find((prediction) => prediction.matchDayId === matchday.id && prediction.userId === user.id);
+        const submitted = Boolean(scorePrediction?.submittedAt) && selectedCards.length >= MIN_SELECTED_CARDS;
+        return {
+          userId: user.id,
+          displayName: user.displayName,
+          email: user.email,
+          memberStatus: member.status,
+          hasCardSet: Boolean(cardSet),
+          cardCount: playerCards.length,
+          selectedCount: selectedCards.length,
+          requiredCount: MIN_SELECTED_CARDS,
+          hasExactScore: Boolean(scorePrediction),
+          submitted,
+          submittedAt: scorePrediction?.submittedAt || null,
+          exactScore: scorePrediction
+            ? `${scorePrediction.predictedHomeScore}-${scorePrediction.predictedAwayScore}`
+            : null
+        };
+      });
+
+      return {
+        matchDayId: matchday.id,
+        submittedCount: rows.filter((row) => row.submitted).length,
+        missingCount: rows.filter((row) => !row.submitted).length,
+        totalCount: rows.length,
+        rows
       };
     });
 }

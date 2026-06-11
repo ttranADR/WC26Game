@@ -106,6 +106,17 @@ assert.ok(assignmentState.matchupAssignments.some((assignment) => (
   assignment.matchDayId === "md_12" &&
   assignment.matchupId === assignmentSummary.userContest.id
 )));
+assert.deepEqual(assignmentState.submissionChecks, []);
+
+const adminSubmissionState = await getAppState(createMemoryStore(createSeedData()), "admin_1");
+const md12SubmissionCheck = adminSubmissionState.submissionChecks.find((item) => item.matchDayId === "md_12");
+assert.equal(md12SubmissionCheck.totalCount, 11);
+assert.equal(md12SubmissionCheck.submittedCount, 3);
+assert.equal(md12SubmissionCheck.missingCount, 8);
+assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_you").submitted, true);
+assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_noah").submitted, false);
+assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_noah").selectedCount, 5);
+assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_noah").hasExactScore, false);
 
 const multiLeagueData = createSeedData();
 multiLeagueData.leagues.push({

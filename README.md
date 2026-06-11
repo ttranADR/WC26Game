@@ -71,6 +71,7 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Lock-time validation on the backend.
 - Admin dashboard for league ops.
 - Admin-only League Data page for creating leagues, selecting/managing leagues, editing league name/season/matchup style, and assigning existing players to leagues.
+- Admin-only Submit Check page shows who submitted and who is still missing for each matchday.
 - Sync fixtures, sync odds, generate selected-matchday or full-season cards, generate selected-matchday or full-season matchups.
 - Update WC Match Score refreshes actual results for the selected matchday before scoring or finalizing.
 - Lock, score, finalize, void card.

@@ -1082,6 +1082,21 @@ select:focus-visible {
   grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) 120px minmax(130px, 1fr) auto;
 }
 
+.submit-check-row {
+  grid-template-columns: minmax(180px, 1.2fr) minmax(160px, 1fr) 120px minmax(150px, 0.9fr);
+}
+
+.submission-meta {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.submit-check-row small {
+  color: var(--muted);
+}
+
 .user-data-row input,
 .user-data-row select {
   min-width: 0;
@@ -1164,6 +1179,18 @@ select:focus-visible {
   border-color: var(--green);
   color: var(--green);
   background: var(--selected);
+}
+
+.status-pill.submitted {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--selected);
+}
+
+.status-pill.missing {
+  border-color: var(--red);
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
 }
 
 .member-actions {
