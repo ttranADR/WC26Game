@@ -56,6 +56,7 @@ If `role` is `ADMIN`, the user sees the Admin page after login and the server al
 - Correct selected cards score +10; incorrect selected cards score -10.
 - Exact Score Boost reads all correct-score ratios from backend odds snapshots.
 - Correct-score odds store every scoreline from `0-0` through `5-5` for each game.
+- Matchdays group tournament games by Pacific calendar date.
 - All matchdays are grouped by World Cup phase and the current/today matchday is highlighted.
 - Dedicated Matchups tab with a full-tournament calendar for browsing mixed 1v1, 2v2, and half-league contests.
 - Matchday projected and final totals follow the scheduled matchup side, including 2v2 and half-league sums.

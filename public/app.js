@@ -19,6 +19,7 @@ const CARD_SET_SIZE = 12;
 const CARD_POINTS_CORRECT = 10;
 const EXACT_SCORE_POINTS_MULTIPLIER = 5;
 const DEFAULT_OTHER_SCORE_MULTIPLIER = 19.5;
+const APP_TIME_ZONE = "America/Los_Angeles";
 const PAIRING_MODE_LABELS = {
   MIXED: "Mixed",
   SOLO: "1v1",
@@ -1586,9 +1587,17 @@ async function doLogin(email, password) {
 }
 
 function todayKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date)
+    .filter((part) => part.type !== "literal")
+    .map((part) => [part.type, part.value]));
+  const year = parts.year;
+  const month = parts.month;
+  const day = parts.day;
   return `${year}-${month}-${day}`;
 }
 

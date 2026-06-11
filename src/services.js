@@ -11,6 +11,14 @@ import {
   MIN_SELECTED_CARDS
 } from "./config.js";
 
+const APP_TIME_ZONE = "America/Los_Angeles";
+const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: APP_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+});
+
 export async function getAppState(store, userId = "user_you") {
   return store.update((data) => {
     ensureDemoScaffold(data);
@@ -430,7 +438,7 @@ export async function syncOdds(store, provider, input = {}) {
         ...odd,
         id: createOddsSnapshotId(tournamentMatchId, odd, index, capturedAt),
         tournamentMatchId,
-        sourceFixtureDate: odd.sourceFixtureDate || odd.commenceAt?.slice(0, 10)
+        sourceFixtureDate: odd.sourceFixtureDate || getAppDateKey(odd.commenceAt)
       };
     }).filter(Boolean);
     const nextOdds = withCompleteCorrectScoreOdds(plan.matches, providerOdds, capturedAt);
@@ -482,7 +490,7 @@ export async function initializeTournamentData(store, providers, input = {}) {
 export async function syncDailyTournamentData(store, providers, input = {}) {
   const fixtureProvider = providers.fixtureProvider || providers;
   const oddsProvider = providers.oddsProvider || providers;
-  const date = input.date || new Date().toISOString().slice(0, 10);
+  const date = input.date || getAppDateKey();
   const target = await store.update((data) => {
     ensureDemoScaffold(data);
     if (!data.tournamentMatches.length) {
@@ -610,7 +618,8 @@ function upsertCompetitionFixtures(data, fixtures) {
   fixtures
     .filter((fixture) => fixture.kickoffAt)
     .forEach((fixture) => {
-      const date = fixture.kickoffAt.slice(0, 10);
+      const date = getAppDateKey(fixture.kickoffAt);
+      if (!date) return;
       if (!byDate.has(date)) byDate.set(date, []);
       byDate.get(date).push(fixture);
     });
@@ -652,7 +661,7 @@ function projectFixtureForOddsSync(match) {
 
 function getFixtureDates(matches) {
   return [...new Set(matches
-    .map((match) => match.kickoffAt?.slice(0, 10))
+    .map((match) => getAppDateKey(match.kickoffAt))
     .filter(Boolean))]
     .sort();
 }
@@ -704,7 +713,7 @@ function withCompleteCorrectScoreOdds(matches, providerOdds, capturedAt) {
         priceDecimal: price,
         priceAmerican: null,
         impliedProbability: Number((1 / price).toFixed(4)),
-        sourceFixtureDate: match.kickoffAt?.slice(0, 10),
+        sourceFixtureDate: getAppDateKey(match.kickoffAt),
         rawData: { generated: true, reason: "Missing correct-score bookmaker quote" },
         capturedAt: capturedIso
       };
@@ -889,7 +898,7 @@ function createMatchResolver(matches, matchDayId) {
   const byTeamAndDate = new Map();
 
   scopedMatches.forEach((match) => {
-    const date = match.kickoffAt?.slice(0, 10);
+    const date = getAppDateKey(match.kickoffAt);
     const home = normalizeTeamName(match.homeTeam);
     const away = normalizeTeamName(match.awayTeam);
     if (!date || !home || !away) return;
@@ -901,7 +910,7 @@ function createMatchResolver(matches, matchDayId) {
     if (matchesById.has(odd.tournamentMatchId)) return matchesById.get(odd.tournamentMatchId);
     if (matchesByExternal.has(odd.tournamentMatchId)) return matchesByExternal.get(odd.tournamentMatchId);
 
-    const date = odd.commenceAt?.slice(0, 10);
+    const date = getAppDateKey(odd.commenceAt);
     const home = normalizeTeamName(odd.homeTeam);
     const away = normalizeTeamName(odd.awayTeam);
     return byTeamAndDate.get(`${date}:${home}:${away}`) || null;
@@ -1393,9 +1402,19 @@ function getTodayMatchday(data) {
 }
 
 function getLocalDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  return getAppDateKey(date);
+}
+
+function getAppDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = Object.fromEntries(DATE_KEY_FORMATTER
+    .formatToParts(date)
+    .filter((part) => part.type !== "literal")
+    .map((part) => [part.type, part.value]));
+  const year = parts.year;
+  const month = parts.month;
+  const day = parts.day;
   return `${year}-${month}-${day}`;
 }
 

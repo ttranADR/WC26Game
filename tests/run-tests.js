@@ -10,6 +10,7 @@ import {
   loginUser,
   submitPicks,
   syncDailyTournamentData,
+  syncFixtures,
   syncOdds,
   updateMatchScoresForMatchday,
   createUserAccount,
@@ -579,6 +580,63 @@ assert.throws(() => assertStorageConfiguration({
   providers: ["football-data"]
 }), /DATABASE_URL is required/);
 
+const pacificGroupingData = createSeedData();
+const pacificGroupingStore = createMemoryStore(pacificGroupingData);
+await syncFixtures(pacificGroupingStore, {
+  async getCompetitionFixtures() {
+    return [{
+      externalProvider: "football-data",
+      externalId: "fix_mex_rsa",
+      homeTeam: "Mexico",
+      awayTeam: "RSA",
+      homeTeamCode: "MEX",
+      awayTeamCode: "RSA",
+      kickoffAt: "2026-06-12T02:00:00.000Z",
+      status: "SCHEDULED",
+      rawData: {}
+    }, {
+      externalProvider: "football-data",
+      externalId: "fix_kor_cze",
+      homeTeam: "Korea",
+      awayTeam: "Czech",
+      homeTeamCode: "KOR",
+      awayTeamCode: "CZE",
+      kickoffAt: "2026-06-12T04:00:00.000Z",
+      status: "SCHEDULED",
+      rawData: {}
+    }, {
+      externalProvider: "football-data",
+      externalId: "fix_por_gha",
+      homeTeam: "Portugal",
+      awayTeam: "Ghana",
+      homeTeamCode: "POR",
+      awayTeamCode: "GHA",
+      kickoffAt: "2026-06-12T20:00:00.000Z",
+      status: "SCHEDULED",
+      rawData: {}
+    }];
+  }
+}, { scope: "all", currentUserId: "admin_1" });
+const pacificJune11 = pacificGroupingData.matchdays.find((matchday) => matchday.date === "2026-06-11");
+assert.ok(pacificJune11);
+assert.deepEqual(pacificGroupingData.tournamentMatches
+  .filter((matchItem) => matchItem.matchDayId === pacificJune11.id)
+  .map((matchItem) => `${matchItem.homeTeam} vs ${matchItem.awayTeam}`)
+  .sort(), ["Korea vs Czech", "Mexico vs RSA"]);
+const pacificJune12 = pacificGroupingData.matchdays.find((matchday) => (
+  matchday.date === "2026-06-12" &&
+  pacificGroupingData.tournamentMatches.some((matchItem) => matchItem.matchDayId === matchday.id && matchItem.homeTeam === "Portugal")
+));
+assert.ok(pacificJune12);
+const pacificOddsDates = [];
+await syncOdds(pacificGroupingStore, {
+  async getOddsByDate(date) {
+    pacificOddsDates.push(date);
+    return [];
+  }
+}, { matchDayId: pacificJune11.id, currentUserId: "admin_1" });
+assert.deepEqual(pacificOddsDates, ["2026-06-11"]);
+
 const syncData = createSeedData();
 const store = createMemoryStore(syncData);
 const oddsDates = [];
@@ -607,7 +665,7 @@ await syncOdds(store, {
     }];
   }
 }, { matchDayId: "md_12" });
-assert.deepEqual(oddsDates, ["2026-06-12", "2026-06-13"]);
+assert.deepEqual(oddsDates, ["2026-06-12"]);
 assert.ok(syncData.oddsSnapshots.some((odd) => (
   odd.provider === "test-odds" &&
   odd.tournamentMatchId === "match_bra_mar" &&
@@ -824,7 +882,7 @@ const daily = await syncDailyTournamentData(dailyStore, {
 }, { date: "2026-06-12" });
 assert.equal(daily.message, "Daily tournament data updated for 2026-06-12.");
 assert.deepEqual(fixtureDates, ["2026-06-12"]);
-assert.deepEqual(dailyOddsDates, ["2026-06-12", "2026-06-13"]);
+assert.deepEqual(dailyOddsDates, ["2026-06-12"]);
 
 console.log("All tests passed.");
 
