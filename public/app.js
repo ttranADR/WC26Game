@@ -345,13 +345,13 @@ function renderMatchdayList(activeId, options = {}) {
             <div class="calendar-grid">
               ${month.days.map((day) => {
                 const metricCount = day.matchday ? getDayMetric(day.matchday) : 0;
-                const submissionLabel = day.matchday ? calendarSubmissionLabel(day.matchday) : "";
+                const statusLabel = day.matchday ? calendarDayStatusLabel(day.matchday) : "";
+                const statusClass = statusLabel ? statusLabel.toLowerCase() : "";
                 return day.matchday ? `
-                <button class="calendar-day ${day.matchday.id === activeId ? "active" : ""} ${day.matchday.isToday ? "today" : ""} ${day.matchday.status.toLowerCase()}" data-matchday-id="${day.matchday.id}">
+                <button class="calendar-day ${day.matchday.id === activeId ? "active" : ""} ${day.matchday.isToday ? "today" : ""} ${day.matchday.status.toLowerCase()} ${statusClass}" data-matchday-id="${day.matchday.id}">
                   <span>${day.dayOfMonth}</span>
-                  <strong>${day.matchday.isToday ? "Today" : day.matchday.status}</strong>
+                  <strong>${statusLabel}</strong>
                   <small>${metricCount} ${formatDayMetricLabel(metricCount)}</small>
-                  ${submissionLabel ? `<em class="calendar-submission ${submissionLabel.toLowerCase()}">${submissionLabel}</em>` : ""}
                 </button>
               ` : `
                 <span class="calendar-day empty">${day.dayOfMonth || ""}</span>
@@ -1420,12 +1420,17 @@ function submissionCheckForMatchday(matchDayId) {
   return (state.data?.submissionChecks || []).find((check) => check.matchDayId === matchDayId) || null;
 }
 
-function calendarSubmissionLabel(matchday) {
-  if (isAdmin()) return "";
-  if (!matchday?.playerCards?.length) return "";
-  if (matchday.scorePrediction?.submittedAt && matchday.selectedCards?.length >= MIN_SELECTED_CARDS) return "Submitted";
-  if (isMatchdayLocked(matchday)) return "Missing";
-  return "";
+function calendarDayStatusLabel(matchday) {
+  if (!matchday) return "";
+  if (!isAdmin()) {
+    if (hasSubmittedMatchday(matchday)) return "Submitted";
+    if (isMatchdayLocked(matchday)) return "Locked";
+  }
+  return matchday.isToday ? "Today" : matchday.status;
+}
+
+function hasSubmittedMatchday(matchday) {
+  return Boolean(matchday?.scorePrediction?.submittedAt && (matchday.selectedCards || []).length >= MIN_SELECTED_CARDS);
 }
 
 function normalizeSelectedMatchday() {
