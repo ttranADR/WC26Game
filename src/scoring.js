@@ -98,6 +98,7 @@ export function gradeCard(card, match) {
 }
 
 export function getFallbackExactMultiplier(prediction, match, odds = []) {
+  if (!match) return Number(prediction.oddsMultiplier) || DEFAULT_OTHER_SCORE_MULTIPLIER;
   const winnerMarket = odds.filter((odd) => odd.marketKey === "MATCH_WINNER");
   const totalGoals = prediction.predictedHomeScore + prediction.predictedAwayScore;
   let outcomeName = "Draw";
@@ -112,6 +113,7 @@ export function getFallbackExactMultiplier(prediction, match, odds = []) {
 }
 
 export function getExactScoreMultiplier(prediction, match, odds = []) {
+  if (!match) return Number(prediction.oddsMultiplier) || DEFAULT_OTHER_SCORE_MULTIPLIER;
   const predictedHome = normalizeScore(prediction.predictedHomeScore);
   const predictedAway = normalizeScore(prediction.predictedAwayScore);
   const score = `${predictedHome ?? prediction.predictedHomeScore}-${predictedAway ?? prediction.predictedAwayScore}`;
@@ -132,12 +134,18 @@ export function getExactScoreMultiplier(prediction, match, odds = []) {
 
 export function gradeExactPrediction(prediction, match, odds = []) {
   const multiplier = getExactScoreMultiplier(prediction, match, odds);
+  if (!match || match.status !== "FINISHED") {
+    return {
+      oddsMultiplier: multiplier,
+      isExact: false,
+      pointsAwarded: 0
+    };
+  }
   const predictedHome = normalizeScore(prediction.predictedHomeScore);
   const predictedAway = normalizeScore(prediction.predictedAwayScore);
   const home = normalizeScore(match?.homeScore);
   const away = normalizeScore(match?.awayScore);
-  const isExact = match.status === "FINISHED" &&
-    predictedHome != null &&
+  const isExact = predictedHome != null &&
     predictedAway != null &&
     predictedHome === home &&
     predictedAway === away;

@@ -826,6 +826,14 @@ const wrong = gradeExactPrediction({
 }, match, data.oddsSnapshots);
 assert.equal(wrong.isExact, false);
 assert.equal(wrong.pointsAwarded, 0);
+const missingMatchExact = gradeExactPrediction({
+  predictedHomeScore: 2,
+  predictedAwayScore: 0,
+  oddsMultiplier: 11
+}, null, data.oddsSnapshots);
+assert.equal(missingMatchExact.oddsMultiplier, 11);
+assert.equal(missingMatchExact.isExact, false);
+assert.equal(missingMatchExact.pointsAwarded, 0);
 
 const fiveFiveMultiplier = data.oddsSnapshots.find((odd) => (
   odd.tournamentMatchId === match.id &&
@@ -853,6 +861,18 @@ assert.equal(otherExact.isExact, true);
 assert.equal(otherExact.pointsAwarded, Number((fiveFiveMultiplier * 5).toFixed(1)));
 
 const autoScoreData = createSeedData();
+autoScoreData.scorePredictions.push({
+  id: "score_stale_missing_match",
+  matchDayId: "md_12",
+  userId: "user_noah",
+  tournamentMatchId: "missing_match_after_fixture_sync",
+  predictedHomeScore: 2,
+  predictedAwayScore: 0,
+  oddsMultiplier: 11,
+  isExact: null,
+  pointsAwarded: 0,
+  submittedAt: new Date().toISOString()
+});
 const autoScoreStore = createMemoryStore(autoScoreData);
 await updateMatchScoresForMatchday(autoScoreStore, {
   supportsMatchEvents: false,
@@ -884,9 +904,13 @@ await updateMatchScoresForMatchday(autoScoreStore, {
   currentUserId: "admin_1"
 });
 const autoScorePrediction = autoScoreData.scorePredictions.find((prediction) => prediction.userId === "user_you");
+const staleScorePrediction = autoScoreData.scorePredictions.find((prediction) => prediction.id === "score_stale_missing_match");
 assert.equal(autoScoreData.matchdays.find((item) => item.id === "md_12").status, "FINAL");
 assert.equal(autoScorePrediction.isExact, true);
 assert.equal(autoScorePrediction.pointsAwarded, Number((autoScorePrediction.oddsMultiplier * 5).toFixed(1)));
+assert.equal(staleScorePrediction.isExact, false);
+assert.equal(staleScorePrediction.pointsAwarded, 0);
+assert.equal(staleScorePrediction.oddsMultiplier, 11);
 assert.ok(autoScoreData.headToHeadContests
   .filter((contest) => contest.matchDayId === "md_12" && contest.leagueId === "league_1")
   .every((contest) => contest.status === "FINAL"));
