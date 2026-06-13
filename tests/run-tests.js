@@ -13,6 +13,7 @@ import {
   submitPicks,
   syncDailyTournamentData,
   syncFixtures,
+  syncLiveData,
   syncOdds,
   updateMatchScoresForMatchday,
   createUserAccount,
@@ -1136,6 +1137,48 @@ assert.equal(
   autoScorePlayerState.matchdaySummaries.find((item) => item.id === "md_12").exactPoints,
   autoScorePrediction.pointsAwarded
 );
+
+const autoFinalizeData = createSeedData();
+autoFinalizeData.matchdays.find((item) => item.id === "md_12").status = "LOCKED";
+const autoFinalizeStore = createMemoryStore(autoFinalizeData);
+const autoFinalize = await syncLiveData(autoFinalizeStore, {
+  fixtureProvider: {
+    async getFixturesByDate() {
+      return autoFinalizeData.tournamentMatches
+        .filter((item) => item.matchDayId === "md_12")
+        .map((item) => ({
+          externalProvider: item.externalProvider,
+          externalId: item.externalId,
+          homeTeam: item.homeTeam,
+          awayTeam: item.awayTeam,
+          homeTeamCode: item.homeTeamCode,
+          awayTeamCode: item.awayTeamCode,
+          kickoffAt: item.kickoffAt,
+          status: "FINISHED",
+          homeScore: item.homeScore,
+          awayScore: item.awayScore,
+          firstGoalMinute: item.firstGoalMinute,
+          firstGoalTeam: item.firstGoalTeam,
+          redCardShown: item.redCardShown,
+          topScorerName: item.topScorerName,
+          topScorerScored: item.topScorerScored,
+          rawData: { test: true }
+        }));
+    }
+  },
+  oddsProvider: {
+    async getOddsByDate() {
+      return [];
+    }
+  }
+}, {
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+assert.deepEqual(autoFinalize.finalizedMatchDayIds, ["md_12"]);
+assert.match(autoFinalize.message, /Auto-finalized 1/);
+assert.equal(autoFinalizeData.matchdays.find((item) => item.id === "md_12").status, "FINAL");
+assert.ok(autoFinalizeData.syncLogs.some((item) => item.type === "AUTO_FINALIZE_MATCHDAY"));
 
 assert.equal(getStorageMode("postgres://example"), "neon");
 assert.equal(getStorageMode(""), "local-json");

@@ -538,7 +538,7 @@ export async function syncDailyTournamentData(store, providers, input = {}) {
   await syncOdds(store, oddsProvider, { ...input, matchDayId: target.matchDayId });
 
   return store.update((data) => {
-    const finalized = scoreMatchdayIfFinished(data, target.matchDayId, input.leagueId || "league_1");
+    const finalized = scoreMatchdayIfFinished(data, target.matchDayId);
     const summary = summarizeTournamentData(data);
     data.syncLogs.unshift(log(
       "DAILY_DATA_UPDATE",
@@ -565,7 +565,7 @@ export async function updateMatchScoresForMatchday(store, provider, input = {}) 
     const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
     const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
     const finishedCount = matches.filter((match) => match.status === "FINISHED").length;
-    const finalized = scoreMatchdayIfFinished(data, matchDayId, input.leagueId || "league_1");
+    const finalized = scoreMatchdayIfFinished(data, matchDayId);
     const scoreText = matches.length
       ? `${finishedCount}/${matches.length} matches finished`
       : "no matches found";
@@ -627,6 +627,7 @@ export async function syncLiveData(store, providers, input = {}) {
   const syncMode = input.sync || "both";
   const matchDayIds = await store.update((data) => {
     ensureDemoScaffold(data);
+    refreshMatchdayStatuses(data);
     if (input.matchDayId) return [input.matchDayId];
     return data.matchdays
       .filter((matchday) => ["OPEN", "LOCKED", "SCORING"].includes(matchday.status))
@@ -671,10 +672,22 @@ export async function syncLiveData(store, providers, input = {}) {
     throw new Error(`Live sync failed: ${failures.map((result) => `${result.type} ${result.matchDayId}: ${result.message}`).join("; ")}`);
   }
 
+  const finalized = await store.update((data) => {
+    const finalizedMatchDayIds = autoFinalizeFinishedMatchdays(data, matchDayIds);
+    if (finalizedMatchDayIds.length) {
+      const names = finalizedMatchDayIds.map((matchDayId) => (
+        data.matchdays.find((matchday) => matchday.id === matchDayId)?.name || matchDayId
+      ));
+      data.syncLogs.unshift(log("AUTO_FINALIZE_MATCHDAY", "SUCCESS", `Auto-finalized ${names.join(", ")} after all matches finished.`));
+    }
+    return finalizedMatchDayIds;
+  });
+
   return {
     ok: true,
-    message: `Live sync complete for ${matchDayIds.length} matchday${matchDayIds.length === 1 ? "" : "s"}.`,
+    message: `Live sync complete for ${matchDayIds.length} matchday${matchDayIds.length === 1 ? "" : "s"}.${finalized.length ? ` Auto-finalized ${finalized.length}.` : ""}`,
     results,
+    finalizedMatchDayIds: finalized,
     state: await getAppState(store, input.currentUserId || "user_you")
   };
 }
@@ -1273,7 +1286,7 @@ export async function rescoreMatchday(store, input) {
 
 export async function finalizeMatchday(store, input) {
   return store.update((data) => {
-    scoreMatchday(data, input.matchDayId || "md_12", input.leagueId || "league_1");
+    scoreMatchdayForLeagues(data, input.matchDayId || "md_12");
     const matchday = mustFind(data.matchdays, input.matchDayId || "md_12", "Matchday");
     matchday.status = "FINAL";
     matchday.updatedAt = new Date().toISOString();
@@ -1322,14 +1335,26 @@ function scoreMatchday(data, matchDayId, leagueId) {
   rebuildLeagueStandingsFromFinalContests(data, leagueId, new Map([[matchDayId, matchdayScores]]));
 }
 
-function scoreMatchdayIfFinished(data, matchDayId, leagueId) {
+function scoreMatchdayForLeagues(data, matchDayId, leagueIds = allLeagueIds(data)) {
+  uniqueUserIds(leagueIds).forEach((leagueId) => scoreMatchday(data, matchDayId, leagueId));
+}
+
+function autoFinalizeFinishedMatchdays(data, matchDayIds) {
+  return uniqueUserIds(matchDayIds).filter((matchDayId) => scoreMatchdayIfFinished(data, matchDayId));
+}
+
+function scoreMatchdayIfFinished(data, matchDayId, leagueIds = allLeagueIds(data)) {
   const matchday = data.matchdays.find((item) => item.id === matchDayId);
   const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchDayId);
   if (!matchday || !matches.length || matches.some((match) => match.status !== "FINISHED")) return false;
-  scoreMatchday(data, matchDayId, leagueId);
+  scoreMatchdayForLeagues(data, matchDayId, leagueIds);
   matchday.status = "FINAL";
   matchday.updatedAt = new Date().toISOString();
   return true;
+}
+
+function allLeagueIds(data) {
+  return data.leagues.map((league) => league.id);
 }
 
 function calculateMatchdayScores(data, matchDayId, options = {}) {

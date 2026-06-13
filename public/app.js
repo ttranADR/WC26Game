@@ -1387,8 +1387,7 @@ function normalizedProjectedSideScore(parts, opposingParts, userId, currentUserP
 function formatMatchupSideLabel(parts, fallback) {
   const names = parts.map(participantName).filter(Boolean);
   if (!names.length) return fallback;
-  if (names.length <= 2) return names.join(" + ");
-  return `${names.slice(0, 2).join(" + ")} +${names.length - 2}`;
+  return names.join(" + ");
 }
 
 function participantName(part) {
