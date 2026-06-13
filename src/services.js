@@ -1274,8 +1274,10 @@ export async function voidCard(store, input) {
   });
 }
 
-export async function exportStandingsCsv(store, leagueId) {
+export async function exportStandingsCsv(store, leagueId, currentUserId = "user_you") {
   const data = await store.read();
+  const currentUser = data.users.find((user) => user.id === currentUserId);
+  if (!canAccessLeague(data, currentUser, leagueId)) throw new Error("League access required.");
   const rows = hydrateStandings(data, leagueId);
   return [
     "rank,player,leaguePoints,fantasyPointsFor,cardAccuracy,scoreDifference,exactScorePoints,exactScoresCorrect",
@@ -1468,6 +1470,7 @@ function hydrateState(data, currentUserId = "user_you") {
   data.users.forEach(ensureUserPassword);
   const currentUser = data.users.find((user) => user.id === currentUserId) || data.users.find((user) => user.id === "user_you");
   const league = selectLeagueForUser(data, currentUser);
+  const visibleLeagueIds = visibleLeagueIdsForUser(data, currentUser);
   ensurePlayableCardSetsForUser(data, currentUser.id);
   const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === currentUser.id);
   const playerCards = data.playerCards
@@ -1485,8 +1488,8 @@ function hydrateState(data, currentUserId = "user_you") {
     adminUser: publicUser(data.users.find((user) => user.role === "ADMIN")),
     users: data.users.map(publicUser),
     profiles: data.playerProfiles,
-    leagues: hydrateLeagues(data),
-    leagueMembers: data.leagueMembers,
+    leagues: hydrateLeagues(data, visibleLeagueIds),
+    leagueMembers: data.leagueMembers.filter((member) => visibleLeagueIds.has(member.leagueId)),
     league,
     matchdays: data.matchdays
       .slice()
@@ -1503,7 +1506,7 @@ function hydrateState(data, currentUserId = "user_you") {
     playerCards,
     scorePrediction,
     contests: hydrateContests(data, league.id, matchday.id),
-    seasonContests: hydrateContests(data),
+    seasonContests: hydrateContests(data, null, null, { leagueIds: visibleLeagueIds }),
     matchupAssignments: hydrateMatchupAssignments(data, league.id, userScopedAssignments),
     standings: hydrateStandings(data, league.id),
     syncLogs: data.syncLogs.slice(0, 20),
@@ -1518,6 +1521,23 @@ function selectLeagueForUser(data, user) {
   return data.leagues.find((league) => league.id === membership?.leagueId) || data.leagues[0];
 }
 
+function visibleLeagueIdsForUser(data, user) {
+  if (!user) return new Set();
+  if (user.role === "ADMIN") return new Set(data.leagues.map((league) => league.id));
+  const leagueIds = data.leagueMembers
+    .filter((member) => member.userId === user.id && member.status !== "REMOVED")
+    .map((member) => member.leagueId);
+  if (!leagueIds.length) {
+    const fallbackLeague = selectLeagueForUser(data, user);
+    if (fallbackLeague) leagueIds.push(fallbackLeague.id);
+  }
+  return new Set(leagueIds);
+}
+
+function canAccessLeague(data, user, leagueId) {
+  return visibleLeagueIdsForUser(data, user).has(leagueId);
+}
+
 function publicUser(user) {
   if (!user) return null;
   const { passwordHash, ...safeUser } = user;
@@ -1527,8 +1547,8 @@ function publicUser(user) {
   };
 }
 
-function hydrateLeagues(data) {
-  return data.leagues.map((league) => {
+function hydrateLeagues(data, leagueIds = new Set(data.leagues.map((league) => league.id))) {
+  return data.leagues.filter((league) => leagueIds.has(league.id)).map((league) => {
     const members = data.leagueMembers.filter((member) => member.leagueId === league.id && member.status !== "REMOVED");
     const contests = data.headToHeadContests.filter((contest) => contest.leagueId === league.id);
     return {
@@ -1693,9 +1713,10 @@ function getContestResultLabel(contest, userSide) {
   return "LOSS";
 }
 
-function hydrateContests(data, leagueId, matchDayId) {
+function hydrateContests(data, leagueId, matchDayId, options = {}) {
   return data.headToHeadContests
     .filter((contest) => (
+      (!options.leagueIds || options.leagueIds.has(contest.leagueId)) &&
       (!leagueId || contest.leagueId === leagueId) &&
       (!matchDayId || contest.matchDayId === matchDayId)
     ))

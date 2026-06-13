@@ -125,7 +125,7 @@ async function handleApi(req, res) {
 
     if (method === "GET" && url.pathname === "/api/export/standings.csv") {
       const leagueId = url.searchParams.get("leagueId") || "league_1";
-      sendText(res, 200, await exportStandingsCsv(store, leagueId), "text/csv; charset=utf-8");
+      sendText(res, 200, await exportStandingsCsv(store, leagueId, getRequestUserId(req)), "text/csv; charset=utf-8");
       return;
     }
 

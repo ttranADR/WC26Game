@@ -4,6 +4,7 @@ import { createOddsApiProvider } from "../src/providers/oddsApiProvider.js";
 import { getExactScoreMultiplier, gradeCard, gradeExactPrediction } from "../src/scoring.js";
 import {
   finalizeMatchday,
+  exportStandingsCsv,
   generateCardsForMatchday,
   generatePairingsForMatchday,
   getAppState,
@@ -166,9 +167,21 @@ multiLeagueData.headToHeadContests.push({
 const multiLeagueState = await getAppState(createMemoryStore(multiLeagueData), "user_maya");
 const multiLeagueSummary = multiLeagueState.matchdaySummaries.find((item) => item.id === "md_12");
 assert.equal(multiLeagueState.league.id, "league_2");
+assert.deepEqual(multiLeagueState.leagues.map((league) => league.id), ["league_2"]);
+assert.ok(multiLeagueState.leagues.every((league) => league.standings.every((standing) => (
+  ["user_maya", "user_liam"].includes(standing.userId)
+))));
+assert.ok(multiLeagueState.leagueMembers.every((member) => member.leagueId === "league_2"));
+assert.ok(multiLeagueState.seasonContests.every((contest) => contest.leagueId === "league_2"));
 assert.equal(multiLeagueSummary.userContest.id, "contest_md_12_league_2_1");
 assert.equal(multiLeagueSummary.matchupAssignment.matchupId, "contest_md_12_league_2_1");
 assert.ok(multiLeagueSummary.contests.every((contest) => contest.leagueId === "league_2"));
+await assert.rejects(() => exportStandingsCsv(createMemoryStore(multiLeagueData), "league_1", "user_maya"), /League access required/);
+const scopedCsv = await exportStandingsCsv(createMemoryStore(multiLeagueData), "league_2", "user_maya");
+assert.match(scopedCsv, /Maya/);
+assert.doesNotMatch(scopedCsv, /You/);
+const multiLeagueAdminState = await getAppState(createMemoryStore(multiLeagueData), "admin_1");
+assert.deepEqual(multiLeagueAdminState.leagues.map((league) => league.id), ["league_1", "league_2"]);
 
 const over = data.predictionCards.find((card) => card.cardType === "TOTAL_GOALS_OVER");
 assert.equal(gradeCard(over, match).pointsAwarded, 10);
