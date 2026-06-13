@@ -558,6 +558,114 @@ const unevenContest = unevenScoreData.headToHeadContests[0];
 assert.equal(unevenContest.participantAScore, Number((unevenScoreByUser.get("user_you") * 2).toFixed(1)));
 assert.equal(unevenContest.participantBScore, Number((unevenScoreByUser.get("user_maya") + unevenScoreByUser.get("user_liam")).toFixed(1)));
 
+const noSubmitScoreData = createSeedData();
+noSubmitScoreData.headToHeadContests = [{
+  id: "contest_md_12_no_submit",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_you",
+  participantBName: "user_noah",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_no_submit_a", side: "A", userId: "user_you" },
+    { id: "part_md_12_no_submit_b", side: "B", userId: "user_noah" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}];
+const noSubmitScoreStore = createMemoryStore(noSubmitScoreData);
+await finalizeMatchday(noSubmitScoreStore, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const noSubmitContest = noSubmitScoreData.headToHeadContests[0];
+const noSubmitNoahStanding = noSubmitScoreData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_noah");
+const noSubmitNoahSet = noSubmitScoreData.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_noah");
+assert.equal(noSubmitContest.participantBScore, 0);
+assert.equal(noSubmitNoahStanding.played, 1);
+assert.equal(noSubmitNoahStanding.leaguePoints, 0);
+assert.equal(noSubmitNoahStanding.fantasyPointsFor, 0);
+assert.ok(noSubmitScoreData.playerCards
+  .filter((card) => card.playerCardSetId === noSubmitNoahSet.id)
+  .every((card) => card.pointsAwarded === 0 && card.isCorrect == null));
+
+const duplicateContestData = createSeedData();
+duplicateContestData.scorePredictions = duplicateContestData.scorePredictions.filter((prediction) => prediction.userId === "user_you");
+duplicateContestData.headToHeadContests = [{
+  id: "contest_md_12_duplicate_old",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_you",
+  participantBName: "user_maya",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_duplicate_old_a", side: "A", userId: "user_you" },
+    { id: "part_md_12_duplicate_old_b", side: "B", userId: "user_maya" }
+  ],
+  createdAt: "2026-06-12T01:00:00.000Z",
+  updatedAt: "2026-06-12T01:00:00.000Z"
+}, {
+  id: "contest_md_12_duplicate_new",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_you",
+  participantBName: "user_liam",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_duplicate_new_a", side: "A", userId: "user_you" },
+    { id: "part_md_12_duplicate_new_b", side: "B", userId: "user_liam" }
+  ],
+  createdAt: "2026-06-12T02:00:00.000Z",
+  updatedAt: "2026-06-12T02:00:00.000Z"
+}, {
+  id: "contest_md_12_duplicate_participant",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_ava",
+  participantBName: "user_ethan",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_duplicate_participant_a_1", side: "A", userId: "user_ava" },
+    { id: "part_md_12_duplicate_participant_a_2", side: "A", userId: "user_ava" },
+    { id: "part_md_12_duplicate_participant_b", side: "B", userId: "user_ethan" }
+  ],
+  createdAt: "2026-06-12T03:00:00.000Z",
+  updatedAt: "2026-06-12T03:00:00.000Z"
+}];
+const duplicateContestStore = createMemoryStore(duplicateContestData);
+await finalizeMatchday(duplicateContestStore, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const duplicateYouStanding = duplicateContestData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_you");
+const duplicateAvaStanding = duplicateContestData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_ava");
+assert.equal(duplicateYouStanding.played, 1);
+assert.equal(duplicateYouStanding.leaguePoints, 3);
+assert.equal(duplicateAvaStanding.played, 1);
+assert.notEqual(duplicateAvaStanding.played, 2);
+
 const fallbackData = createSeedData();
 fallbackData.matchdays.push({
   id: "md_no_direct_odds",

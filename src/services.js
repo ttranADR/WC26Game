@@ -1317,6 +1317,7 @@ function calculateMatchdayScores(data, matchDayId, options = {}) {
   const playerTotals = new Map();
   const cardStats = new Map();
   const exactStats = new Map();
+  const submittedUsers = new Set();
 
   data.playerCardSets
     .filter((set) => set.matchDayId === matchDayId)
@@ -1324,7 +1325,28 @@ function calculateMatchdayScores(data, matchDayId, options = {}) {
       let total = 0;
       let cardCorrect = 0;
       let cardAttempted = 0;
-      data.playerCards.filter((playerCard) => playerCard.playerCardSetId === set.id).forEach((playerCard) => {
+      const playerCards = data.playerCards.filter((playerCard) => playerCard.playerCardSetId === set.id);
+      const selectedCards = playerCards.filter((playerCard) => playerCard.selected);
+      const submitted = Boolean(data.scorePredictions.find((prediction) => (
+        prediction.matchDayId === matchDayId &&
+        prediction.userId === set.userId &&
+        prediction.submittedAt
+      ))) && selectedCards.length >= MIN_SELECTED_CARDS;
+
+      if (!submitted) {
+        if (options.mutate) {
+          playerCards.forEach((playerCard) => {
+            playerCard.isCorrect = null;
+            playerCard.pointsAwarded = 0;
+          });
+        }
+        playerTotals.set(set.userId, 0);
+        cardStats.set(set.userId, { cardCorrect: 0, cardAttempted: 0 });
+        return;
+      }
+
+      submittedUsers.add(set.userId);
+      playerCards.forEach((playerCard) => {
         const card = cards.get(playerCard.predictionCardId);
         const match = matches.get(card?.tournamentMatchId);
         if (playerCard.selected && card) {
@@ -1356,7 +1378,7 @@ function calculateMatchdayScores(data, matchDayId, options = {}) {
     });
 
   data.scorePredictions
-    .filter((prediction) => prediction.matchDayId === matchDayId)
+    .filter((prediction) => prediction.matchDayId === matchDayId && submittedUsers.has(prediction.userId))
     .forEach((prediction) => {
       const match = matches.get(prediction.tournamentMatchId);
       const grade = gradeExactPrediction(prediction, match, data.oddsSnapshots);
@@ -1372,8 +1394,8 @@ function calculateMatchdayScores(data, matchDayId, options = {}) {
 }
 
 function updateContestScore(contest, playerTotals) {
-  const aUsers = contest.participants.filter((part) => part.side === "A").map((part) => part.userId);
-  const bUsers = contest.participants.filter((part) => part.side === "B").map((part) => part.userId);
+  const aUsers = uniqueUserIds(contest.participants.filter((part) => part.side === "A").map((part) => part.userId));
+  const bUsers = uniqueUserIds(contest.participants.filter((part) => part.side === "B").map((part) => part.userId));
   contest.participantAScore = normalizedSideScore(aUsers, bUsers, playerTotals);
   contest.participantBScore = bUsers.length ? normalizedSideScore(bUsers, aUsers, playerTotals) : 0;
   contest.status = "FINAL";
@@ -1389,28 +1411,37 @@ function rebuildLeagueStandingsFromFinalContests(data, leagueId, scoreCache = ne
     .map((member) => member.userId);
   data.leagueStandings = data.leagueStandings.filter((standing) => standing.leagueId !== leagueId);
   data.leagueStandings.push(...createStandings(leagueId, leagueUserIds));
+  const countedUserMatchdays = new Set();
 
   data.headToHeadContests
     .filter((contest) => contest.leagueId === leagueId && contest.status === "FINAL")
-    .sort((a, b) => sortMatchdaysForSchedule(
-      data.matchdays.find((matchday) => matchday.id === a.matchDayId) || { date: "", name: "" },
-      data.matchdays.find((matchday) => matchday.id === b.matchDayId) || { date: "", name: "" }
-    ))
+    .sort((a, b) => {
+      const matchdaySort = sortMatchdaysForSchedule(
+        data.matchdays.find((matchday) => matchday.id === a.matchDayId) || { date: "", name: "" },
+        data.matchdays.find((matchday) => matchday.id === b.matchDayId) || { date: "", name: "" }
+      );
+      if (matchdaySort) return matchdaySort;
+      return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0) ||
+        String(a.id).localeCompare(String(b.id));
+    })
     .forEach((contest) => {
       if (!scoreCache.has(contest.matchDayId)) {
         scoreCache.set(contest.matchDayId, calculateMatchdayScores(data, contest.matchDayId));
       }
       const { cardStats, exactStats } = scoreCache.get(contest.matchDayId);
-      updateSide(data, leagueId, contest, "A", contest.participantAScore, contest.participantBScore, cardStats, exactStats);
-      updateSide(data, leagueId, contest, "B", contest.participantBScore, contest.participantAScore, cardStats, exactStats);
+      updateSide(data, leagueId, contest, "A", contest.participantAScore, contest.participantBScore, cardStats, exactStats, countedUserMatchdays);
+      updateSide(data, leagueId, contest, "B", contest.participantBScore, contest.participantAScore, cardStats, exactStats, countedUserMatchdays);
     });
 }
 
-function updateSide(data, leagueId, contest, side, scoreFor, scoreAgainst, cardStats, exactStats) {
-  const participants = contest.participants.filter((part) => part.side === side);
+function updateSide(data, leagueId, contest, side, scoreFor, scoreAgainst, cardStats, exactStats, countedUserMatchdays = new Set()) {
+  const participants = uniqueParticipants(contest.participants.filter((part) => part.side === side));
   participants.forEach((part) => {
+    const countedKey = `${contest.matchDayId}::${part.userId}`;
+    if (countedUserMatchdays.has(countedKey)) return;
     const standing = data.leagueStandings.find((row) => row.leagueId === leagueId && row.userId === part.userId);
     if (!standing) return;
+    countedUserMatchdays.add(countedKey);
     standing.played += 1;
     standing.fantasyPointsFor += scoreFor;
     standing.fantasyPointsAgainst += scoreAgainst;
@@ -1733,11 +1764,26 @@ function sumScores(userIds, playerTotals) {
   return Number(userIds.reduce((sum, userId) => sum + (playerTotals.get(userId) || 0), 0).toFixed(1));
 }
 
+function uniqueUserIds(userIds) {
+  return [...new Set(userIds.filter(Boolean))];
+}
+
+function uniqueParticipants(participants) {
+  const seen = new Set();
+  return participants.filter((part) => {
+    if (!part.userId || seen.has(part.userId)) return false;
+    seen.add(part.userId);
+    return true;
+  });
+}
+
 function normalizedSideScore(sideUserIds, opposingUserIds, playerTotals) {
   if (!sideUserIds.length) return 0;
-  const sideTotal = sumScores(sideUserIds, playerTotals);
-  const playerBaseline = Math.max(sideUserIds.length, opposingUserIds.length || sideUserIds.length);
-  return Number((sideTotal * (playerBaseline / sideUserIds.length)).toFixed(1));
+  const uniqueSideUserIds = uniqueUserIds(sideUserIds);
+  const uniqueOpposingUserIds = uniqueUserIds(opposingUserIds);
+  const sideTotal = sumScores(uniqueSideUserIds, playerTotals);
+  const playerBaseline = Math.max(uniqueSideUserIds.length, uniqueOpposingUserIds.length || uniqueSideUserIds.length);
+  return Number((sideTotal * (playerBaseline / uniqueSideUserIds.length)).toFixed(1));
 }
 
 function upsertLeagueMember(data, memberInput) {
