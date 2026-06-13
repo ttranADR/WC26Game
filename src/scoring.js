@@ -2,6 +2,12 @@ import { CARD_POINTS_CORRECT, CARD_POINTS_INCORRECT } from "./config.js";
 
 const DEFAULT_OTHER_SCORE_MULTIPLIER = 19.5;
 
+function normalizeScore(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const score = Number(value);
+  return Number.isInteger(score) ? score : null;
+}
+
 export function gradeCard(card, match) {
   if (card.status === "VOID") {
     return { isCorrect: null, pointsAwarded: 0, voidReason: card.voidReason || "Voided by admin" };
@@ -11,8 +17,12 @@ export function gradeCard(card, match) {
     return { isCorrect: null, pointsAwarded: 0, voidReason: "Match is not final" };
   }
 
-  const home = match.homeScore;
-  const away = match.awayScore;
+  const home = normalizeScore(match.homeScore);
+  const away = normalizeScore(match.awayScore);
+  if (home == null || away == null) {
+    return { isCorrect: null, pointsAwarded: 0, voidReason: "Final score is unavailable" };
+  }
+
   const total = home + away;
   let result;
 
@@ -36,10 +46,17 @@ export function gradeCard(card, match) {
         result = false;
         break;
       }
-      if (!["HOME", "AWAY"].includes(match.firstGoalTeam)) {
-        return { isCorrect: null, pointsAwarded: 0, voidReason: "First scoring team is unavailable" };
+      {
+        let firstGoalTeam = match.firstGoalTeam;
+        if (!["HOME", "AWAY"].includes(firstGoalTeam)) {
+          if (home > 0 && away === 0) firstGoalTeam = "HOME";
+          else if (away > 0 && home === 0) firstGoalTeam = "AWAY";
+        }
+        if (!["HOME", "AWAY"].includes(firstGoalTeam)) {
+          return { isCorrect: null, pointsAwarded: 0, voidReason: "First scoring team is unavailable" };
+        }
+        result = firstGoalTeam === card.gradingRule.team;
       }
-      result = match.firstGoalTeam === card.gradingRule.team;
       break;
     case "FIRST_GOAL_BEFORE":
       if (match.firstGoalMinute == null) {
@@ -95,7 +112,9 @@ export function getFallbackExactMultiplier(prediction, match, odds = []) {
 }
 
 export function getExactScoreMultiplier(prediction, match, odds = []) {
-  const score = `${prediction.predictedHomeScore}-${prediction.predictedAwayScore}`;
+  const predictedHome = normalizeScore(prediction.predictedHomeScore);
+  const predictedAway = normalizeScore(prediction.predictedAwayScore);
+  const score = `${predictedHome ?? prediction.predictedHomeScore}-${predictedAway ?? prediction.predictedAwayScore}`;
   const exact = odds.find((odd) => (
     odd.tournamentMatchId === match.id &&
     odd.marketKey === "CORRECT_SCORE" &&
@@ -113,9 +132,15 @@ export function getExactScoreMultiplier(prediction, match, odds = []) {
 
 export function gradeExactPrediction(prediction, match, odds = []) {
   const multiplier = getExactScoreMultiplier(prediction, match, odds);
+  const predictedHome = normalizeScore(prediction.predictedHomeScore);
+  const predictedAway = normalizeScore(prediction.predictedAwayScore);
+  const home = normalizeScore(match?.homeScore);
+  const away = normalizeScore(match?.awayScore);
   const isExact = match.status === "FINISHED" &&
-    prediction.predictedHomeScore === match.homeScore &&
-    prediction.predictedAwayScore === match.awayScore;
+    predictedHome != null &&
+    predictedAway != null &&
+    predictedHome === home &&
+    predictedAway === away;
   return {
     oddsMultiplier: multiplier,
     isExact,

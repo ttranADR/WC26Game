@@ -345,10 +345,12 @@ function createCardFromOdd(matchDayId, matchItem, odd) {
     if (!yes && !no) return null;
     return {
       ...base,
-      cardType: "BOTH_TEAMS_SCORE",
+      cardType: yes ? "BOTH_TEAMS_SCORE" : "CLEAN_SHEET",
       title: yes ? "Both Teams Score" : "No BTTS",
-      questionText: `Will both teams score in ${label}?`,
-      expectedAnswer: yes ? "YES" : "NO",
+      questionText: yes
+        ? `Will both teams score in ${label}?`
+        : `Will at least one team fail to score in ${label}?`,
+      expectedAnswer: "YES",
       gradingRule: {}
     };
   }
@@ -544,7 +546,7 @@ function createCardSets(matchDayId, userIds, cards) {
         playerCardSetId,
         predictionCardId: card.id,
         selected,
-        playerAnswer: selected ? "YES" : null,
+        playerAnswer: selected ? card.expectedAnswer : null,
         isCorrect: null,
         pointsAwarded: 0,
         answeredAt: selected ? new Date().toISOString() : null

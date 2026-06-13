@@ -172,6 +172,11 @@ assert.ok(multiLeagueSummary.contests.every((contest) => contest.leagueId === "l
 
 const over = data.predictionCards.find((card) => card.cardType === "TOTAL_GOALS_OVER");
 assert.equal(gradeCard(over, match).pointsAwarded, 10);
+assert.equal(gradeCard(over, {
+  ...match,
+  homeScore: null,
+  awayScore: null
+}).voidReason, "Final score is unavailable");
 
 const draw = data.predictionCards.find((card) => card.cardType === "DRAW" && card.tournamentMatchId === match.id);
 assert.equal(gradeCard(draw, match).pointsAwarded, -10);
@@ -189,6 +194,17 @@ assert.equal(gradeCard({
   expectedAnswer: "YES",
   gradingRule: { team: "HOME" }
 }, match).pointsAwarded, 10);
+assert.equal(gradeCard({
+  status: "ACTIVE",
+  cardType: "FIRST_TEAM_TO_SCORE",
+  expectedAnswer: "YES",
+  gradingRule: { team: "HOME" }
+}, {
+  ...match,
+  homeScore: "2",
+  awayScore: "0",
+  firstGoalTeam: null
+}).pointsAwarded, 10);
 assert.equal(gradeCard({
   status: "ACTIVE",
   cardType: "RED_CARD",
@@ -437,6 +453,15 @@ const groupProjectionSummary = groupProjectionState.matchdaySummaries.find((item
 assert.ok(groupProjectionSummary.userContest.participants.every((part) => Number.isFinite(part.projectedScore)));
 
 const opponentProjectionData = createSeedData();
+opponentProjectionData.matchdays.find((item) => item.id === "md_12").status = "OPEN";
+opponentProjectionData.matchdays.find((item) => item.id === "md_12").lockAt = "2026-12-01T20:00:00.000Z";
+opponentProjectionData.tournamentMatches
+  .filter((item) => item.matchDayId === "md_12")
+  .forEach((item) => {
+    item.status = "SCHEDULED";
+    item.homeScore = null;
+    item.awayScore = null;
+  });
 opponentProjectionData.scorePredictions = opponentProjectionData.scorePredictions.filter((prediction) => prediction.userId !== "user_noah");
 opponentProjectionData.headToHeadContests = [{
   id: "contest_md_12_projection",
@@ -606,6 +631,16 @@ const futureSubmitResult = await submitPicks(fallbackStore, {
 assert.equal(futureSubmitResult.message, "Picks submitted.");
 
 const staleAdminData = createSeedData();
+staleAdminData.matchdays.find((item) => item.id === "md_12").status = "OPEN";
+staleAdminData.matchdays.find((item) => item.id === "md_12").lockAt = "2026-12-01T20:00:00.000Z";
+staleAdminData.tournamentMatches
+  .filter((item) => item.matchDayId === "md_12")
+  .forEach((item) => {
+    item.kickoffAt = "2026-12-01T20:00:00.000Z";
+    item.status = "SCHEDULED";
+    item.homeScore = null;
+    item.awayScore = null;
+  });
 staleAdminData.playerCardSets.push({
   id: "set_md_12_admin_1",
   matchDayId: "md_12",
@@ -764,6 +799,26 @@ const exact = gradeExactPrediction({
 }, match, data.oddsSnapshots);
 assert.equal(exact.isExact, true);
 assert.equal(exact.pointsAwarded, Number((exact.oddsMultiplier * 5).toFixed(1)));
+const exactWithStringScores = gradeExactPrediction({
+  predictedHomeScore: "2",
+  predictedAwayScore: "1"
+}, {
+  ...match,
+  homeScore: "2",
+  awayScore: "1"
+}, data.oddsSnapshots);
+assert.equal(exactWithStringScores.isExact, true);
+assert.equal(exactWithStringScores.pointsAwarded, Number((exactWithStringScores.oddsMultiplier * 5).toFixed(1)));
+const exactWithoutFinalScore = gradeExactPrediction({
+  predictedHomeScore: 0,
+  predictedAwayScore: 0
+}, {
+  ...match,
+  homeScore: null,
+  awayScore: null
+}, data.oddsSnapshots);
+assert.equal(exactWithoutFinalScore.isExact, false);
+assert.equal(exactWithoutFinalScore.pointsAwarded, 0);
 
 const wrong = gradeExactPrediction({
   predictedHomeScore: 1,
@@ -796,6 +851,50 @@ const otherExact = gradeExactPrediction({
 }, data.oddsSnapshots);
 assert.equal(otherExact.isExact, true);
 assert.equal(otherExact.pointsAwarded, Number((fiveFiveMultiplier * 5).toFixed(1)));
+
+const autoScoreData = createSeedData();
+const autoScoreStore = createMemoryStore(autoScoreData);
+await updateMatchScoresForMatchday(autoScoreStore, {
+  supportsMatchEvents: false,
+  async getFixturesByDate() {
+    return autoScoreData.tournamentMatches
+      .filter((item) => item.matchDayId === "md_12")
+      .map((item) => ({
+        externalProvider: item.externalProvider,
+        externalId: item.externalId,
+        homeTeam: item.homeTeam,
+        awayTeam: item.awayTeam,
+        homeTeamCode: item.homeTeamCode,
+        awayTeamCode: item.awayTeamCode,
+        kickoffAt: item.kickoffAt,
+        status: "FINISHED",
+        homeScore: String(item.homeScore),
+        awayScore: String(item.awayScore),
+        firstGoalMinute: null,
+        firstGoalTeam: null,
+        redCardShown: null,
+        topScorerName: item.topScorerName,
+        topScorerScored: null,
+        rawData: { test: true }
+      }));
+  }
+}, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const autoScorePrediction = autoScoreData.scorePredictions.find((prediction) => prediction.userId === "user_you");
+assert.equal(autoScoreData.matchdays.find((item) => item.id === "md_12").status, "FINAL");
+assert.equal(autoScorePrediction.isExact, true);
+assert.equal(autoScorePrediction.pointsAwarded, Number((autoScorePrediction.oddsMultiplier * 5).toFixed(1)));
+assert.ok(autoScoreData.headToHeadContests
+  .filter((contest) => contest.matchDayId === "md_12" && contest.leagueId === "league_1")
+  .every((contest) => contest.status === "FINAL"));
+const autoScorePlayerState = await getAppState(autoScoreStore, "user_you");
+assert.equal(
+  autoScorePlayerState.matchdaySummaries.find((item) => item.id === "md_12").exactPoints,
+  autoScorePrediction.pointsAwarded
+);
 
 assert.equal(getStorageMode("postgres://example"), "neon");
 assert.equal(getStorageMode(""), "local-json");
@@ -1139,7 +1238,7 @@ const daily = await syncDailyTournamentData(dailyStore, {
     }
   }
 }, { date: "2026-06-12" });
-assert.equal(daily.message, "Daily tournament data updated for 2026-06-12.");
+assert.equal(daily.message, "Daily tournament data updated for 2026-06-12. Final scores calculated.");
 assert.deepEqual(fixtureDates, ["2026-06-12"]);
 assert.deepEqual(dailyOddsDates, ["2026-06-12"]);
 

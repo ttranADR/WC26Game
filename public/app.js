@@ -1403,7 +1403,7 @@ function applyMatchdaySelectionState() {
   }
   state.dirtyCards = new Map(summary.playerCards.map((playerCard) => [playerCard.predictionCardId, {
     selected: playerCard.selected,
-    answer: playerCard.playerAnswer
+    answer: playerCard.playerAnswer || playerCard.card?.expectedAnswer || "YES"
   }]));
 }
 
@@ -1423,6 +1423,11 @@ function mutateCard(cardId, patch) {
   const current = state.dirtyCards.get(cardId) || { selected: false, answer: null };
   state.dirtyCards.set(cardId, { ...current, ...patch });
   render();
+}
+
+function defaultAnswerForCard(cardId) {
+  const playerCard = selectedMatchday()?.playerCards.find((card) => card.predictionCardId === cardId);
+  return playerCard?.card?.expectedAnswer || "YES";
 }
 
 root.addEventListener("click", async (event) => {
@@ -1473,7 +1478,7 @@ root.addEventListener("click", async (event) => {
     else {
       const selectedCount = [...state.dirtyCards.values()].filter((card) => card.selected).length;
       if (selectedCount >= MAX_SELECTED_CARDS) return showToast(`You can select up to ${MAX_SELECTED_CARDS} cards.`);
-      mutateCard(cardId, { selected: true, answer: "YES" });
+      mutateCard(cardId, { selected: true, answer: defaultAnswerForCard(cardId) });
     }
     return;
   }
