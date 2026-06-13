@@ -595,6 +595,78 @@ assert.ok(noSubmitScoreData.playerCards
   .filter((card) => card.playerCardSetId === noSubmitNoahSet.id)
   .every((card) => card.pointsAwarded === 0 && card.isCorrect == null));
 
+const negativeCardScoreData = createSeedData();
+negativeCardScoreData.headToHeadContests = [{
+  id: "contest_md_12_negative_cards",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_you",
+  participantBName: "user_noah",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_negative_cards_a", side: "A", userId: "user_you" },
+    { id: "part_md_12_negative_cards_b", side: "B", userId: "user_noah" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}];
+const negativeYouSet = negativeCardScoreData.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_you");
+const negativeYouCards = negativeCardScoreData.playerCards.filter((card) => card.playerCardSetId === negativeYouSet.id);
+const negativeCardLookup = new Map(negativeCardScoreData.predictionCards.map((card) => [card.id, card]));
+const negativeMatchLookup = new Map(negativeCardScoreData.tournamentMatches.map((match) => [match.id, match]));
+const wrongSelections = negativeYouCards
+  .map((playerCard) => {
+    const card = negativeCardLookup.get(playerCard.predictionCardId);
+    const grade = gradeCard(card, negativeMatchLookup.get(card?.tournamentMatchId));
+    return grade.isCorrect == null ? null : { playerCard, card, grade };
+  })
+  .filter(Boolean)
+  .slice(0, 5);
+assert.equal(wrongSelections.length, 5);
+negativeYouCards.forEach((playerCard) => {
+  playerCard.selected = false;
+  playerCard.playerAnswer = null;
+});
+wrongSelections.forEach(({ playerCard, card, grade }) => {
+  playerCard.selected = true;
+  playerCard.playerAnswer = grade.isCorrect
+    ? card.expectedAnswer === "YES" ? "NO" : "YES"
+    : card.expectedAnswer;
+});
+const negativeExactPrediction = negativeCardScoreData.scorePredictions.find((prediction) => (
+  prediction.matchDayId === "md_12" &&
+  prediction.userId === "user_you"
+));
+Object.assign(negativeExactPrediction, {
+  predictedHomeScore: 12,
+  predictedAwayScore: 12,
+  submittedAt: new Date().toISOString(),
+  pointsAwarded: 0,
+  isExact: false
+});
+const negativeCardScoreStore = createMemoryStore(negativeCardScoreData);
+await finalizeMatchday(negativeCardScoreStore, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const negativeContest = negativeCardScoreData.headToHeadContests[0];
+const negativeYouStanding = negativeCardScoreData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_you");
+const negativeFinalState = await getAppState(negativeCardScoreStore, "user_you");
+const negativeSummary = negativeFinalState.matchdaySummaries.find((item) => item.id === "md_12");
+assert.equal(negativeContest.participantAScore, -50);
+assert.equal(negativeYouStanding.fantasyPointsFor, -50);
+assert.equal(negativeSummary.cardPoints, -50);
+assert.equal(negativeSummary.totalPoints, -50);
+assert.ok(negativeSummary.playerCards
+  .filter((card) => card.selected)
+  .every((card) => card.pointsAwarded === -10 && card.isCorrect === false));
+
 const duplicateContestData = createSeedData();
 duplicateContestData.scorePredictions = duplicateContestData.scorePredictions.filter((prediction) => prediction.userId === "user_you");
 duplicateContestData.headToHeadContests = [{
