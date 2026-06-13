@@ -180,6 +180,7 @@ const state = {
   selectedMatchId: null,
   managedLeagueId: localStorage.getItem("pitchpick-managed-league-id") || null,
   score: { home: 2, away: 1 },
+  scorePredictions: new Map(),
   dirtyCards: new Map(),
   matchdayOdds: new Map()
 };
@@ -317,10 +318,12 @@ function renderPlayer() {
   const activeOdd = getActiveExactOdd(exactOdds);
   const multiplier = activeOdd?.priceDecimal || estimateMultiplier();
   const potential = exactScoreBoostPoints(multiplier);
-  const currentPlayerProjection = estimateProjectedScore(potential);
+  const scorePredictionPotential = totalScorePredictionPotential(summary);
+  const currentPlayerProjection = estimateProjectedScore(scorePredictionPotential);
   const displayContest = getPrimaryMatchup(summary);
   const matchup = getProjectedMatchupDisplay(displayContest, data.currentUser.id, currentPlayerProjection);
-  const submitDisabledReason = getSubmitDisabledReason({ summary, hasAssignedCards, locked, selectedMatch, selected });
+  const submitDisabledReason = getSubmitDisabledReason({ summary, hasAssignedCards, locked, selected });
+  const lockedScoreCount = lockedScorePredictionCount(summary);
 
   root.innerHTML = `
     <section class="arena">
@@ -364,7 +367,7 @@ function renderPlayer() {
         </section>
 
         <aside class="right-rail">
-          ${renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards })}
+          ${renderExactScorePanel({ summary, selectedMatch, exactOdds, multiplier, potential, matchdayReadOnly: locked })}
 
           <section class="panel">
             <div class="panel-head"><h2>Matchup</h2><span class="label">${formatPairingMode(displayContest?.mode || data.league.pairingMode)}</span></div>
@@ -378,16 +381,12 @@ function renderPlayer() {
         </aside>
       </div>
 
-      <div class="bottom-fixtures">
-        <div><p class="label">${summary.isToday ? "Today's matches" : "Selected matches"}</p><strong>${summary.matches.length} matches</strong></div>
-        ${summary.matches.length ? summary.matches.map((match) => `
-          <button class="fixture-button ${match.id === selectedMatch?.id ? "active" : ""}" data-match-id="${match.id}">
-            ${renderTeamFlag(match.homeTeamCode, match.homeTeam, { side: "home", compact: true })}
-            <small>vs</small>
-            ${renderTeamFlag(match.awayTeamCode, match.awayTeam, { side: "away", compact: true })}
-            <em>${formatTime(match.kickoffAt)}</em>
-          </button>
-        `).join("") : `<div class="empty-state fixture-empty">No matches are scheduled for this matchday yet.</div>`}
+      <div class="bottom-fixtures submission-bar">
+        <div>
+          <p class="label">Score Prediction</p>
+          <strong>${lockedScoreCount}/${summary.matches.length} games locked</strong>
+          <span class="muted">${summary.matches.length ? "Lock every game score before submitting." : "No matches are scheduled for this matchday yet."}</span>
+        </div>
         ${renderSubmitPicksButton(submitDisabledReason)}
       </div>
     </section>
@@ -404,29 +403,37 @@ function renderSubmitPicksButton(disabledReason = "") {
   `;
 }
 
-function getSubmitDisabledReason({ summary, hasAssignedCards, locked, selectedMatch, selected }) {
+function getSubmitDisabledReason({ summary, hasAssignedCards, locked, selected }) {
   if (locked || isMatchdayLocked(summary)) return "This matchday is locked.";
   if (!hasAssignedCards) return "No prediction cards are available yet.";
-  if (!selectedMatch) return "No match is available for exact-score prediction.";
+  if (!summary.matches.length) return "No match is available for score prediction.";
   if (selected < MIN_SELECTED_CARDS) return `Select at least ${MIN_SELECTED_CARDS} cards to submit.`;
   if (selected > MAX_SELECTED_CARDS) return `Select no more than ${MAX_SELECTED_CARDS} cards.`;
+  if (!allScorePredictionsLocked(summary)) return `Lock score predictions for all ${summary.matches.length} games.`;
   return "";
 }
 
-function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards }) {
+function renderExactScorePanel({ summary, selectedMatch, exactOdds, multiplier, potential, matchdayReadOnly }) {
   if (!selectedMatch) {
     return `
       <section class="panel">
         <div class="panel-head">
-          <h2>Exact Score Boost</h2>
+          <h2>Score Prediction</h2>
           <span class="label">No match</span>
         </div>
-        <div class="empty-state compact-empty">No match is available for exact-score picks yet.</div>
+        ${renderScoreMatchSelector(summary, selectedMatch)}
+        <div class="empty-state compact-empty">No match is available for score predictions yet.</div>
       </section>
     `;
   }
 
-  const activeScore = normalizeScoreState(state.score);
+  const activePrediction = scorePredictionForMatch(selectedMatch.id);
+  const predictionLocked = Boolean(activePrediction.locked);
+  const readOnlyScore = matchdayReadOnly || predictionLocked;
+  const lockButtonLabel = matchdayReadOnly
+    ? predictionLocked ? "Locked" : "Matchday Locked"
+    : predictionLocked ? "Edit Prediction" : "Lock Game";
+  const activeScore = normalizeScoreState(activePrediction);
   const selectedScore = scoreKey(activeScore);
   const scoreOdds = withOtherExactOdd(exactOdds);
   const listedOdd = getExactOddForScore(scoreOdds, selectedScore);
@@ -436,9 +443,10 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
   return `
     <section class="panel">
       <div class="panel-head">
-        <h2>Exact Score Boost</h2>
-        <span class="label">API ratios</span>
+        <h2>Score Prediction</h2>
+        <span class="label">${lockedScorePredictionCount(summary)}/${summary.matches.length} locked</span>
       </div>
+      ${renderScoreMatchSelector(summary, selectedMatch)}
       <div class="score-matchup">
         ${renderTeamFlag(selectedMatch.homeTeamCode, selectedMatch.homeTeam, { side: "home" })}
         <span>vs</span>
@@ -446,15 +454,15 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
       </div>
       <div class="score-controls">
         <div class="score-stack">
-          <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
+          <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyScore ? "disabled" : ""}>+</button>
           <strong>${activeScore.home}</strong>
-          <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
+          <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyScore ? "disabled" : ""}>-</button>
         </div>
         <span> - </span>
         <div class="score-stack">
-          <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
+          <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyScore ? "disabled" : ""}>+</button>
           <strong>${activeScore.away}</strong>
-          <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
+          <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyScore ? "disabled" : ""}>-</button>
         </div>
       </div>
       <div class="score-odds">
@@ -464,14 +472,46 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
       </div>
       <label class="score-picker">
         <span>Score list</span>
-        <select id="scoreSelect" aria-label="Exact score list" ${readOnlyCards || !scoreOdds.length ? "disabled" : ""}>
+        <select id="scoreSelect" aria-label="Exact score list" ${readOnlyScore || !scoreOdds.length ? "disabled" : ""}>
           ${renderScoreSelectOptions(scoreOdds, selectedScore, displayOdd)}
         </select>
         <small>${usesOtherRate
           ? `Other scores use the 5-5 rate: ${displayOdd.priceDecimal.toFixed(1)}x.`
           : "Listed score odds from the database."}</small>
       </label>
+      <button class="panel-button score-lock-button ${predictionLocked ? "locked" : "primary"}" data-score-lock="${predictionLocked ? "edit" : "lock"}" ${matchdayReadOnly ? "disabled" : ""}>
+        ${lockButtonLabel}
+      </button>
     </section>
+  `;
+}
+
+function renderScoreMatchSelector(summary, selectedMatch) {
+  if (!summary.matches.length) return `<div class="empty-state compact-empty">No matches are scheduled for this matchday yet.</div>`;
+  return `
+    <div class="score-match-selector">
+      <div class="score-match-selector-head">
+        <span>Select match</span>
+        <strong>${lockedScorePredictionCount(summary)}/${summary.matches.length} locked</strong>
+      </div>
+      <div class="score-match-list">
+        ${summary.matches.map((match) => {
+          const locked = isScorePredictionLocked(match.id);
+          const status = locked ? "Locked" : isMatchdayLocked(summary) ? "Closed" : "Open";
+          return `
+            <button class="score-match-button ${match.id === selectedMatch?.id ? "active" : ""} ${locked ? "locked" : ""}" data-match-id="${match.id}">
+              <span class="score-match-teams">
+                ${renderTeamFlag(match.homeTeamCode, match.homeTeam, { side: "home", compact: true })}
+                <small>vs</small>
+                ${renderTeamFlag(match.awayTeamCode, match.awayTeam, { side: "away", compact: true })}
+              </span>
+              <em>${formatTime(match.kickoffAt)}</em>
+              <strong>${status}</strong>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
   `;
 }
 
@@ -524,7 +564,8 @@ function renderMatchdayList(activeId, options = {}) {
 }
 
 function renderMatchdayResult(summary) {
-  const exactMatch = summary.matches.find((match) => match.id === summary.scorePrediction?.tournamentMatchId);
+  const scorePredictions = scorePredictionList(summary);
+  const exactCorrectCount = scorePredictions.filter((prediction) => prediction.isExact).length;
   const resultContest = getPrimaryMatchup(summary);
   const resultMatchup = getFinalMatchupDisplay(resultContest, state.data.currentUser.id);
   root.innerHTML = `
@@ -568,19 +609,28 @@ function renderMatchdayResult(summary) {
 
         <aside class="right-rail">
           <section class="panel">
-            <div class="panel-head"><h2>Exact Score Result</h2><span class="label">${summary.scorePrediction?.isExact ? "Exact" : "Missed"}</span></div>
-            ${summary.scorePrediction ? `
-              <div class="score-matchup">
-                ${renderTeamFlag(exactMatch?.homeTeamCode || "HOME", exactMatch?.homeTeam || "Home", { side: "home" })}
-                <span>vs</span>
-                ${renderTeamFlag(exactMatch?.awayTeamCode || "AWAY", exactMatch?.awayTeam || "Away", { side: "away" })}
+            <div class="panel-head"><h2>Score Prediction Result</h2><span class="label">${exactCorrectCount}/${summary.matches.length} Exact</span></div>
+            ${scorePredictions.length ? `
+              <div class="score-result-list">
+                ${scorePredictions.map((prediction) => {
+                  const exactMatch = summary.matches.find((match) => match.id === prediction.tournamentMatchId);
+                  return `
+                    <div class="score-result-row ${prediction.isExact ? "exact" : ""}">
+                      <div class="score-matchup compact-matchup">
+                        ${renderTeamFlag(exactMatch?.homeTeamCode || "HOME", exactMatch?.homeTeam || "Home", { side: "home", compact: true })}
+                        <span>vs</span>
+                        ${renderTeamFlag(exactMatch?.awayTeamCode || "AWAY", exactMatch?.awayTeam || "Away", { side: "away", compact: true })}
+                      </div>
+                      <div class="score-odds compact-odds">
+                        <span>Predicted ${prediction.predictedHomeScore}-${prediction.predictedAwayScore}</span>
+                        <strong>${prediction.oddsMultiplier.toFixed(1)}x</strong>
+                        <em>${prediction.pointsAwarded} pts</em>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
               </div>
-              <div class="score-odds">
-                <span>Predicted ${summary.scorePrediction.predictedHomeScore}-${summary.scorePrediction.predictedAwayScore}</span>
-                <strong>${summary.scorePrediction.oddsMultiplier.toFixed(1)}x</strong>
-                <em>${summary.scorePrediction.pointsAwarded} pts</em>
-              </div>
-            ` : `<p class="muted">No exact score was submitted.</p>`}
+            ` : `<p class="muted">No score predictions were submitted.</p>`}
           </section>
 
           <section class="panel">
@@ -839,7 +889,7 @@ function renderSubmissionRow(row) {
       </div>
       <div class="submission-meta">
         <span>${row.selectedCount}/${row.requiredCount} cards</span>
-        <span>${row.exactScore ? `Exact ${escapeHtml(row.exactScore)}` : "No exact score"}</span>
+        <span>${row.exactScoreCount || 0}/${row.requiredExactScoreCount || 0} score predictions</span>
       </div>
       <span class="status-pill ${status}">${row.submitted ? "Submitted" : "Missing"}</span>
       <small>${escapeHtml(detail)}</small>
@@ -849,9 +899,9 @@ function renderSubmissionRow(row) {
 
 function missingSubmissionReason(row) {
   if (!row.hasCardSet || row.cardCount === 0) return "No card set assigned";
-  if (row.selectedCount < row.requiredCount && !row.hasExactScore) return "Needs cards and exact score";
+  if (row.selectedCount < row.requiredCount && !row.hasExactScore) return "Needs cards and score predictions";
   if (row.selectedCount < row.requiredCount) return "Needs more selected cards";
-  if (!row.hasExactScore) return "Needs exact score";
+  if (!row.hasExactScore) return "Needs score predictions";
   return "Not submitted";
 }
 
@@ -1199,7 +1249,7 @@ function renderRules() {
         <p>Use the left menu to move through the game:</p>
         <ul>
           <li><strong>Rules</strong>: read the game guide and scoring rules.</li>
-          <li><strong>Player</strong>: submit your matchday prediction cards and exact final score.</li>
+          <li><strong>Player</strong>: submit your matchday prediction cards and score predictions for every game.</li>
           <li><strong>Matchups</strong>: see your scheduled head-to-head contests for the season.</li>
           <li><strong>Leaderboard</strong>: see standings for the league you participate in.</li>
           <li><strong>Account</strong>: update your display name or password.</li>
@@ -1209,11 +1259,11 @@ function renderRules() {
           <li>Go to <strong>Player</strong> and choose the matchday from <strong>All Matchdays</strong>.</li>
           <li>Select at least <strong>5</strong> prediction cards, up to all <strong>12</strong>.</li>
           <li>Answer each selected card with <strong>Yes</strong> or <strong>No</strong>.</li>
-          <li>Choose the exact-score match, then set the final score using the score controls or score list.</li>
+          <li>In <strong>Score Prediction</strong>, choose each match, set the final score, then click <strong>Lock Game</strong>.</li>
           <li>Click <strong>Submit Picks</strong>. After submission, the calendar shows <strong>Submitted</strong>.</li>
         </ol>
         <p>Submit before the first kickoff. Once a matchday is locked, it shows <strong>Locked</strong> and picks cannot be changed.</p>
-        <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect. The exact-score pick scores <strong>5 x odds multiplier</strong> only when it is exactly correct.</p>
+        <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect. Each score prediction scores <strong>5 x odds multiplier</strong> only when it is exactly correct.</p>
         <p>Matchup winners receive <strong>3 league points</strong>; draws receive <strong>1</strong>. Finalized matchup points stay in standings when future matchups are shuffled.</p>
       </div>
       <div class="rules-section translated">
@@ -1221,7 +1271,7 @@ function renderRules() {
         <p>Dùng menu bên trái để di chuyển trong trò chơi:</p>
         <ul>
           <li><strong>Rules</strong>: đọc hướng dẫn và luật tính điểm.</li>
-          <li><strong>Player</strong>: nộp thẻ dự đoán trong ngày thi đấu và dự đoán tỉ số cuối cùng.</li>
+          <li><strong>Player</strong>: nộp thẻ dự đoán trong ngày thi đấu và dự đoán tỉ số cho tất cả trận.</li>
           <li><strong>Matchups</strong>: xem các trận đối đầu của bạn trong mùa giải.</li>
           <li><strong>Leaderboard</strong>: xem bảng xếp hạng của league bạn đang tham gia.</li>
           <li><strong>Account</strong>: cập nhật tên hiển thị hoặc mật khẩu.</li>
@@ -1231,11 +1281,11 @@ function renderRules() {
           <li>Vào tab <strong>Player</strong> và chọn ngày thi đấu trong phần <strong>All Matchdays</strong>.</li>
           <li>Chọn ít nhất <strong>5</strong> thẻ dự đoán, tối đa <strong>12</strong> thẻ.</li>
           <li>Trả lời từng thẻ đã chọn bằng <strong>Yes</strong> hoặc <strong>No</strong>.</li>
-          <li>Chọn trận để dự đoán tỉ số chính xác, sau đó chỉnh tỉ số cuối cùng bằng nút tăng/giảm hoặc danh sách tỉ số.</li>
+          <li>Trong phần <strong>Score Prediction</strong>, chọn từng trận, chỉnh tỉ số cuối cùng, rồi bấm <strong>Lock Game</strong>.</li>
           <li>Bấm <strong>Submit Picks</strong>. Sau khi nộp thành công, lịch sẽ hiện <strong>Submitted</strong>.</li>
         </ol>
         <p>Hãy nộp trước giờ bóng lăn trận đầu tiên. Khi ngày thi đấu đã khóa, lịch sẽ hiện <strong>Locked</strong> và bạn không thể đổi lựa chọn.</p>
-        <p>Mỗi thẻ đã chọn được <strong>+10</strong> điểm nếu đúng và <strong>-10</strong> điểm nếu sai. Dự đoán tỉ số chính xác chỉ có điểm khi đúng tuyệt đối, với công thức <strong>5 x hệ số odds</strong>.</p>
+        <p>Mỗi thẻ đã chọn được <strong>+10</strong> điểm nếu đúng và <strong>-10</strong> điểm nếu sai. Mỗi dự đoán tỉ số chỉ có điểm khi đúng tuyệt đối, với công thức <strong>5 x hệ số odds</strong>.</p>
         <p>Người thắng matchup nhận <strong>3 điểm league</strong>; hòa nhận <strong>1 điểm</strong>. Điểm của matchup đã finalize sẽ được giữ trong bảng xếp hạng dù lịch matchup tương lai được shuffle.</p>
       </div>
     </section>
@@ -1428,6 +1478,68 @@ function getExactOdds(matchId) {
     .sort(compareScoreOdds);
 }
 
+function scorePredictionList(summary) {
+  if (summary?.scorePredictions?.length) return summary.scorePredictions;
+  return summary?.scorePrediction ? [summary.scorePrediction] : [];
+}
+
+function scorePredictionForMatch(matchId) {
+  if (!matchId) return { home: 2, away: 1, locked: false };
+  if (!state.scorePredictions.has(matchId)) {
+    state.scorePredictions.set(matchId, {
+      ...defaultScoreForMatch(matchId),
+      locked: false,
+      submittedAt: null
+    });
+  }
+  return state.scorePredictions.get(matchId);
+}
+
+function defaultScoreForMatch(matchId) {
+  return normalizeScoreState(parseScoreValue(getExactOdds(matchId)[0]?.outcomeName));
+}
+
+function isScorePredictionLocked(matchId) {
+  return Boolean(state.scorePredictions.get(matchId)?.locked);
+}
+
+function lockedScorePredictionCount(summary) {
+  return (summary?.matches || []).filter((match) => isScorePredictionLocked(match.id)).length;
+}
+
+function allScorePredictionsLocked(summary) {
+  return Boolean(summary?.matches?.length) && lockedScorePredictionCount(summary) === summary.matches.length;
+}
+
+function setScorePredictionLocked(matchId, locked) {
+  const current = scorePredictionForMatch(matchId);
+  state.scorePredictions.set(matchId, { ...current, locked: Boolean(locked) });
+}
+
+function activateScoreMatch(matchId) {
+  state.selectedMatchId = matchId;
+  const prediction = scorePredictionForMatch(matchId);
+  state.score = normalizeScoreState(prediction);
+}
+
+function scoreForMatch(matchId) {
+  if (matchId === state.selectedMatchId) return normalizeScoreState(state.score);
+  return normalizeScoreState(scorePredictionForMatch(matchId));
+}
+
+function exactScoreMultiplierForMatch(matchId) {
+  const scoreOdds = withOtherExactOdd(getExactOdds(matchId));
+  const selectedScore = scoreKey(scoreForMatch(matchId));
+  const odd = getExactOddForScore(scoreOdds, selectedScore) || getOtherExactOdd(scoreOdds);
+  return odd?.priceDecimal || estimateMultiplier(matchId);
+}
+
+function totalScorePredictionPotential(summary) {
+  return (summary?.matches || []).reduce((sum, match) => (
+    sum + exactScoreBoostPoints(exactScoreMultiplierForMatch(match.id))
+  ), 0);
+}
+
 function renderScoreSelectOptions(exactOdds, selectedScore, displayOdd) {
   if (!exactOdds.length) return `<option value="">No score odds available</option>`;
   const listedOdd = getExactOddForScore(exactOdds, selectedScore);
@@ -1455,7 +1567,7 @@ function renderScoreSelectOptions(exactOdds, selectedScore, displayOdd) {
 
 function getActiveExactOdd(exactOdds) {
   const scoreOdds = withOtherExactOdd(exactOdds);
-  return getExactOddForScore(scoreOdds, scoreKey(normalizeScoreState(state.score))) || getOtherExactOdd(scoreOdds);
+  return getExactOddForScore(scoreOdds, scoreKey(scoreForMatch(state.selectedMatchId))) || getOtherExactOdd(scoreOdds);
 }
 
 function getExactOddForScore(exactOdds, score) {
@@ -1506,6 +1618,14 @@ function normalizeScoreState(score, fallback = { home: 2, away: 1 }) {
 
 function setScore(score) {
   state.score = normalizeScoreState(score);
+  if (state.selectedMatchId) {
+    const current = scorePredictionForMatch(state.selectedMatchId);
+    state.scorePredictions.set(state.selectedMatchId, {
+      ...current,
+      ...state.score,
+      locked: false
+    });
+  }
 }
 
 function groupMatchdaysByCalendarMonth(matchdays) {
@@ -1579,9 +1699,9 @@ function cardDisplayNumber(card) {
   return match ? Number(match[1]) : "-";
 }
 
-function estimateMultiplier() {
-  const selectedMatch = selectedMatchday()?.matches.find((match) => match.id === state.selectedMatchId);
-  const score = normalizeScoreState(state.score);
+function estimateMultiplier(matchId = state.selectedMatchId) {
+  const selectedMatch = selectedMatchday()?.matches.find((match) => match.id === matchId);
+  const score = scoreForMatch(matchId);
   const total = score.home + score.away;
   let base = score.home === score.away ? 3.4 : score.home > score.away ? 1.7 : 4.8;
   if (total <= 1) base += 0.2;
@@ -1709,7 +1829,10 @@ function calendarDayStatusLabel(matchday) {
 }
 
 function hasSubmittedMatchday(matchday) {
-  return Boolean(matchday?.scorePrediction?.submittedAt && (matchday.selectedCards || []).length >= MIN_SELECTED_CARDS);
+  return Boolean(scorePredictionList(matchday).length >= (matchday?.matches || []).length &&
+    (matchday?.matches || []).length > 0 &&
+    scorePredictionList(matchday).every((prediction) => prediction.submittedAt) &&
+    (matchday.selectedCards || []).length >= MIN_SELECTED_CARDS);
 }
 
 function normalizeSelectedMatchday() {
@@ -1730,14 +1853,24 @@ function normalizeSelectedMatchday() {
 function applyMatchdaySelectionState() {
   const summary = normalizeSelectedMatchday();
   if (!summary) return;
-  const saved = summary.scorePrediction;
-  state.selectedMatchId = saved?.tournamentMatchId || summary.matches[0]?.id || null;
-  if (saved) {
-    setScore({ home: saved.predictedHomeScore, away: saved.predictedAwayScore });
-  } else {
-    const firstOdd = state.selectedMatchId ? getExactOdds(state.selectedMatchId)[0] : null;
-    setScore(parseScoreValue(firstOdd?.outcomeName));
-  }
+  const savedPredictions = new Map(scorePredictionList(summary).map((prediction) => [prediction.tournamentMatchId, prediction]));
+  state.scorePredictions = new Map(summary.matches.map((match) => {
+    const saved = savedPredictions.get(match.id);
+    const score = saved
+      ? normalizeScoreState({ home: saved.predictedHomeScore, away: saved.predictedAwayScore })
+      : defaultScoreForMatch(match.id);
+    return [match.id, {
+      ...score,
+      locked: Boolean(saved?.submittedAt),
+      submittedAt: saved?.submittedAt || null
+    }];
+  }));
+  const currentMatchStillAvailable = summary.matches.some((match) => match.id === state.selectedMatchId);
+  const firstUnlockedMatch = summary.matches.find((match) => !isScorePredictionLocked(match.id));
+  state.selectedMatchId = currentMatchStillAvailable
+    ? state.selectedMatchId
+    : firstUnlockedMatch?.id || summary.matches[0]?.id || null;
+  state.score = state.selectedMatchId ? normalizeScoreState(scorePredictionForMatch(state.selectedMatchId)) : { home: 2, away: 1 };
   state.dirtyCards = new Map(summary.playerCards.map((playerCard) => [playerCard.predictionCardId, {
     selected: playerCard.selected,
     answer: playerCard.playerAnswer || playerCard.card?.expectedAnswer || "YES"
@@ -1825,6 +1958,7 @@ root.addEventListener("click", async (event) => {
   const scoreStep = event.target.closest("[data-score-team]");
   if (scoreStep) {
     if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
+    if (isScorePredictionLocked(state.selectedMatchId)) return showToast("Edit this score prediction before changing it.");
     const team = scoreStep.dataset.scoreTeam;
     const delta = Number(scoreStep.dataset.delta);
     const currentScore = normalizeScoreState(state.score);
@@ -1836,16 +1970,26 @@ root.addEventListener("click", async (event) => {
   const scoreChip = event.target.closest("[data-score-chip]");
   if (scoreChip) {
     if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
+    if (isScorePredictionLocked(state.selectedMatchId)) return showToast("Edit this score prediction before changing it.");
     setScore(parseScoreValue(scoreChip.dataset.scoreChip));
+    render();
+    return;
+  }
+
+  const scoreLock = event.target.closest("[data-score-lock]");
+  if (scoreLock) {
+    if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
+    if (!state.selectedMatchId) return showToast("No match is available for this matchday yet.");
+    const shouldLock = scoreLock.dataset.scoreLock === "lock";
+    setScorePredictionLocked(state.selectedMatchId, shouldLock);
+    showToast(shouldLock ? "Game score locked." : "Score prediction ready to edit.");
     render();
     return;
   }
 
   const fixture = event.target.closest("[data-match-id]");
   if (fixture) {
-    state.selectedMatchId = fixture.dataset.matchId;
-    const firstOdd = getExactOdds(state.selectedMatchId)[0];
-    setScore(parseScoreValue(firstOdd?.outcomeName));
+    activateScoreMatch(fixture.dataset.matchId);
     render();
     return;
   }
@@ -1892,6 +2036,11 @@ root.addEventListener("change", (event) => {
   if (event.target.id === "scoreSelect") {
     if (isMatchdayLocked(selectedMatchday())) {
       showToast("This matchday auto-locked at first kickoff.");
+      render();
+      return;
+    }
+    if (isScorePredictionLocked(state.selectedMatchId)) {
+      showToast("Edit this score prediction before changing it.");
       render();
       return;
     }
@@ -1958,23 +2107,29 @@ async function submitPicks() {
     showToast("No match is available for this matchday yet.");
     return;
   }
+  if (!allScorePredictionsLocked(summary)) {
+    showToast(`Lock score predictions for all ${summary.matches.length} games.`);
+    return;
+  }
   const selectedCardIds = [...state.dirtyCards.entries()].filter(([, value]) => value.selected).map(([cardId]) => cardId);
   if (selectedCardIds.length < MIN_SELECTED_CARDS || selectedCardIds.length > MAX_SELECTED_CARDS) {
     showToast(`Select ${MIN_SELECTED_CARDS} to ${MAX_SELECTED_CARDS} cards.`);
     return;
   }
   const answers = Object.fromEntries([...state.dirtyCards.entries()].map(([cardId, value]) => [cardId, value.answer]));
-  const score = normalizeScoreState(state.score);
   await mutate("/api/player/submit-picks", {
     userId: state.data.currentUser.id,
     matchDayId: summary.id,
     selectedCardIds,
     answers,
-    scorePrediction: {
-      tournamentMatchId: state.selectedMatchId,
-      predictedHomeScore: score.home,
-      predictedAwayScore: score.away
-    }
+    scorePredictions: summary.matches.map((match) => {
+      const prediction = normalizeScoreState(scorePredictionForMatch(match.id));
+      return {
+        tournamentMatchId: match.id,
+        predictedHomeScore: prediction.home,
+        predictedAwayScore: prediction.away
+      };
+    })
   }, "Picks submitted.");
 }
 

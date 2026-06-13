@@ -54,8 +54,17 @@ export function createSeedData() {
   const cardSets = createCardSets(matchday.id, members.map((member) => member.userId), cards);
   const scorePredictions = [
     scorePrediction("score_user_you", "user_you", "match_bra_mar", 2, 1, 6.2),
+    scorePrediction("score_user_you_match_arg_jpn", "user_you", "match_arg_jpn", 0, 0, 7.0),
+    scorePrediction("score_user_you_match_ger_can", "user_you", "match_ger_can", 0, 0, 7.0),
+    scorePrediction("score_user_you_match_esp_crc", "user_you", "match_esp_crc", 0, 0, 7.0),
     scorePrediction("score_user_maya", "user_maya", "match_bra_mar", 1, 1, 5.8),
-    scorePrediction("score_user_liam", "user_liam", "match_bra_mar", 3, 1, 9.5)
+    scorePrediction("score_user_maya_match_arg_jpn", "user_maya", "match_arg_jpn", 0, 0, 7.0),
+    scorePrediction("score_user_maya_match_ger_can", "user_maya", "match_ger_can", 0, 0, 7.0),
+    scorePrediction("score_user_maya_match_esp_crc", "user_maya", "match_esp_crc", 0, 0, 7.0),
+    scorePrediction("score_user_liam", "user_liam", "match_bra_mar", 3, 1, 9.5),
+    scorePrediction("score_user_liam_match_arg_jpn", "user_liam", "match_arg_jpn", 0, 0, 7.0),
+    scorePrediction("score_user_liam_match_ger_can", "user_liam", "match_ger_can", 0, 0, 7.0),
+    scorePrediction("score_user_liam_match_esp_crc", "user_liam", "match_esp_crc", 0, 0, 7.0)
   ];
 
   return {

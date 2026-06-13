@@ -534,22 +534,20 @@ await submitPicks(opponentProjectionStore, {
   matchDayId: "md_12",
   selectedCardIds: noahSelectedCardIds,
   answers: Object.fromEntries(noahSelectedCardIds.map((cardId) => [cardId, "YES"])),
-  scorePrediction: {
-    tournamentMatchId: "match_bra_mar",
-    predictedHomeScore: 1,
-    predictedAwayScore: 0
-  }
+  scorePredictions: buildScorePredictions(opponentProjectionData, "md_12", {
+    match_bra_mar: { home: 1, away: 0 }
+  })
 });
 const opponentProjectionAfter = await getAppState(opponentProjectionStore, "user_you");
 const opponentContestAfter = opponentProjectionAfter.matchdaySummaries
   .find((item) => item.id === "md_12")
   .userContest;
 const noahProjection = opponentContestAfter.participants.find((part) => part.userId === "user_noah").projectedScore;
-const noahExactPrediction = opponentProjectionData.scorePredictions.find((prediction) => (
+const noahExactBoost = opponentProjectionData.scorePredictions.filter((prediction) => (
   prediction.matchDayId === "md_12" &&
   prediction.userId === "user_noah"
-));
-assert.equal(noahProjection, Number((noahSelectedCardIds.length * 10 + noahExactPrediction.oddsMultiplier * 5).toFixed(1)));
+)).reduce((sum, prediction) => sum + prediction.oddsMultiplier * 5, 0);
+assert.equal(noahProjection, Number((noahSelectedCardIds.length * 10 + noahExactBoost).toFixed(1)));
 await finalizeMatchday(groupScoreStore, {
   leagueId: "league_1",
   matchDayId: "md_12",
@@ -676,17 +674,17 @@ wrongSelections.forEach(({ playerCard, card, grade }) => {
     ? card.expectedAnswer === "YES" ? "NO" : "YES"
     : card.expectedAnswer;
 });
-const negativeExactPrediction = negativeCardScoreData.scorePredictions.find((prediction) => (
+const negativeExactPredictions = negativeCardScoreData.scorePredictions.filter((prediction) => (
   prediction.matchDayId === "md_12" &&
   prediction.userId === "user_you"
 ));
-Object.assign(negativeExactPrediction, {
+negativeExactPredictions.forEach((prediction) => Object.assign(prediction, {
   predictedHomeScore: 12,
   predictedAwayScore: 12,
   submittedAt: new Date().toISOString(),
   pointsAwarded: 0,
   isExact: false
-});
+}));
 const negativeCardScoreStore = createMemoryStore(negativeCardScoreData);
 await finalizeMatchday(negativeCardScoreStore, {
   leagueId: "league_1",
@@ -1549,12 +1547,25 @@ function getMatchdayScoreTotals(data, matchDayId) {
     const cardPoints = data.playerCards
       .filter((card) => card.playerCardSetId === set.id)
       .reduce((sum, card) => sum + (card.pointsAwarded || 0), 0);
-    const exactPoints = data.scorePredictions.find((prediction) => (
+    const exactPoints = data.scorePredictions.filter((prediction) => (
       prediction.matchDayId === set.matchDayId &&
       prediction.userId === set.userId
-    ))?.pointsAwarded || 0;
+    )).reduce((sum, prediction) => sum + (prediction.pointsAwarded || 0), 0);
     return [set.userId, cardPoints + exactPoints];
   }));
+}
+
+function buildScorePredictions(data, matchDayId, scoresByMatchId = {}) {
+  return data.tournamentMatches
+    .filter((matchItem) => matchItem.matchDayId === matchDayId)
+    .map((matchItem) => {
+      const score = scoresByMatchId[matchItem.id] || { home: 0, away: 0 };
+      return {
+        tournamentMatchId: matchItem.id,
+        predictedHomeScore: score.home,
+        predictedAwayScore: score.away
+      };
+    });
 }
 
 function jsonResponse(body) {
