@@ -1040,13 +1040,52 @@ function renderLeaderboard() {
 function renderRules() {
   document.querySelector("#matchdayName").textContent = "Game Rules";
   root.innerHTML = `
-    <section class="panel">
+    <section class="panel rules-panel">
       <div class="panel-head"><h2>Game Rules</h2><span class="label">World Cup friends league</span></div>
-      <p>Each player receives 12 prediction cards each matchday and must select at least 5, up to all 12.</p>
-      <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect.</p>
-      <p>Players also submit one exact final score. If it is correct, exact-score points equal <strong>5 x odds multiplier</strong>.</p>
-      <p>Admin can generate a full-season matchup schedule with 1v1, 2v2, and half-league contests. Winning players receive <strong>3 league points</strong>; draws receive <strong>1</strong>.</p>
-      <p>Finalized matchup points stay in standings when future matchups are shuffled.</p>
+      <div class="rules-section">
+        <h3>English</h3>
+        <p>Use the left menu to move through the game:</p>
+        <ul>
+          <li><strong>Rules</strong>: read the game guide and scoring rules.</li>
+          <li><strong>Player</strong>: submit your matchday prediction cards and exact final score.</li>
+          <li><strong>Matchups</strong>: see your scheduled head-to-head contests for the season.</li>
+          <li><strong>Leaderboard</strong>: see standings for the league you participate in.</li>
+          <li><strong>Account</strong>: update your display name or password.</li>
+        </ul>
+        <p>To submit a matchday result prediction:</p>
+        <ol>
+          <li>Go to <strong>Player</strong> and choose the matchday from <strong>All Matchdays</strong>.</li>
+          <li>Select at least <strong>5</strong> prediction cards, up to all <strong>12</strong>.</li>
+          <li>Answer each selected card with <strong>Yes</strong> or <strong>No</strong>.</li>
+          <li>Choose the exact-score match, then set the final score using the score controls or score list.</li>
+          <li>Click <strong>Submit Picks</strong>. After submission, the calendar shows <strong>Submitted</strong>.</li>
+        </ol>
+        <p>Submit before the first kickoff. Once a matchday is locked, it shows <strong>Locked</strong> and picks cannot be changed.</p>
+        <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect. The exact-score pick scores <strong>5 x odds multiplier</strong> only when it is exactly correct.</p>
+        <p>Matchup winners receive <strong>3 league points</strong>; draws receive <strong>1</strong>. Finalized matchup points stay in standings when future matchups are shuffled.</p>
+      </div>
+      <div class="rules-section translated">
+        <h3>Tiếng Việt</h3>
+        <p>Dùng menu bên trái để di chuyển trong trò chơi:</p>
+        <ul>
+          <li><strong>Rules</strong>: đọc hướng dẫn và luật tính điểm.</li>
+          <li><strong>Player</strong>: nộp thẻ dự đoán trong ngày thi đấu và dự đoán tỉ số cuối cùng.</li>
+          <li><strong>Matchups</strong>: xem các trận đối đầu của bạn trong mùa giải.</li>
+          <li><strong>Leaderboard</strong>: xem bảng xếp hạng của league bạn đang tham gia.</li>
+          <li><strong>Account</strong>: cập nhật tên hiển thị hoặc mật khẩu.</li>
+        </ul>
+        <p>Cách nộp dự đoán cho một ngày thi đấu:</p>
+        <ol>
+          <li>Vào tab <strong>Player</strong> và chọn ngày thi đấu trong phần <strong>All Matchdays</strong>.</li>
+          <li>Chọn ít nhất <strong>5</strong> thẻ dự đoán, tối đa <strong>12</strong> thẻ.</li>
+          <li>Trả lời từng thẻ đã chọn bằng <strong>Yes</strong> hoặc <strong>No</strong>.</li>
+          <li>Chọn trận để dự đoán tỉ số chính xác, sau đó chỉnh tỉ số cuối cùng bằng nút tăng/giảm hoặc danh sách tỉ số.</li>
+          <li>Bấm <strong>Submit Picks</strong>. Sau khi nộp thành công, lịch sẽ hiện <strong>Submitted</strong>.</li>
+        </ol>
+        <p>Hãy nộp trước giờ bóng lăn trận đầu tiên. Khi ngày thi đấu đã khóa, lịch sẽ hiện <strong>Locked</strong> và bạn không thể đổi lựa chọn.</p>
+        <p>Mỗi thẻ đã chọn được <strong>+10</strong> điểm nếu đúng và <strong>-10</strong> điểm nếu sai. Dự đoán tỉ số chính xác chỉ có điểm khi đúng tuyệt đối, với công thức <strong>5 x hệ số odds</strong>.</p>
+        <p>Người thắng matchup nhận <strong>3 điểm league</strong>; hòa nhận <strong>1 điểm</strong>. Điểm của matchup đã finalize sẽ được giữ trong bảng xếp hạng dù lịch matchup tương lai được shuffle.</p>
+      </div>
     </section>
   `;
 }
