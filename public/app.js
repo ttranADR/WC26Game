@@ -185,6 +185,7 @@ function renderPlayer() {
   const currentPlayerProjection = estimateProjectedScore(potential);
   const displayContest = getPrimaryMatchup(summary);
   const matchup = getProjectedMatchupDisplay(displayContest, data.currentUser.id, currentPlayerProjection);
+  const submitDisabledReason = getSubmitDisabledReason({ summary, hasAssignedCards, locked, selectedMatch, selected });
 
   root.innerHTML = `
     <section class="arena">
@@ -249,10 +250,29 @@ function renderPlayer() {
             <span>${match.homeTeamCode}</span><small>vs</small><span>${match.awayTeamCode}</span><em>${formatTime(match.kickoffAt)}</em>
           </button>
         `).join("") : `<div class="empty-state fixture-empty">No matches are scheduled for this matchday yet.</div>`}
-        <button class="submit-button" id="submitPicks" ${selectedMatch && !readOnlyCards && selected >= MIN_SELECTED_CARDS && selected <= MAX_SELECTED_CARDS ? "" : "disabled"}>Submit Picks</button>
+        ${renderSubmitPicksButton(submitDisabledReason)}
       </div>
     </section>
   `;
+}
+
+function renderSubmitPicksButton(disabledReason = "") {
+  const disabled = Boolean(disabledReason);
+  const safeReason = escapeHtml(disabledReason);
+  return `
+    <span class="submit-button-wrap ${disabled ? "disabled" : ""}" ${disabled ? `title="${safeReason}" data-tooltip="${safeReason}" tabindex="0"` : ""}>
+      <button class="submit-button" id="submitPicks" ${disabled ? `disabled title="${safeReason}" aria-disabled="true"` : ""}>Submit Picks</button>
+    </span>
+  `;
+}
+
+function getSubmitDisabledReason({ summary, hasAssignedCards, locked, selectedMatch, selected }) {
+  if (locked || isMatchdayLocked(summary)) return "This matchday is locked.";
+  if (!hasAssignedCards) return "No prediction cards are available yet.";
+  if (!selectedMatch) return "No match is available for exact-score prediction.";
+  if (selected < MIN_SELECTED_CARDS) return `Select at least ${MIN_SELECTED_CARDS} cards to submit.`;
+  if (selected > MAX_SELECTED_CARDS) return `Select no more than ${MAX_SELECTED_CARDS} cards.`;
+  return "";
 }
 
 function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential, readOnlyCards }) {

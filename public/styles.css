@@ -1283,6 +1283,49 @@ th {
   color: white;
 }
 
+.submit-button-wrap {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.submit-button-wrap .submit-button {
+  width: 100%;
+}
+
+.submit-button-wrap.disabled {
+  cursor: not-allowed;
+}
+
+.submit-button-wrap.disabled::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 10;
+  width: max-content;
+  max-width: 240px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.submit-button-wrap.disabled:hover::after,
+.submit-button-wrap.disabled:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .submit-button[disabled],
 .primary[disabled],
 .answer-button[disabled],
