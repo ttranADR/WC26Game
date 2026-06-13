@@ -345,11 +345,13 @@ function renderMatchdayList(activeId, options = {}) {
             <div class="calendar-grid">
               ${month.days.map((day) => {
                 const metricCount = day.matchday ? getDayMetric(day.matchday) : 0;
+                const submissionLabel = day.matchday ? calendarSubmissionLabel(day.matchday) : "";
                 return day.matchday ? `
                 <button class="calendar-day ${day.matchday.id === activeId ? "active" : ""} ${day.matchday.isToday ? "today" : ""} ${day.matchday.status.toLowerCase()}" data-matchday-id="${day.matchday.id}">
                   <span>${day.dayOfMonth}</span>
                   <strong>${day.matchday.isToday ? "Today" : day.matchday.status}</strong>
                   <small>${metricCount} ${formatDayMetricLabel(metricCount)}</small>
+                  ${submissionLabel ? `<em class="calendar-submission ${submissionLabel.toLowerCase()}">${submissionLabel}</em>` : ""}
                 </button>
               ` : `
                 <span class="calendar-day empty">${day.dayOfMonth || ""}</span>
@@ -526,17 +528,49 @@ function renderAdmin() {
               <span><strong>${finishedOpsMatches}/${opsMatchday.matches.length}</strong><small>Final scores</small></span>
               <span><strong>${opsMatchday.predictionCardCount || 0}</strong><small>Cards</small></span>
             </div>
-            <div class="actions">
-              <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
-              <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
-              <button class="panel-button primary" data-admin-action="update-match-scores">Update WC Match Score</button>
-              <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
-              <button class="panel-button primary" data-admin-action="generate-cards" data-card-scope="season">Generate Season Cards</button>
-              <button class="panel-button" data-admin-action="generate-pairings">Generate Selected</button>
-              <button class="panel-button" data-admin-action="generate-pairings" data-shuffle="true">Shuffle Selected</button>
-              <button class="panel-button primary" data-admin-action="generate-pairings" data-pairing-scope="season" data-shuffle="true">Generate Season</button>
-              <button class="panel-button" data-admin-action="score-matchday">Score</button>
-              <button class="panel-button primary" data-admin-action="finalize-matchday">Finalize</button>
+            <div class="ops-action-groups">
+              <div class="ops-action-group score-finalization">
+                <div>
+                  <strong>Score Finalization</strong>
+                  <span>${finishedOpsMatches}/${opsMatchday.matches.length} final scores</span>
+                </div>
+                <div class="actions">
+                  <button class="panel-button primary" data-admin-action="update-match-scores">Update WC Match Score</button>
+                  <button class="panel-button" data-admin-action="score-matchday">Score</button>
+                  <button class="panel-button primary" data-admin-action="finalize-matchday">Finalize</button>
+                </div>
+              </div>
+              <div class="ops-action-group">
+                <div>
+                  <strong>Live Data</strong>
+                  <span>${data.oddsSnapshots.length} odds</span>
+                </div>
+                <div class="actions">
+                  <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
+                  <button class="panel-button primary" data-admin-action="sync-odds">Sync All Odds</button>
+                </div>
+              </div>
+              <div class="ops-action-group">
+                <div>
+                  <strong>Cards</strong>
+                  <span>${opsMatchday.predictionCardCount || 0} generated</span>
+                </div>
+                <div class="actions">
+                  <button class="panel-button" data-admin-action="generate-cards">Generate Cards</button>
+                  <button class="panel-button primary" data-admin-action="generate-cards" data-card-scope="season">Generate Season Cards</button>
+                </div>
+              </div>
+              <div class="ops-action-group">
+                <div>
+                  <strong>Matchups</strong>
+                  <span>${managedSelectedContests(opsMatchday.id).length} selected</span>
+                </div>
+                <div class="actions">
+                  <button class="panel-button" data-admin-action="generate-pairings">Generate Selected</button>
+                  <button class="panel-button" data-admin-action="generate-pairings" data-shuffle="true">Shuffle Selected</button>
+                  <button class="panel-button primary" data-admin-action="generate-pairings" data-pairing-scope="season" data-shuffle="true">Generate Season</button>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -1384,6 +1418,14 @@ function selectedMatchday() {
 
 function submissionCheckForMatchday(matchDayId) {
   return (state.data?.submissionChecks || []).find((check) => check.matchDayId === matchDayId) || null;
+}
+
+function calendarSubmissionLabel(matchday) {
+  if (isAdmin()) return "";
+  if (!matchday?.playerCards?.length) return "";
+  if (matchday.scorePrediction?.submittedAt && matchday.selectedCards?.length >= MIN_SELECTED_CARDS) return "Submitted";
+  if (isMatchdayLocked(matchday)) return "Missing";
+  return "";
 }
 
 function normalizeSelectedMatchday() {

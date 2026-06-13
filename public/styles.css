@@ -418,6 +418,32 @@ select:focus-visible {
   font-weight: 800;
 }
 
+.calendar-submission {
+  align-self: end;
+  justify-self: start;
+  margin-top: 3px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.calendar-submission.submitted {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--selected);
+}
+
+.calendar-submission.missing {
+  border-color: var(--red);
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+}
+
 .phase-group {
   display: grid;
   grid-template-columns: minmax(118px, 160px) minmax(0, 1fr);
@@ -1345,6 +1371,46 @@ th {
   gap: 8px;
 }
 
+.ops-action-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.ops-action-group {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1.4fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.ops-action-group.score-finalization {
+  border-color: color-mix(in srgb, var(--green) 42%, var(--line));
+  background: linear-gradient(180deg, var(--selected), transparent 78%), var(--surface-2);
+}
+
+.ops-action-group strong,
+.ops-action-group span {
+  display: block;
+}
+
+.ops-action-group strong {
+  font-size: 14px;
+}
+
+.ops-action-group span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ops-action-group .actions {
+  justify-content: flex-end;
+}
+
 .ops-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1553,10 +1619,15 @@ th {
   .ops-summary,
   .live-data-summary,
   .live-data-actions,
+  .ops-action-group,
   .contest-row-head,
   .contest-sides,
   .member-row {
     grid-template-columns: 1fr;
+  }
+
+  .ops-action-group .actions {
+    justify-content: stretch;
   }
 
   .member-actions {
