@@ -268,7 +268,8 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
     `;
   }
 
-  const selectedScore = scoreKey(state.score);
+  const activeScore = normalizeScoreState(state.score);
+  const selectedScore = scoreKey(activeScore);
   const scoreOdds = withOtherExactOdd(exactOdds);
   const listedOdd = getExactOddForScore(scoreOdds, selectedScore);
   const displayOdd = listedOdd || getOtherExactOdd(scoreOdds);
@@ -288,13 +289,13 @@ function renderExactScorePanel({ selectedMatch, exactOdds, multiplier, potential
       <div class="score-controls">
         <div class="score-stack">
           <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
-          <strong>${state.score.home}</strong>
+          <strong>${activeScore.home}</strong>
           <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
         </div>
         <span> - </span>
         <div class="score-stack">
           <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyCards ? "disabled" : ""}>+</button>
-          <strong>${state.score.away}</strong>
+          <strong>${activeScore.away}</strong>
           <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyCards ? "disabled" : ""}>-</button>
         </div>
       </div>
@@ -1208,7 +1209,7 @@ function renderScoreSelectOptions(exactOdds, selectedScore, displayOdd) {
 
 function getActiveExactOdd(exactOdds) {
   const scoreOdds = withOtherExactOdd(exactOdds);
-  return getExactOddForScore(scoreOdds, scoreKey(state.score)) || getOtherExactOdd(scoreOdds);
+  return getExactOddForScore(scoreOdds, scoreKey(normalizeScoreState(state.score))) || getOtherExactOdd(scoreOdds);
 }
 
 function getExactOddForScore(exactOdds, score) {
@@ -1244,7 +1245,21 @@ function parseScoreValue(value) {
 }
 
 function scoreKey(score) {
-  return `${score.home}-${score.away}`;
+  const normalized = normalizeScoreState(score);
+  return `${normalized.home}-${normalized.away}`;
+}
+
+function normalizeScoreState(score, fallback = { home: 2, away: 1 }) {
+  const home = Number(score?.home);
+  const away = Number(score?.away);
+  return {
+    home: Number.isInteger(home) && home >= 0 ? Math.min(12, home) : fallback.home,
+    away: Number.isInteger(away) && away >= 0 ? Math.min(12, away) : fallback.away
+  };
+}
+
+function setScore(score) {
+  state.score = normalizeScoreState(score);
 }
 
 function groupMatchdaysByCalendarMonth(matchdays) {
@@ -1320,8 +1335,9 @@ function cardDisplayNumber(card) {
 
 function estimateMultiplier() {
   const selectedMatch = selectedMatchday()?.matches.find((match) => match.id === state.selectedMatchId);
-  const total = state.score.home + state.score.away;
-  let base = state.score.home === state.score.away ? 3.4 : state.score.home > state.score.away ? 1.7 : 4.8;
+  const score = normalizeScoreState(state.score);
+  const total = score.home + score.away;
+  let base = score.home === score.away ? 3.4 : score.home > score.away ? 1.7 : 4.8;
   if (total <= 1) base += 0.2;
   if (total >= 4) base += 0.3;
   return Math.min(8, Math.max(1, Number(base.toFixed(1)))) || (selectedMatch ? 2.2 : 1);
@@ -1391,15 +1407,10 @@ function applyMatchdaySelectionState() {
   const saved = summary.scorePrediction;
   state.selectedMatchId = saved?.tournamentMatchId || summary.matches[0]?.id || null;
   if (saved) {
-    state.score = { home: saved.predictedHomeScore, away: saved.predictedAwayScore };
+    setScore({ home: saved.predictedHomeScore, away: saved.predictedAwayScore });
   } else {
     const firstOdd = state.selectedMatchId ? getExactOdds(state.selectedMatchId)[0] : null;
-    if (firstOdd) {
-      const [home, away] = firstOdd.outcomeName.split("-").map(Number);
-      state.score = { home, away };
-    } else {
-      state.score = { home: 2, away: 1 };
-    }
+    setScore(parseScoreValue(firstOdd?.outcomeName));
   }
   state.dirtyCards = new Map(summary.playerCards.map((playerCard) => [playerCard.predictionCardId, {
     selected: playerCard.selected,
@@ -1488,7 +1499,8 @@ root.addEventListener("click", async (event) => {
     if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
     const team = scoreStep.dataset.scoreTeam;
     const delta = Number(scoreStep.dataset.delta);
-    state.score[team] = Math.max(0, Math.min(12, state.score[team] + delta));
+    const currentScore = normalizeScoreState(state.score);
+    setScore({ ...currentScore, [team]: currentScore[team] + delta });
     render();
     return;
   }
@@ -1496,8 +1508,7 @@ root.addEventListener("click", async (event) => {
   const scoreChip = event.target.closest("[data-score-chip]");
   if (scoreChip) {
     if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
-    const [home, away] = scoreChip.dataset.scoreChip.split("-").map(Number);
-    state.score = { home, away };
+    setScore(parseScoreValue(scoreChip.dataset.scoreChip));
     render();
     return;
   }
@@ -1506,10 +1517,7 @@ root.addEventListener("click", async (event) => {
   if (fixture) {
     state.selectedMatchId = fixture.dataset.matchId;
     const firstOdd = getExactOdds(state.selectedMatchId)[0];
-    if (firstOdd) {
-      const [home, away] = firstOdd.outcomeName.split("-").map(Number);
-      state.score = { home, away };
-    }
+    setScore(parseScoreValue(firstOdd?.outcomeName));
     render();
     return;
   }
@@ -1557,7 +1565,7 @@ root.addEventListener("change", (event) => {
     }
     const score = parseScoreValue(event.target.value);
     if (!score) return;
-    state.score = score;
+    setScore(score);
     render();
   }
 });
@@ -1624,6 +1632,7 @@ async function submitPicks() {
     return;
   }
   const answers = Object.fromEntries([...state.dirtyCards.entries()].map(([cardId, value]) => [cardId, value.answer]));
+  const score = normalizeScoreState(state.score);
   await mutate("/api/player/submit-picks", {
     userId: state.data.currentUser.id,
     matchDayId: summary.id,
@@ -1631,8 +1640,8 @@ async function submitPicks() {
     answers,
     scorePrediction: {
       tournamentMatchId: state.selectedMatchId,
-      predictedHomeScore: state.score.home,
-      predictedAwayScore: state.score.away
+      predictedHomeScore: score.home,
+      predictedAwayScore: score.away
     }
   }, "Picks submitted.");
 }
