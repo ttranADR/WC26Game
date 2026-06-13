@@ -1409,7 +1409,7 @@ function updateContestScore(contest, playerTotals) {
 
 function rebuildLeagueStandingsFromFinalContests(data, leagueId, scoreCache = new Map()) {
   const leagueUserIds = data.leagueMembers
-    .filter((member) => member.leagueId === leagueId && member.status !== "REMOVED")
+    .filter((member) => member.leagueId === leagueId && member.status === "ACTIVE")
     .map((member) => member.userId);
   data.leagueStandings = data.leagueStandings.filter((standing) => standing.leagueId !== leagueId);
   data.leagueStandings.push(...createStandings(leagueId, leagueUserIds));
@@ -1469,8 +1469,13 @@ function hydrateState(data, currentUserId = "user_you") {
   const matchday = getTodayMatchday(data);
   data.users.forEach(ensureUserPassword);
   const currentUser = data.users.find((user) => user.id === currentUserId) || data.users.find((user) => user.id === "user_you");
-  const league = selectLeagueForUser(data, currentUser);
+  const admin = currentUser.role === "ADMIN";
   const visibleLeagueIds = visibleLeagueIdsForUser(data, currentUser);
+  const visibleUserIds = visibleUserIdsForUser(data, currentUser, visibleLeagueIds);
+  const hydratedLeagues = hydrateLeagues(data, visibleLeagueIds, { activeMembersOnly: !admin });
+  const league = hydratedLeagues.find((item) => item.id === selectLeagueForUser(data, currentUser)?.id) ||
+    hydratedLeagues[0] ||
+    emptyLeague();
   ensurePlayableCardSetsForUser(data, currentUser.id);
   const cardSet = data.playerCardSets.find((set) => set.matchDayId === matchday.id && set.userId === currentUser.id);
   const playerCards = data.playerCards
@@ -1485,11 +1490,14 @@ function hydrateState(data, currentUserId = "user_you") {
 
   return {
     currentUser: publicUser(currentUser),
-    adminUser: publicUser(data.users.find((user) => user.role === "ADMIN")),
-    users: data.users.map(publicUser),
-    profiles: data.playerProfiles,
-    leagues: hydrateLeagues(data, visibleLeagueIds),
-    leagueMembers: data.leagueMembers.filter((member) => visibleLeagueIds.has(member.leagueId)),
+    adminUser: admin ? publicUser(data.users.find((user) => user.role === "ADMIN")) : null,
+    users: data.users.filter((user) => admin || visibleUserIds.has(user.id)).map(publicUser),
+    profiles: data.playerProfiles.filter((profile) => admin || visibleUserIds.has(profile.userId)),
+    leagues: hydratedLeagues,
+    leagueMembers: data.leagueMembers.filter((member) => (
+      visibleLeagueIds.has(member.leagueId) &&
+      (admin || member.status === "ACTIVE")
+    )),
     league,
     matchdays: data.matchdays
       .slice()
@@ -1509,15 +1517,14 @@ function hydrateState(data, currentUserId = "user_you") {
     seasonContests: hydrateContests(data, null, null, { leagueIds: visibleLeagueIds }),
     matchupAssignments: hydrateMatchupAssignments(data, league.id, userScopedAssignments),
     standings: hydrateStandings(data, league.id),
-    syncLogs: data.syncLogs.slice(0, 20),
-    emailOutbox: (data.emailOutbox || []).slice(0, 20)
+    syncLogs: admin ? data.syncLogs.slice(0, 20) : [],
+    emailOutbox: admin ? (data.emailOutbox || []).slice(0, 20) : []
   };
 }
 
 function selectLeagueForUser(data, user) {
   if (!user || user.role === "ADMIN") return data.leagues[0];
-  const membership = data.leagueMembers.find((member) => member.userId === user.id && member.status === "ACTIVE") ||
-    data.leagueMembers.find((member) => member.userId === user.id && member.status !== "REMOVED");
+  const membership = data.leagueMembers.find((member) => member.userId === user.id && member.status === "ACTIVE");
   return data.leagues.find((league) => league.id === membership?.leagueId) || data.leagues[0];
 }
 
@@ -1525,13 +1532,19 @@ function visibleLeagueIdsForUser(data, user) {
   if (!user) return new Set();
   if (user.role === "ADMIN") return new Set(data.leagues.map((league) => league.id));
   const leagueIds = data.leagueMembers
-    .filter((member) => member.userId === user.id && member.status !== "REMOVED")
+    .filter((member) => member.userId === user.id && member.status === "ACTIVE")
     .map((member) => member.leagueId);
-  if (!leagueIds.length) {
-    const fallbackLeague = selectLeagueForUser(data, user);
-    if (fallbackLeague) leagueIds.push(fallbackLeague.id);
-  }
   return new Set(leagueIds);
+}
+
+function visibleUserIdsForUser(data, user, leagueIds = visibleLeagueIdsForUser(data, user)) {
+  if (!user) return new Set();
+  if (user.role === "ADMIN") return new Set(data.users.map((item) => item.id));
+  const userIds = data.leagueMembers
+    .filter((member) => leagueIds.has(member.leagueId) && member.status === "ACTIVE")
+    .map((member) => member.userId);
+  userIds.push(user.id);
+  return new Set(userIds);
 }
 
 function canAccessLeague(data, user, leagueId) {
@@ -1547,9 +1560,12 @@ function publicUser(user) {
   };
 }
 
-function hydrateLeagues(data, leagueIds = new Set(data.leagues.map((league) => league.id))) {
+function hydrateLeagues(data, leagueIds = new Set(data.leagues.map((league) => league.id)), options = {}) {
   return data.leagues.filter((league) => leagueIds.has(league.id)).map((league) => {
-    const members = data.leagueMembers.filter((member) => member.leagueId === league.id && member.status !== "REMOVED");
+    const members = data.leagueMembers.filter((member) => (
+      member.leagueId === league.id &&
+      (options.activeMembersOnly ? member.status === "ACTIVE" : member.status !== "REMOVED")
+    ));
     const contests = data.headToHeadContests.filter((contest) => contest.leagueId === league.id);
     return {
       ...league,
@@ -1560,6 +1576,21 @@ function hydrateLeagues(data, leagueIds = new Set(data.leagues.map((league) => l
       standings: hydrateStandings(data, league.id)
     };
   });
+}
+
+function emptyLeague() {
+  return {
+    id: "__no_active_league__",
+    name: "No active league",
+    slug: "no-active-league",
+    seasonName: "",
+    pairingMode: "MIXED",
+    memberCount: 0,
+    activeMemberCount: 0,
+    invitedMemberCount: 0,
+    contestCount: 0,
+    standings: []
+  };
 }
 
 function hydrateMatchdaySummaries(data, leagueId, userId) {
@@ -1761,8 +1792,9 @@ function estimateStoredProjectedScore(data, matchDayId, userId) {
 }
 
 function hydrateStandings(data, leagueId) {
+  const activeMemberIds = activeLeagueMemberIds(data, leagueId);
   return data.leagueStandings
-    .filter((standing) => standing.leagueId === leagueId)
+    .filter((standing) => standing.leagueId === leagueId && activeMemberIds.has(standing.userId))
     .map((standing) => {
       const user = data.users.find((item) => item.id === standing.userId);
       return {
@@ -1779,6 +1811,12 @@ function hydrateStandings(data, leagueId) {
       b.exactScorePoints - a.exactScorePoints ||
       b.exactScoresCorrect - a.exactScoresCorrect
     ));
+}
+
+function activeLeagueMemberIds(data, leagueId) {
+  return new Set(data.leagueMembers
+    .filter((member) => member.leagueId === leagueId && member.status === "ACTIVE")
+    .map((member) => member.userId));
 }
 
 function sumScores(userIds, playerTotals) {

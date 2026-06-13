@@ -143,8 +143,14 @@ multiLeagueData.leagueMembers.push({
   userId: "user_liam",
   status: "ACTIVE",
   joinedAt: new Date().toISOString()
+}, {
+  id: "member_league_2_user_ava",
+  leagueId: "league_2",
+  userId: "user_ava",
+  status: "INVITED",
+  joinedAt: new Date().toISOString()
 });
-multiLeagueData.leagueStandings.push(...createStandings("league_2", ["user_maya", "user_liam"]));
+multiLeagueData.leagueStandings.push(...createStandings("league_2", ["user_maya", "user_liam", "user_you", "user_ava"]));
 multiLeagueData.headToHeadContests.push({
   id: "contest_md_12_league_2_1",
   leagueId: "league_2",
@@ -168,10 +174,16 @@ const multiLeagueState = await getAppState(createMemoryStore(multiLeagueData), "
 const multiLeagueSummary = multiLeagueState.matchdaySummaries.find((item) => item.id === "md_12");
 assert.equal(multiLeagueState.league.id, "league_2");
 assert.deepEqual(multiLeagueState.leagues.map((league) => league.id), ["league_2"]);
-assert.ok(multiLeagueState.leagues.every((league) => league.standings.every((standing) => (
-  ["user_maya", "user_liam"].includes(standing.userId)
-))));
-assert.ok(multiLeagueState.leagueMembers.every((member) => member.leagueId === "league_2"));
+assert.deepEqual(multiLeagueState.leagues[0].standings.map((standing) => standing.userId).sort(), ["user_liam", "user_maya"]);
+assert.deepEqual(multiLeagueState.standings.map((standing) => standing.userId).sort(), ["user_liam", "user_maya"]);
+assert.deepEqual(multiLeagueState.users.map((user) => user.id).sort(), ["user_liam", "user_maya"]);
+assert.deepEqual(multiLeagueState.profiles.map((profile) => profile.userId).sort(), ["user_liam", "user_maya"]);
+assert.deepEqual(multiLeagueState.leagueMembers.map((member) => `${member.leagueId}:${member.userId}:${member.status}`).sort(), [
+  "league_2:user_liam:ACTIVE",
+  "league_2:user_maya:ACTIVE"
+]);
+assert.deepEqual(multiLeagueState.syncLogs, []);
+assert.deepEqual(multiLeagueState.emailOutbox, []);
 assert.ok(multiLeagueState.seasonContests.every((contest) => contest.leagueId === "league_2"));
 assert.equal(multiLeagueSummary.userContest.id, "contest_md_12_league_2_1");
 assert.equal(multiLeagueSummary.matchupAssignment.matchupId, "contest_md_12_league_2_1");
@@ -180,6 +192,9 @@ await assert.rejects(() => exportStandingsCsv(createMemoryStore(multiLeagueData)
 const scopedCsv = await exportStandingsCsv(createMemoryStore(multiLeagueData), "league_2", "user_maya");
 assert.match(scopedCsv, /Maya/);
 assert.doesNotMatch(scopedCsv, /You/);
+assert.doesNotMatch(scopedCsv, /Ava/);
+const invitedLeagueState = await getAppState(createMemoryStore(multiLeagueData), "user_ava");
+assert.equal(invitedLeagueState.leagues.some((league) => league.id === "league_2"), false);
 const multiLeagueAdminState = await getAppState(createMemoryStore(multiLeagueData), "admin_1");
 assert.deepEqual(multiLeagueAdminState.leagues.map((league) => league.id), ["league_1", "league_2"]);
 

@@ -35,7 +35,8 @@ async function request(path, options = {}) {
     headers,
     ...options
   });
-  const data = path.endsWith(".csv") ? await response.text() : await response.json();
+  const responsePath = path.split("?")[0];
+  const data = responsePath.endsWith(".csv") ? await response.text() : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed");
   return data;
 }
@@ -1652,7 +1653,11 @@ root.addEventListener("click", async (event) => {
   }
 
   if (event.target.closest("#exportCsv")) {
-    window.location.href = `/api/export/standings.csv?leagueId=${managedLeague().id}`;
+    try {
+      await downloadStandingsCsv();
+    } catch (error) {
+      showToast(error.message);
+    }
   }
 });
 
@@ -1752,6 +1757,19 @@ async function submitPicks() {
   }, "Picks submitted.");
 }
 
+async function downloadStandingsCsv() {
+  const league = managedLeague();
+  const csv = await request(`/api/export/standings.csv?leagueId=${encodeURIComponent(league.id)}`);
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${league.slug || league.id}-standings.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 async function runAdminAction(action, options = {}) {
   const summary = selectedMatchday();
   const syncScope = action === "sync-fixtures" || action === "sync-odds" ? "all" : undefined;
@@ -1827,7 +1845,7 @@ function isMatchdayLocked(matchday) {
 }
 
 function managedLeague() {
-  return state.data.leagues.find((league) => league.id === state.managedLeagueId) || state.data.leagues[0];
+  return state.data.leagues.find((league) => league.id === state.managedLeagueId) || state.data.leagues[0] || state.data.league;
 }
 
 function membersForLeague(leagueId) {
