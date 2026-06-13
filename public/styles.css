@@ -1265,18 +1265,6 @@ select:focus-visible {
   background: color-mix(in srgb, var(--blue) 12%, transparent);
 }
 
-.status-pill.finished {
-  border-color: var(--green);
-  color: var(--green);
-  background: var(--selected);
-}
-
-.status-pill.live {
-  border-color: var(--red);
-  color: var(--red);
-  background: color-mix(in srgb, var(--red) 12%, transparent);
-}
-
 .status-pill.final {
   border-color: var(--green);
   color: var(--green);
@@ -1599,132 +1587,6 @@ th {
   font-weight: 950;
 }
 
-.wc-update-page {
-  align-content: start;
-}
-
-.wc-update-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-}
-
-.wc-update-hero h1 {
-  margin: 6px 0 8px;
-  font-size: 40px;
-  line-height: 1.05;
-}
-
-.wc-update-summary {
-  margin-top: 0;
-}
-
-.wc-update-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-}
-
-.wc-update-tabs a {
-  display: grid;
-  place-items: center;
-  min-height: 38px;
-  min-width: 118px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  color: var(--text);
-  text-decoration: none;
-  font-weight: 900;
-}
-
-.wc-update-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.wc-match-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.wc-match-row {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-}
-
-.wc-match-row-head,
-.wc-match-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.wc-match-row-head time,
-.wc-match-meta {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.wc-match-teams {
-  display: grid;
-  gap: 8px;
-}
-
-.wc-team-row {
-  display: grid;
-  grid-template-columns: minmax(72px, auto) minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-}
-
-.wc-team-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 900;
-}
-
-.team-score {
-  min-width: 26px;
-  color: var(--text);
-  text-align: right;
-  font-size: 20px;
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.wc-standings-table th,
-.wc-standings-table td {
-  white-space: nowrap;
-}
-
-.wc-standing-team {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 190px;
-}
-
-.wc-standing-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 900;
-}
-
 .panel-button {
   padding: 0 12px;
 }
@@ -1879,10 +1741,6 @@ th {
     font-size: 28px;
   }
 
-  .wc-update-hero h1 {
-    font-size: 28px;
-  }
-
   .section-head,
   .panel-head {
     align-items: flex-start;
@@ -1893,8 +1751,6 @@ th {
   .right-rail,
   .bottom-fixtures,
   .admin-grid,
-  .wc-update-hero,
-  .wc-update-grid,
   .league-summary,
   .ops-summary,
   .live-data-summary,

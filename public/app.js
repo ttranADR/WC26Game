@@ -5,9 +5,6 @@ const api = {
   async getMatchdayOdds(matchDayId) {
     return request(`/api/matchday-odds?matchDayId=${encodeURIComponent(matchDayId || "")}`);
   },
-  async getWc26Update() {
-    return request("/api/wc26");
-  },
   async login(email, password) {
     return request("/api/auth/login", {
       method: "POST",
@@ -184,9 +181,7 @@ const state = {
   managedLeagueId: localStorage.getItem("pitchpick-managed-league-id") || null,
   score: { home: 2, away: 1 },
   dirtyCards: new Map(),
-  matchdayOdds: new Map(),
-  wc26Data: null,
-  wc26LoadPromise: null
+  matchdayOdds: new Map()
 };
 
 const root = document.querySelector("#appRoot");
@@ -248,7 +243,6 @@ function render() {
   else if (state.route === "playerData") renderPlayerData();
   else if (state.route === "leagueData") renderLeagueData();
   else if (state.route === "matchups") renderSeasonMatchups();
-  else if (state.route === "wc26") renderWc26Update();
   else if (state.route === "leaderboard") renderLeaderboard();
   else if (state.route === "account") renderAccount();
   else if (state.route === "rules") renderRules();
@@ -347,9 +341,9 @@ function renderPlayer() {
           <small class="muted">Projected</small>
           <strong class="blue-score">${formatScoreValue(matchup.opponentScore)}</strong>
         </div>
-        <div class="lock-card">
+        <div class="lock-card" data-lock-card data-countdown-locked="${locked}">
           <span class="muted">${locked ? "Auto-locked" : "Auto-locks in"}</span>
-          <strong>${locked ? "Locked" : formatCountdown(summary.lockAt)}</strong>
+          <strong data-countdown>${locked ? "Locked" : formatCountdown(summary.lockAt)}</strong>
           <small class="muted">First kickoff · ${formatTime(summary.lockAt)}</small>
         </div>
       </div>
@@ -1166,125 +1160,6 @@ function renderSeasonMatchups() {
   `;
 }
 
-function renderWc26Update() {
-  if (!state.wc26Data) {
-    document.querySelector("#matchdayName").textContent = "WC26 Update";
-    root.innerHTML = `<div class="loading">Loading WC26 fixtures, results, and standings...</div>`;
-    ensureWc26Data().then(() => {
-      if (state.route === "wc26") render();
-    }).catch((error) => showToast(error.message));
-    return;
-  }
-
-  const matches = (state.wc26Data.tournamentMatches || []).slice().sort(compareMatchesByKickoff);
-  const fixtures = matches.filter((match) => !isCompletedMatch(match)).sort(compareMatchesByKickoff);
-  const results = matches.filter(isCompletedMatch).sort((a, b) => matchKickoffTime(b) - matchKickoffTime(a));
-  const standings = buildTournamentStandings(matches);
-  const teamCount = new Set(matches.flatMap((match) => [match.homeTeamCode, match.awayTeamCode]).filter(Boolean)).size;
-  const nextMatch = fixtures[0];
-  const nextMatchLabel = nextMatch
-    ? `${nextMatch.homeTeam} vs ${nextMatch.awayTeam} · ${formatDateTime(nextMatch.kickoffAt)}`
-    : results[0]
-      ? `Latest result: ${results[0].homeTeam} ${formatMatchScore(results[0].homeScore)} - ${formatMatchScore(results[0].awayScore)} ${results[0].awayTeam}`
-      : "Fixture data will appear after admin sync.";
-
-  document.querySelector("#matchdayName").textContent = "WC26 Update";
-  root.innerHTML = `
-    <section class="arena wc-update-page">
-      <section class="panel wc-update-hero">
-        <div>
-          <p class="label">World Cup 26</p>
-          <h1>Fixtures, Results, Standings</h1>
-          <span class="muted">${escapeHtml(nextMatchLabel)}</span>
-        </div>
-        <div class="league-summary wc-update-summary">
-          <span><strong>${fixtures.length}</strong> fixtures</span>
-          <span><strong>${results.length}</strong> results</span>
-          <span><strong>${standings.length}</strong> table teams</span>
-          <span><strong>${teamCount}</strong> total teams</span>
-        </div>
-      </section>
-
-      <nav class="wc-update-tabs" aria-label="WC26 update sections">
-        <a href="#wc-fixtures">Fixtures</a>
-        <a href="#wc-results">Results</a>
-        <a href="#wc-standings">Standings</a>
-      </nav>
-
-      <div class="wc-update-grid">
-        <section class="panel" id="wc-fixtures">
-          <div class="panel-head">
-            <h2>Fixtures</h2>
-            <span class="label">${fixtures.length} upcoming</span>
-          </div>
-          <div class="wc-match-list">
-            ${fixtures.length
-              ? fixtures.slice(0, 18).map((match) => renderWcMatchRow(match)).join("")
-              : `<div class="empty-state compact-empty">No upcoming fixtures are available.</div>`}
-          </div>
-        </section>
-
-        <section class="panel" id="wc-results">
-          <div class="panel-head">
-            <h2>Results</h2>
-            <span class="label">${results.length} final</span>
-          </div>
-          <div class="wc-match-list">
-            ${results.length
-              ? results.slice(0, 18).map((match) => renderWcMatchRow(match, { showScore: true })).join("")
-              : `<div class="empty-state compact-empty">Results will appear after matches are finalized.</div>`}
-          </div>
-        </section>
-      </div>
-
-      <section class="panel" id="wc-standings">
-        <div class="panel-head">
-          <h2>Standings</h2>
-          <span class="label">${results.length} results counted</span>
-        </div>
-        ${renderWcStandingsTable(standings)}
-      </section>
-    </section>
-  `;
-}
-
-function renderWcMatchRow(match, options = {}) {
-  const completed = isCompletedMatch(match);
-  const showScore = options.showScore || completed;
-  const statusLabel = completed ? "Result" : match.status === "LIVE" ? "Live" : "Fixture";
-  const statusClass = completed ? "finished" : String(match.status || "SCHEDULED").toLowerCase();
-  const homeScore = showScore ? `<strong class="team-score">${formatMatchScore(match.homeScore)}</strong>` : "";
-  const awayScore = showScore ? `<strong class="team-score">${formatMatchScore(match.awayScore)}</strong>` : "";
-  const firstGoal = completed && match.firstGoalMinute
-    ? `<span class="muted">First goal ${match.firstGoalMinute}'</span>`
-    : "";
-
-  return `
-    <article class="wc-match-row">
-      <div class="wc-match-row-head">
-        <span class="status-pill ${statusClass}">${statusLabel}</span>
-        <time>${formatDateTime(match.kickoffAt)}</time>
-      </div>
-      <div class="wc-match-teams">
-        <div class="wc-team-row">
-          ${renderTeamFlag(match.homeTeamCode, match.homeTeam, { side: "home", compact: true })}
-          <span class="wc-team-name">${escapeHtml(match.homeTeam || "Home")}</span>
-          ${homeScore}
-        </div>
-        <div class="wc-team-row">
-          ${renderTeamFlag(match.awayTeamCode, match.awayTeam, { side: "away", compact: true })}
-          <span class="wc-team-name">${escapeHtml(match.awayTeam || "Away")}</span>
-          ${awayScore}
-        </div>
-      </div>
-      <div class="wc-match-meta">
-        <span>${escapeHtml(match.stage || match.group || "World Cup")}</span>
-        ${firstGoal}
-      </div>
-    </article>
-  `;
-}
-
 function renderCompactMatchLog(match, options = {}) {
   const showScore = options.showScore || isCompletedMatch(match);
   const middle = showScore
@@ -1299,42 +1174,6 @@ function renderCompactMatchLog(match, options = {}) {
         ${renderTeamFlag(match.awayTeamCode, match.awayTeam, { side: "away", compact: true })}
       </strong>
       <span class="muted">${escapeHtml(match.homeTeam || "Home")} vs ${escapeHtml(match.awayTeam || "Away")} · ${formatTime(match.kickoffAt)}${firstGoal}</span>
-    </div>
-  `;
-}
-
-function renderWcStandingsTable(rows) {
-  if (!rows.length) {
-    return `<div class="empty-state compact-empty">Standings will appear after the first result is finalized.</div>`;
-  }
-  return `
-    <div class="table-scroll">
-      <table class="wc-standings-table">
-        <thead>
-          <tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr>
-        </thead>
-        <tbody>
-          ${rows.map((row, index) => `
-            <tr>
-              <td>${index + 1}</td>
-              <td>
-                <div class="wc-standing-team">
-                  ${renderTeamFlag(row.teamCode, row.teamName, { compact: true })}
-                  <span class="wc-standing-name">${escapeHtml(row.teamName)}</span>
-                </div>
-              </td>
-              <td>${row.played}</td>
-              <td>${row.won}</td>
-              <td>${row.drawn}</td>
-              <td>${row.lost}</td>
-              <td>${row.goalsFor}</td>
-              <td>${row.goalsAgainst}</td>
-              <td>${formatGoalDifference(row.goalDifference)}</td>
-              <td><strong>${row.points}</strong></td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
     </div>
   `;
 }
@@ -1806,78 +1645,6 @@ function flagImageCodeForTeam(teamCode, teamName) {
   return "";
 }
 
-function buildTournamentStandings(matches) {
-  const teams = new Map();
-  const ensureTeam = (teamCode, teamName) => {
-    const key = teamCode || teamName || "TBD";
-    if (!teams.has(key)) {
-      teams.set(key, {
-        teamCode: teamCode || key,
-        teamName: teamName || teamCode || "TBD",
-        played: 0,
-        won: 0,
-        drawn: 0,
-        lost: 0,
-        goalsFor: 0,
-        goalsAgainst: 0,
-        goalDifference: 0,
-        points: 0
-      });
-    }
-    return teams.get(key);
-  };
-
-  matches.filter(isCompletedMatch).forEach((match) => {
-    const home = ensureTeam(match.homeTeamCode, match.homeTeam);
-    const away = ensureTeam(match.awayTeamCode, match.awayTeam);
-    const homeScore = scoreNumber(match.homeScore);
-    const awayScore = scoreNumber(match.awayScore);
-
-    home.played += 1;
-    away.played += 1;
-    home.goalsFor += homeScore;
-    home.goalsAgainst += awayScore;
-    away.goalsFor += awayScore;
-    away.goalsAgainst += homeScore;
-
-    if (homeScore > awayScore) {
-      home.won += 1;
-      away.lost += 1;
-      home.points += 3;
-    } else if (awayScore > homeScore) {
-      away.won += 1;
-      home.lost += 1;
-      away.points += 3;
-    } else {
-      home.drawn += 1;
-      away.drawn += 1;
-      home.points += 1;
-      away.points += 1;
-    }
-  });
-
-  return [...teams.values()]
-    .map((team) => ({
-      ...team,
-      goalDifference: team.goalsFor - team.goalsAgainst
-    }))
-    .sort((a, b) => (
-      b.points - a.points ||
-      b.goalDifference - a.goalDifference ||
-      b.goalsFor - a.goalsFor ||
-      a.teamName.localeCompare(b.teamName)
-    ));
-}
-
-function compareMatchesByKickoff(a, b) {
-  return matchKickoffTime(a) - matchKickoffTime(b);
-}
-
-function matchKickoffTime(match) {
-  const timestamp = new Date(match?.kickoffAt || 0).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
 function isCompletedMatch(match) {
   return match?.status === "FINISHED" && hasScoreValue(match.homeScore) && hasScoreValue(match.awayScore);
 }
@@ -1886,17 +1653,8 @@ function hasScoreValue(value) {
   return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
 }
 
-function scoreNumber(value) {
-  return hasScoreValue(value) ? Number(value) : 0;
-}
-
 function formatMatchScore(value) {
   return hasScoreValue(value) ? String(Number(value)) : "-";
-}
-
-function formatGoalDifference(value) {
-  const number = Number(value || 0);
-  return number > 0 ? `+${number}` : String(number);
 }
 
 function matchdayIdForMatch(matchId) {
@@ -1911,25 +1669,23 @@ async function ensureMatchdayOdds(matchDayId) {
   state.matchdayOdds.set(result.matchDayId, result.correctScoreOdds || []);
 }
 
-async function ensureWc26Data() {
-  if (state.wc26Data) return state.wc26Data;
-  if (!state.wc26LoadPromise) {
-    state.wc26LoadPromise = api.getWc26Update()
-      .then((data) => {
-        state.wc26Data = data;
-        return data;
-      })
-      .finally(() => {
-        state.wc26LoadPromise = null;
-      });
-  }
-  return state.wc26LoadPromise;
-}
-
 function resetRouteDataCaches() {
   state.matchdayOdds.clear();
-  state.wc26Data = null;
-  state.wc26LoadPromise = null;
+}
+
+function updatePlayerCountdown() {
+  if (!state.data || state.route !== "player") return;
+  const summary = selectedMatchday();
+  const countdown = document.querySelector("[data-countdown]");
+  const lockCard = document.querySelector("[data-lock-card]");
+  if (!summary || !countdown || !lockCard) return;
+  const locked = isMatchdayLocked(summary);
+  if (locked && lockCard.dataset.countdownLocked !== "true") {
+    renderPlayer();
+    return;
+  }
+  lockCard.dataset.countdownLocked = String(locked);
+  countdown.textContent = locked ? "Locked" : formatCountdown(summary.lockAt);
 }
 
 function selectedMatchday() {
@@ -2391,5 +2147,5 @@ loadState().catch((error) => {
 });
 
 window.setInterval(() => {
-  if (state.data && state.route === "player") renderPlayer();
+  updatePlayerCountdown();
 }, 1000);
