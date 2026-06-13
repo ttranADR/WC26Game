@@ -21,6 +21,8 @@ import {
   generateCardsForMatchday,
   generatePairingsForMatchday,
   getAppState,
+  getMatchdayOdds,
+  getWc26UpdateState,
   initializeTournamentData,
   invitePlayer,
   loginUser,
@@ -120,6 +122,18 @@ async function handleApi(req, res) {
   try {
     if (method === "GET" && url.pathname === "/api/state") {
       sendJson(res, 200, await getAppState(store, getRequestUserId(req)));
+      return;
+    }
+
+    if (method === "GET" && url.pathname === "/api/wc26") {
+      sendJson(res, 200, await getWc26UpdateState(store));
+      return;
+    }
+
+    if (method === "GET" && url.pathname === "/api/matchday-odds") {
+      sendJson(res, 200, await getMatchdayOdds(store, {
+        matchDayId: url.searchParams.get("matchDayId")
+      }));
       return;
     }
 

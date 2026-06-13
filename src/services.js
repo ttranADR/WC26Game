@@ -26,6 +26,35 @@ export async function getAppState(store, userId = "user_you") {
   });
 }
 
+export async function getWc26UpdateState(store) {
+  const data = await store.read();
+  ensureDemoScaffold(data);
+  refreshMatchdayStatuses(data);
+  return {
+    tournamentSummary: summarizeTournamentData(data),
+    tournamentMatches: data.tournamentMatches.map(projectTournamentMatchForClient)
+  };
+}
+
+export async function getMatchdayOdds(store, input = {}) {
+  const data = await store.read();
+  ensureDemoScaffold(data);
+  refreshMatchdayStatuses(data);
+  const matchday = input.matchDayId
+    ? mustFind(data.matchdays, input.matchDayId, "Matchday")
+    : getTodayMatchday(data);
+  const matchIds = new Set(data.tournamentMatches
+    .filter((match) => match.matchDayId === matchday.id)
+    .map((match) => match.id));
+  return {
+    matchDayId: matchday.id,
+    correctScoreOdds: data.oddsSnapshots.filter((odd) => (
+      odd.marketKey === "CORRECT_SCORE" &&
+      matchIds.has(odd.tournamentMatchId)
+    ))
+  };
+}
+
 export async function loginUser(store, input) {
   return store.update((data) => {
     ensureDemoScaffold(data);
@@ -703,6 +732,29 @@ function projectFixtureForOddsSync(match) {
     homeTeam: match.homeTeam,
     awayTeam: match.awayTeam,
     kickoffAt: match.kickoffAt
+  };
+}
+
+function projectTournamentMatchForClient(match) {
+  return {
+    id: match.id,
+    matchDayId: match.matchDayId,
+    matchdayNumber: match.matchdayNumber,
+    stage: match.stage,
+    group: match.group,
+    homeTeam: match.homeTeam,
+    awayTeam: match.awayTeam,
+    homeTeamCode: match.homeTeamCode,
+    awayTeamCode: match.awayTeamCode,
+    kickoffAt: match.kickoffAt,
+    status: match.status,
+    homeScore: match.homeScore,
+    awayScore: match.awayScore,
+    firstGoalMinute: match.firstGoalMinute,
+    firstGoalTeam: match.firstGoalTeam,
+    redCardShown: match.redCardShown,
+    topScorerName: match.topScorerName,
+    topScorerScored: match.topScorerScored
   };
 }
 
@@ -1508,9 +1560,7 @@ function hydrateState(data, currentUserId = "user_you") {
     submissionChecks: currentUser.role === "ADMIN" ? hydrateSubmissionChecks(data, league.id) : [],
     matchday,
     matches,
-    tournamentMatches: data.tournamentMatches,
-    oddsSnapshots: data.oddsSnapshots,
-    correctScoreOdds: data.oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE"),
+    tournamentSummary: summarizeTournamentData(data),
     playerCards,
     scorePrediction,
     contests: hydrateContests(data, league.id, matchday.id),

@@ -2,6 +2,12 @@ const api = {
   async getState() {
     return request("/api/state");
   },
+  async getMatchdayOdds(matchDayId) {
+    return request(`/api/matchday-odds?matchDayId=${encodeURIComponent(matchDayId || "")}`);
+  },
+  async getWc26Update() {
+    return request("/api/wc26");
+  },
   async login(email, password) {
     return request("/api/auth/login", {
       method: "POST",
@@ -177,7 +183,10 @@ const state = {
   selectedMatchId: null,
   managedLeagueId: localStorage.getItem("pitchpick-managed-league-id") || null,
   score: { home: 2, away: 1 },
-  dirtyCards: new Map()
+  dirtyCards: new Map(),
+  matchdayOdds: new Map(),
+  wc26Data: null,
+  wc26LoadPromise: null
 };
 
 const root = document.querySelector("#appRoot");
@@ -214,7 +223,10 @@ async function loadState() {
     updateChrome();
     return;
   }
+  resetRouteDataCaches();
   syncHydratedState();
+  await ensureMatchdayOdds(selectedMatchday()?.id);
+  applyMatchdaySelectionState();
   updateChrome();
   render();
 }
@@ -693,7 +705,7 @@ function renderAdmin() {
               <div class="ops-action-group">
                 <div>
                   <strong>Live Data</strong>
-                  <span>${data.oddsSnapshots.length} odds</span>
+                  <span>${data.tournamentSummary?.oddsSnapshots || 0} odds</span>
                 </div>
                 <div class="actions">
                   <button class="panel-button primary" data-admin-action="sync-fixtures">Sync All Fixtures</button>
@@ -973,29 +985,29 @@ function renderAccount() {
 function renderLiveDataPanel(data) {
   const today = todayKey();
   const matchdays = data.matchdays || [];
-  const tournamentMatches = data.tournamentMatches || [];
-  const oddsSnapshots = data.oddsSnapshots || [];
+  const tournamentSummary = data.tournamentSummary || {};
   const syncLogs = data.syncLogs || [];
-  const correctScoreOdds = oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE");
-  const generatedCorrectScoreOdds = correctScoreOdds.filter((odd) => odd.provider === "pitchpick-generated");
   const lastInitial = syncLogs.find((item) => item.type === "INITIAL_DATA_LOAD");
   const lastDaily = syncLogs.find((item) => item.type === "DAILY_DATA_UPDATE");
   const todayMatchday = matchdays.find((matchday) => matchday.date === today);
-  const todayMatches = todayMatchday
-    ? tournamentMatches.filter((match) => match.matchDayId === todayMatchday.id)
-    : [];
+  const todaySummary = state.data.matchdaySummaries?.find((matchday) => matchday.id === todayMatchday?.id);
+  const matchCount = tournamentSummary.matches || 0;
+  const oddsCount = tournamentSummary.oddsSnapshots || 0;
+  const correctScoreOddsCount = tournamentSummary.correctScoreOdds || 0;
+  const generatedCorrectScoreOddsCount = tournamentSummary.generatedCorrectScoreOdds || 0;
+  const todayMatchCount = todaySummary?.matches?.length || 0;
 
   return `
     <section class="panel live-data-panel">
       <div class="panel-head">
         <h2>Live Data</h2>
-        <span class="label">${tournamentMatches.length} matches</span>
+        <span class="label">${matchCount} matches</span>
       </div>
       <div class="league-summary live-data-summary">
         <span><strong>${matchdays.length}</strong> matchdays</span>
-        <span><strong>${tournamentMatches.length}</strong> games</span>
-        <span><strong>${oddsSnapshots.length}</strong> odds</span>
-        <span><strong>${correctScoreOdds.length}</strong> score odds</span>
+        <span><strong>${matchCount}</strong> games</span>
+        <span><strong>${oddsCount}</strong> odds</span>
+        <span><strong>${correctScoreOddsCount}</strong> score odds</span>
       </div>
       <div class="live-data-actions">
         <div>
@@ -1010,8 +1022,8 @@ function renderLiveDataPanel(data) {
           <input id="dailySyncDate" type="date" value="${today}" />
         </label>
         <div>
-          <strong>${todayMatches.length} games today</strong>
-          <span class="muted">${lastDaily ? new Date(lastDaily.createdAt).toLocaleString() : "No daily update yet"} · ${generatedCorrectScoreOdds.length} generated score odds</span>
+          <strong>${todayMatchCount} games today</strong>
+          <span class="muted">${lastDaily ? new Date(lastDaily.createdAt).toLocaleString() : "No daily update yet"} · ${generatedCorrectScoreOddsCount} generated score odds</span>
         </div>
         <button class="panel-button" data-admin-action="sync-daily-tournament-data">Update Date</button>
       </div>
@@ -1155,7 +1167,16 @@ function renderSeasonMatchups() {
 }
 
 function renderWc26Update() {
-  const matches = (state.data.tournamentMatches || []).slice().sort(compareMatchesByKickoff);
+  if (!state.wc26Data) {
+    document.querySelector("#matchdayName").textContent = "WC26 Update";
+    root.innerHTML = `<div class="loading">Loading WC26 fixtures, results, and standings...</div>`;
+    ensureWc26Data().then(() => {
+      if (state.route === "wc26") render();
+    }).catch((error) => showToast(error.message));
+    return;
+  }
+
+  const matches = (state.wc26Data.tournamentMatches || []).slice().sort(compareMatchesByKickoff);
   const fixtures = matches.filter((match) => !isCompletedMatch(match)).sort(compareMatchesByKickoff);
   const results = matches.filter(isCompletedMatch).sort((a, b) => matchKickoffTime(b) - matchKickoffTime(a));
   const standings = buildTournamentStandings(matches);
@@ -1562,7 +1583,9 @@ function renderStandingsTable(rows) {
 }
 
 function getExactOdds(matchId) {
-  return state.data.correctScoreOdds
+  const matchdayId = matchdayIdForMatch(matchId);
+  const odds = state.matchdayOdds.get(matchdayId) || [];
+  return odds
     .filter((odd) => odd.tournamentMatchId === matchId)
     .sort(compareScoreOdds);
 }
@@ -1876,6 +1899,39 @@ function formatGoalDifference(value) {
   return number > 0 ? `+${number}` : String(number);
 }
 
+function matchdayIdForMatch(matchId) {
+  return (state.data?.matchdaySummaries || []).find((matchday) => (
+    matchday.matches?.some((match) => match.id === matchId)
+  ))?.id || selectedMatchday()?.id || "";
+}
+
+async function ensureMatchdayOdds(matchDayId) {
+  if (!matchDayId || state.matchdayOdds.has(matchDayId)) return;
+  const result = await api.getMatchdayOdds(matchDayId);
+  state.matchdayOdds.set(result.matchDayId, result.correctScoreOdds || []);
+}
+
+async function ensureWc26Data() {
+  if (state.wc26Data) return state.wc26Data;
+  if (!state.wc26LoadPromise) {
+    state.wc26LoadPromise = api.getWc26Update()
+      .then((data) => {
+        state.wc26Data = data;
+        return data;
+      })
+      .finally(() => {
+        state.wc26LoadPromise = null;
+      });
+  }
+  return state.wc26LoadPromise;
+}
+
+function resetRouteDataCaches() {
+  state.matchdayOdds.clear();
+  state.wc26Data = null;
+  state.wc26LoadPromise = null;
+}
+
 function selectedMatchday() {
   const summaries = state.data?.matchdaySummaries || [];
   return summaries.find((matchday) => matchday.id === state.selectedMatchdayId) ||
@@ -1961,6 +2017,8 @@ root.addEventListener("click", async (event) => {
   if (matchdayButton) {
     state.selectedMatchdayId = matchdayButton.dataset.matchdayId;
     localStorage.setItem("pitchpick-selected-matchday-id", state.selectedMatchdayId);
+    applyMatchdaySelectionState();
+    await ensureMatchdayOdds(state.selectedMatchdayId);
     applyMatchdaySelectionState();
     render();
     return;
@@ -2206,7 +2264,10 @@ async function mutate(path, body, message, after) {
     const result = await api.post(path, body);
     after?.(result);
     state.data = result.state;
+    resetRouteDataCaches();
     syncHydratedState();
+    await ensureMatchdayOdds(selectedMatchday()?.id);
+    applyMatchdaySelectionState();
     showToast(result.message || message);
     render();
   } catch (error) {
@@ -2220,10 +2281,13 @@ async function doLogin(email, password) {
     state.userId = result.user.id;
     localStorage.setItem("pitchpick-user-id", state.userId);
     state.data = result.state;
+    resetRouteDataCaches();
     state.selectedMatchdayId = result.state.todayMatchdayId;
     localStorage.setItem("pitchpick-selected-matchday-id", state.selectedMatchdayId);
     state.route = result.user.role === "ADMIN" ? "admin" : "player";
     syncHydratedState();
+    await ensureMatchdayOdds(selectedMatchday()?.id);
+    applyMatchdaySelectionState();
     updateChrome();
     render();
     showToast(`Logged in as ${result.user.displayName}.`);
@@ -2314,6 +2378,7 @@ document.querySelector("#logoutButton").addEventListener("click", () => {
   localStorage.removeItem("pitchpick-user-id");
   state.userId = null;
   state.data = null;
+  resetRouteDataCaches();
   state.route = "player";
   updateChrome();
   renderLogin();

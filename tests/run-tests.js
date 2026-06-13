@@ -8,6 +8,8 @@ import {
   generateCardsForMatchday,
   generatePairingsForMatchday,
   getAppState,
+  getMatchdayOdds,
+  getWc26UpdateState,
   loginUser,
   submitPicks,
   syncDailyTournamentData,
@@ -100,6 +102,17 @@ await assert.rejects(() => updateUserAccount(createMemoryStore(createSeedData())
 
 const assignmentState = await getAppState(createMemoryStore(createSeedData()), "user_you");
 const assignmentSummary = assignmentState.matchdaySummaries.find((item) => item.id === "md_12");
+const splitPayloadData = createSeedData();
+const matchdayOddsPayload = await getMatchdayOdds(createMemoryStore(splitPayloadData), { matchDayId: "md_12" });
+const wc26Payload = await getWc26UpdateState(createMemoryStore(splitPayloadData));
+assert.equal("tournamentMatches" in assignmentState, false);
+assert.equal("oddsSnapshots" in assignmentState, false);
+assert.equal("correctScoreOdds" in assignmentState, false);
+assert.equal(assignmentState.tournamentSummary.matches, splitPayloadData.tournamentMatches.length);
+assert.ok(matchdayOddsPayload.correctScoreOdds.length > 0);
+assert.ok(matchdayOddsPayload.correctScoreOdds.every((odd) => odd.marketKey === "CORRECT_SCORE"));
+assert.equal(wc26Payload.tournamentMatches.length, splitPayloadData.tournamentMatches.length);
+assert.equal("rawData" in wc26Payload.tournamentMatches[0], false);
 assert.equal(assignmentSummary.matchupAssignment.matchupId, assignmentSummary.userContest.id);
 assert.equal(assignmentSummary.matchupAssignment.userId, "user_you");
 assert.ok(assignmentState.matchupAssignments.some((assignment) => (
