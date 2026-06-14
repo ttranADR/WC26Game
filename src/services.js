@@ -797,7 +797,7 @@ function withCompleteCorrectScoreOdds(matches, providerOdds, capturedAt, existin
   const capturedIso = new Date(capturedAt).toISOString();
 
   matches.forEach((match) => {
-    createCorrectScorePrices(match, strengthOdds).forEach(([score, price], scoreIndex) => {
+    createCorrectScorePrices(match, strengthOdds, nextOdds).forEach(([score, price], scoreIndex) => {
       const key = correctScoreOutcomeKey({
         tournamentMatchId: match.id,
         marketKey: "CORRECT_SCORE",

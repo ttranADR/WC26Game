@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createCardPool, createCardsFromOdds, createContests, createSeedData, createStandings, getCardMeaningKey } from "../src/seed.js";
 import { createOddsApiProvider } from "../src/providers/oddsApiProvider.js";
+import { createCorrectScorePrices } from "../src/oddsPricing.js";
 import { getExactScoreMultiplier, gradeCard, gradeExactPrediction } from "../src/scoring.js";
 import {
   finalizeMatchday,
@@ -36,6 +37,27 @@ const seededUnderdogScoreOdd = data.oddsSnapshots.find((odd) => (
   odd.outcomeName === "0-1"
 ));
 assert.ok(seededFavoriteScoreOdd.priceDecimal < seededUnderdogScoreOdd.priceDecimal);
+const exactApiScorePrices = new Map(createCorrectScorePrices({
+  id: "match_ger_cur",
+  homeTeam: "Germany",
+  awayTeam: "Curacao"
+}, [{
+  tournamentMatchId: "match_ger_cur",
+  marketKey: "MATCH_WINNER",
+  outcomeName: "Germany",
+  priceDecimal: 1.18
+}, {
+  tournamentMatchId: "match_ger_cur",
+  marketKey: "MATCH_WINNER",
+  outcomeName: "Curacao",
+  priceDecimal: 18
+}], [{
+  tournamentMatchId: "match_ger_cur",
+  marketKey: "CORRECT_SCORE",
+  outcomeName: "1-2",
+  priceDecimal: 15
+}]));
+assert.equal(exactApiScorePrices.get("1-2"), 15);
 
 const loginData = createSeedData();
 const loginStore = createMemoryStore(loginData);
@@ -1401,9 +1423,9 @@ globalThis.fetch = async (url) => {
     if (skip === 0) {
       return jsonResponse([{
         id: "event_jun_13",
-        home: "Brazil",
-        away: "Morocco",
-        date: "2026-06-13T20:00:00Z"
+        home_team: "Brazil",
+        away_team: "Morocco",
+        start_time: "2026-06-13T20:00:00Z"
       }, {
         id: "event_jun_14",
         home: "Spain",
@@ -1426,12 +1448,12 @@ globalThis.fetch = async (url) => {
     oddsMultiFetches.push(parsed.searchParams.get("eventIds"));
     return jsonResponse(parsed.searchParams.get("eventIds").split(",").map((eventId) => ({
       id: eventId,
-      home: eventId === "event_jun_13" ? "Brazil" : "Spain",
-      away: eventId === "event_jun_13" ? "Morocco" : "Japan",
-      date: eventId === "event_jun_13" ? "2026-06-13T20:00:00Z" : "2026-06-14T20:00:00Z",
+      home: eventId === "event_jun_13" ? undefined : "Spain",
+      away: eventId === "event_jun_13" ? undefined : "Japan",
+      date: eventId === "event_jun_13" ? undefined : "2026-06-14T20:00:00Z",
       bookmakers: {
         Bet365: [{
-          name: "Correct Score",
+          name: "correct_score",
           updatedAt: "2026-06-08T19:09:30.941Z",
           odds: [
             { label: "1-1", odds: "7.000" },
@@ -1460,6 +1482,10 @@ try {
     odd.outcomeName === "1-2" &&
     odd.priceDecimal === 15
   )));
+  const apiExactOdd = mappedOdds.find((odd) => odd.outcomeName === "1-2" && odd.tournamentMatchId === "event_jun_13");
+  assert.equal(apiExactOdd.homeTeam, "Brazil");
+  assert.equal(apiExactOdd.awayTeam, "Morocco");
+  assert.equal(apiExactOdd.commenceAt, "2026-06-13T20:00:00Z");
   assert.ok(mappedOdds.some((odd) => (
     odd.marketKey === "CORRECT_SCORE" &&
     odd.outcomeName === "3-1" &&

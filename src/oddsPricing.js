@@ -4,22 +4,45 @@ const NEUTRAL_DRAW_ODD = 3.4;
 const MIN_PRICE = 1.2;
 const MAX_PRICE = 75;
 
-export function createCorrectScorePrices(match = {}, oddsSnapshots = []) {
+export function createCorrectScorePrices(match = {}, oddsSnapshots = [], exactScoreOdds = oddsSnapshots) {
   const strength = inferMatchWinnerStrength(match, oddsSnapshots);
+  const exactPrices = getExactScorePrices(match, exactScoreOdds);
   const scores = [];
 
   for (let home = 0; home <= MAX_SCORELINE_GOALS; home += 1) {
     for (let away = 0; away <= MAX_SCORELINE_GOALS; away += 1) {
+      const score = `${home}-${away}`;
+      const exactPrice = exactPrices.get(score);
+      if (exactPrice) {
+        scores.push([score, exactPrice]);
+        continue;
+      }
+
       const total = home + away;
       const drawPenalty = home === away ? 1.2 : 0;
       const blowoutPenalty = Math.abs(home - away) * 1.35;
       const basePrice = 5.8 + total * 1.25 + drawPenalty + blowoutPenalty;
       const resultFactor = getResultFactor(home, away, strength);
-      scores.push([`${home}-${away}`, normalizePrice(basePrice * resultFactor)]);
+      scores.push([score, normalizePrice(basePrice * resultFactor)]);
     }
   }
 
   return scores;
+}
+
+function getExactScorePrices(match, oddsSnapshots) {
+  const prices = new Map();
+  oddsSnapshots
+    .filter((odd) => (
+      odd.marketKey === "CORRECT_SCORE" &&
+      (!match.id || String(odd.tournamentMatchId) === String(match.id))
+    ))
+    .forEach((odd) => {
+      const score = normalizeScoreOutcome(odd.outcomeName);
+      const price = Number(odd.priceDecimal);
+      if (score && Number.isFinite(price) && price > 1) prices.set(score, price);
+    });
+  return prices;
 }
 
 function inferMatchWinnerStrength(match, oddsSnapshots) {
@@ -96,4 +119,9 @@ function clamp(value, min, max) {
 
 function normalizeOutcomeName(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function normalizeScoreOutcome(value) {
+  const match = String(value || "").match(/(\d+)\s*-\s*(\d+)/);
+  return match ? `${Number(match[1])}-${Number(match[2])}` : "";
 }

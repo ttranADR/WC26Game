@@ -112,11 +112,14 @@ function createOddsApiIoV3Provider(apiKey) {
 
   async function fetchOddsForEvents(eventRows) {
     const oddsRows = [];
+    const eventsById = new Map(eventRows
+      .map((event) => [getV3EventId(event), event])
+      .filter(([eventId]) => eventId));
     for (const eventChunk of chunk(eventRows, 10)) {
-      const eventIds = eventChunk.map((event) => event.id).filter(Boolean).join(",");
+      const eventIds = eventChunk.map(getV3EventId).filter(Boolean).join(",");
       if (!eventIds) continue;
       const rows = await call("/odds/multi", { eventIds, bookmakers });
-      oddsRows.push(...unpackRows(rows));
+      oddsRows.push(...unpackRows(rows).map((row) => mergeV3EventMetadata(eventsById.get(getV3EventId(row)), row)));
     }
     return oddsRows.flatMap(mapOddsApiIoV3EventOdds);
   }
@@ -164,7 +167,13 @@ function makeDateRange(date) {
 }
 
 function mapOddsApiIoV3EventOdds(event) {
-  return normalizeV3Bookmakers(event.bookmakers).flatMap(({ bookmaker, markets }) => (
+  const bookmakers = normalizeV3Bookmakers(getV3BookmakerSource(event));
+  const fallbackBookmakers = bookmakers.length ? bookmakers : [{
+    bookmaker: String(event.bookmaker || event.bookmakerName || event.bookmaker_name || "Bookmaker"),
+    markets: event.markets || event.odds || event.outcomes || event.data || []
+  }];
+
+  return fallbackBookmakers.flatMap(({ bookmaker, markets }) => (
     normalizeV3Markets(markets).flatMap((market) => mapOddsApiIoV3Market(event, bookmaker, market))
   ));
 }
@@ -277,10 +286,12 @@ function isRecord(value) {
 }
 
 function mapV3MatchWinner(event, bookmaker, market, row) {
+  const homeTeam = getV3HomeTeam(event);
+  const awayTeam = getV3AwayTeam(event);
   return [
-    makeV3Odd(event, bookmaker, market, "MATCH_WINNER", event.home, row.home),
+    makeV3Odd(event, bookmaker, market, "MATCH_WINNER", homeTeam, row.home),
     makeV3Odd(event, bookmaker, market, "MATCH_WINNER", "Draw", row.draw),
-    makeV3Odd(event, bookmaker, market, "MATCH_WINNER", event.away, row.away)
+    makeV3Odd(event, bookmaker, market, "MATCH_WINNER", awayTeam, row.away)
   ].filter(Boolean);
 }
 
@@ -330,7 +341,7 @@ function makeV3Odd(event, bookmaker, market, marketKey, outcomeName, price, row 
   const priceDecimal = Number(price);
   if (!outcomeName || !Number.isFinite(priceDecimal) || priceDecimal <= 1) return null;
   return {
-    tournamentMatchId: String(event.id),
+    tournamentMatchId: getV3EventId(event),
     provider: "odds-api-v3",
     marketKey,
     bookmaker,
@@ -338,21 +349,98 @@ function makeV3Odd(event, bookmaker, market, marketKey, outcomeName, price, row 
     priceDecimal,
     priceAmerican: null,
     impliedProbability: Number((1 / priceDecimal).toFixed(4)),
-    homeTeam: event.home,
-    awayTeam: event.away,
-    commenceAt: event.date,
+    homeTeam: getV3HomeTeam(event),
+    awayTeam: getV3AwayTeam(event),
+    commenceAt: getV3EventDate(event),
     rawData: { event, market, row },
     capturedAt: new Date().toISOString()
   };
 }
 
 function normalizeV3Market(name) {
-  const normalized = String(name || "").toLowerCase();
+  const normalized = normalizeV3Text(name);
   if (["ml", "moneyline", "match winner", "match result", "1x2"].some((item) => normalized.includes(item))) return "MATCH_WINNER";
   if (["over/under", "totals", "total"].some((item) => normalized.includes(item))) return "TOTAL_GOALS";
   if (["both teams to score", "btts"].some((item) => normalized.includes(item))) return "BOTH_TEAMS_SCORE";
   if (normalized.includes("correct score")) return "CORRECT_SCORE";
   return null;
+}
+
+function getV3BookmakerSource(event) {
+  return event.bookmakers || event.bookmakerOdds || event.bookmaker_odds || event.oddsByBookmaker || event.odds_by_bookmaker;
+}
+
+function mergeV3EventMetadata(baseEvent, oddsEvent) {
+  if (!baseEvent) return oddsEvent;
+  return {
+    ...baseEvent,
+    ...oddsEvent,
+    id: getV3EventId(oddsEvent) || getV3EventId(baseEvent),
+    home: getV3HomeTeam(oddsEvent) || getV3HomeTeam(baseEvent),
+    away: getV3AwayTeam(oddsEvent) || getV3AwayTeam(baseEvent),
+    date: getV3EventDate(oddsEvent) || getV3EventDate(baseEvent)
+  };
+}
+
+function getV3EventId(event = {}) {
+  const id = event.id ?? event.eventId ?? event.event_id ?? event.fixtureId ?? event.fixture_id ?? event.matchId ?? event.match_id;
+  return id == null || id === "" ? "" : String(id);
+}
+
+function getV3HomeTeam(event = {}) {
+  return extractV3TeamName(event, "home") ||
+    event.homeTeam ||
+    event.home_team ||
+    event.home_name ||
+    event.homeParticipant ||
+    event.home_participant ||
+    "";
+}
+
+function getV3AwayTeam(event = {}) {
+  return extractV3TeamName(event, "away") ||
+    event.awayTeam ||
+    event.away_team ||
+    event.away_name ||
+    event.awayParticipant ||
+    event.away_participant ||
+    "";
+}
+
+function getV3EventDate(event = {}) {
+  return event.date ||
+    event.commenceAt ||
+    event.commence_at ||
+    event.commenceTime ||
+    event.commence_time ||
+    event.startTime ||
+    event.start_time ||
+    event.startsAt ||
+    event.starts_at ||
+    event.kickoffAt ||
+    event.kickoff_at ||
+    "";
+}
+
+function extractV3TeamName(event, side) {
+  const direct = event[side];
+  if (typeof direct === "string") return direct;
+  if (isRecord(direct)) return direct.name || direct.teamName || direct.team_name || direct.title || direct.displayName || "";
+
+  const participants = event.participants || event.teams || event.competitors || [];
+  if (!Array.isArray(participants)) return "";
+  const team = participants.find((participant) => {
+    const marker = String(participant.side || participant.position || participant.type || participant.home_away || participant.homeAway || "").toLowerCase();
+    if (marker === side) return true;
+    if (side === "home" && participant.home === true) return true;
+    if (side === "away" && participant.away === true) return true;
+    return false;
+  });
+  return team?.name || team?.teamName || team?.team_name || team?.title || team?.displayName || "";
+}
+
+function normalizeV3Text(value) {
+  return String(value || "").toLowerCase().replace(/[_-]+/g, " ");
 }
 
 function normalizeScoreOutcome(value) {
