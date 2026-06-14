@@ -101,6 +101,7 @@ export function createSeedData() {
     matchdays: [matchday],
     tournamentMatches: matches,
     oddsSnapshots: odds,
+    oddsMatchMappings: [],
     predictionCards: cards,
     playerCardSets: cardSets.sets,
     playerCards: cardSets.playerCards,

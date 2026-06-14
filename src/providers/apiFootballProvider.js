@@ -34,6 +34,23 @@ export function createApiFootballProvider(apiKey = process.env.API_FOOTBALL_KEY)
       return dedupeOdds([...dateRows, ...teamRows].flatMap(mapOdds));
     },
 
+    async getOddsByMatchMappings(mappings = []) {
+      const rows = await Promise.all((mappings || [])
+        .filter((mapping) => (
+          mapping.providerMatchId &&
+          (!mapping.provider || mapping.provider === "api-football")
+        ))
+        .map(async (mapping) => {
+          try {
+            const fixtureRows = await call(`/odds?fixture=${encodeURIComponent(mapping.providerMatchId)}`);
+            return fixtureRows.map((row) => enrichOddsRowWithMapping(row, mapping));
+          } catch {
+            return [];
+          }
+        }));
+      return dedupeOdds(rows.flat().flatMap(mapOdds));
+    },
+
     async getMatchEvents(matchId) {
       const rows = await call(`/fixtures/events?fixture=${matchId}`);
       return rows.map((event, index) => ({
@@ -80,6 +97,8 @@ function mapOdds(row) {
       bet.values.map((value) => ({
         tournamentMatchId: String(row.fixture.id),
         provider: "api-football",
+        appMatchId: row.appMatchId,
+        providerMatchId: String(row.fixture.id),
         marketKey: normalizeMarket(bet.name),
         bookmaker: bookmaker.name,
         outcomeName: value.value,
@@ -149,11 +168,35 @@ function enrichOddsRowWithStoredFixture(row, matches = [], teamId = null) {
   };
 }
 
+function enrichOddsRowWithMapping(row, mapping) {
+  return {
+    ...row,
+    appMatchId: mapping.appMatchId,
+    fixture: {
+      ...row.fixture,
+      id: row.fixture?.id || mapping.providerMatchId,
+      date: row.fixture?.date || mapping.providerKickoffAt
+    },
+    teams: {
+      home: {
+        id: mapping.providerHomeTeamExternalId,
+        name: mapping.providerHomeTeam
+      },
+      away: {
+        id: mapping.providerAwayTeamExternalId,
+        name: mapping.providerAwayTeam
+      }
+    }
+  };
+}
+
 function dedupeOdds(odds) {
   const seen = new Set();
   return odds.filter((odd) => {
     const key = [
       odd.provider,
+      odd.appMatchId || "",
+      odd.providerMatchId || "",
       odd.tournamentMatchId,
       odd.marketKey,
       odd.bookmaker,

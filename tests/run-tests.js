@@ -1510,6 +1510,64 @@ assert.equal(teamIdCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.pr
 assert.equal(teamIdCorrectScoreOdds.find((odd) => odd.outcomeName === "0-1")?.priceDecimal, 42);
 assert.equal(teamIdCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.provider, "api-football");
 
+const mappedFixtureOddsData = createSeedData();
+const mappedFixtureOddsStore = createMemoryStore(mappedFixtureOddsData);
+const mappedFixtureDates = [];
+const mappedFixtureOddsCalls = [];
+await syncOdds(mappedFixtureOddsStore, {
+  async getFixturesByDate(date) {
+    mappedFixtureDates.push(date);
+    if (date !== "2026-06-12") return [];
+    return [{
+      externalProvider: "api-football",
+      externalId: "api_fixture_bra_mar",
+      homeTeamExternalId: "api_brazil",
+      awayTeamExternalId: "api_morocco",
+      homeTeam: "Brazil",
+      awayTeam: "Morocco",
+      homeTeamCode: "BRA",
+      awayTeamCode: "MAR",
+      kickoffAt: "2026-06-12T20:00:00.000Z",
+      status: "SCHEDULED",
+      rawData: { test: "mapped fixture" }
+    }];
+  },
+  async getOddsByMatchMappings(mappings) {
+    mappedFixtureOddsCalls.push(...mappings);
+    return [{
+      tournamentMatchId: "api_fixture_bra_mar",
+      provider: "api-football",
+      marketKey: "CORRECT_SCORE",
+      bookmaker: "FixtureBook",
+      outcomeName: "1-0",
+      priceDecimal: 8.4,
+      impliedProbability: 0.119,
+      capturedAt: new Date().toISOString()
+    }, {
+      tournamentMatchId: "api_fixture_bra_mar",
+      provider: "api-football",
+      marketKey: "CORRECT_SCORE",
+      bookmaker: "FixtureBook",
+      outcomeName: "0-1",
+      priceDecimal: 41,
+      impliedProbability: 0.0244,
+      capturedAt: new Date().toISOString()
+    }];
+  },
+  async getOddsByDate() {
+    throw new Error("Mapped fixture odds should fetch by provider match id.");
+  }
+}, { matchDayId: "md_12" });
+assert.ok(mappedFixtureDates.includes("2026-06-12"));
+assert.equal(mappedFixtureOddsCalls.find((mapping) => mapping.appMatchId === "match_bra_mar")?.providerMatchId, "api_fixture_bra_mar");
+assert.equal(mappedFixtureOddsData.oddsMatchMappings.find((mapping) => mapping.appMatchId === "match_bra_mar")?.providerMatchId, "api_fixture_bra_mar");
+const mappedFixtureCorrectScoreOdds = mappedFixtureOddsData.oddsSnapshots.filter((odd) => (
+  odd.tournamentMatchId === "match_bra_mar" &&
+  odd.marketKey === "CORRECT_SCORE"
+));
+assert.equal(mappedFixtureCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 8.4);
+assert.equal(mappedFixtureCorrectScoreOdds.find((odd) => odd.outcomeName === "0-1")?.priceDecimal, 41);
+
 const bulkOddsData = createSeedData();
 const bulkOddsStore = createMemoryStore(bulkOddsData);
 const bulkOddsCalls = [];

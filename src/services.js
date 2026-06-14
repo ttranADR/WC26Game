@@ -499,7 +499,7 @@ export async function syncFixtures(store, provider, input = {}) {
 }
 
 export async function syncOdds(store, provider, input = {}) {
-  const plan = await store.update((data) => {
+  const basePlan = await store.update((data) => {
     ensureDemoScaffold(data);
     const matches = selectStoredFixturesForOdds(data, input);
     if (!matches.length) throw new Error("Sync fixtures before syncing odds.");
@@ -510,13 +510,22 @@ export async function syncOdds(store, provider, input = {}) {
       useCompetitionOdds
     };
   });
+  const mappingFixtures = await fetchOddsMappingFixtures(provider, basePlan.matches);
+  const plan = await store.update((data) => {
+    ensureDataCollections(data);
+    const mappings = upsertOddsMatchMappings(data, basePlan.matches, mappingFixtures);
+    return {
+      ...basePlan,
+      mappings: mappings.map(projectOddsMatchMapping)
+    };
+  });
   const rawOdds = plan.useCompetitionOdds
     ? await provider.getCompetitionOdds()
-    : await fetchOddsForStoredFixtures(provider, plan.dates, plan.matches);
+    : await fetchOddsForOddsPlan(provider, plan);
   const targetMatchIds = new Set(plan.matches.map((match) => match.id));
 
   return store.update((data) => {
-    const resolver = createMatchResolver(plan.matches);
+    const resolver = createMatchResolver(plan.matches, plan.mappings);
     const capturedAt = Date.now();
     const providerOdds = rawOdds.map((odd, index) => {
       const resolved = resolver(odd);
@@ -829,6 +838,172 @@ async function fetchOddsForStoredFixtures(provider, fixtureDates, storedFixtures
   return batches;
 }
 
+async function fetchOddsForOddsPlan(provider, plan) {
+  if (typeof provider.getOddsByMatchMappings === "function" && plan.mappings.length) {
+    const mappedOdds = await provider.getOddsByMatchMappings(plan.mappings);
+    if (mappedOdds.length) return mappedOdds;
+  }
+  return fetchOddsForStoredFixtures(provider, plan.dates, plan.matches);
+}
+
+async function fetchOddsMappingFixtures(provider, matches) {
+  if (typeof provider.getFixturesByDate !== "function") return [];
+  const dates = getProviderFixtureLookupDates(matches);
+  const batches = await Promise.all(dates.map(async (date) => {
+    try {
+      return await provider.getFixturesByDate(date, { matches });
+    } catch {
+      return [];
+    }
+  }));
+  return batches.flat();
+}
+
+function getProviderFixtureLookupDates(matches) {
+  const dates = new Set();
+  matches.forEach((match) => {
+    const localDate = getAppDateKey(match.kickoffAt);
+    if (localDate) dates.add(localDate);
+    const time = new Date(match.kickoffAt).getTime();
+    if (!Number.isFinite(time)) return;
+    [-1, 0, 1].forEach((offset) => {
+      dates.add(new Date(time + offset * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+    });
+  });
+  return [...dates].sort();
+}
+
+function upsertOddsMatchMappings(data, matches, providerFixtures) {
+  if (!providerFixtures.length) {
+    return data.oddsMatchMappings.filter((mapping) => matches.some((match) => match.id === mapping.appMatchId));
+  }
+
+  const usedFixtureIds = new Set();
+  const mappings = [];
+  matches.forEach((match) => {
+    const candidate = findBestProviderFixtureForMatch(match, providerFixtures, usedFixtureIds);
+    if (!candidate) {
+      const existing = data.oddsMatchMappings.find((mapping) => mapping.appMatchId === match.id);
+      if (existing) mappings.push(existing);
+      return;
+    }
+
+    usedFixtureIds.add(candidate.fixture.externalId);
+    const now = new Date().toISOString();
+    const existing = data.oddsMatchMappings.find((mapping) => (
+      mapping.appMatchId === match.id &&
+      mapping.provider === candidate.fixture.externalProvider
+    ));
+    const mapping = {
+      id: existing?.id || `oddsmap_${cleanId(candidate.fixture.externalProvider || "provider")}_${cleanId(match.id)}`,
+      provider: candidate.fixture.externalProvider || "provider",
+      appMatchId: match.id,
+      matchDayId: match.matchDayId,
+      appHomeTeam: match.homeTeam,
+      appAwayTeam: match.awayTeam,
+      appHomeTeamExternalId: match.homeTeamExternalId || null,
+      appAwayTeamExternalId: match.awayTeamExternalId || null,
+      providerMatchId: candidate.fixture.externalId,
+      providerHomeTeam: candidate.fixture.homeTeam,
+      providerAwayTeam: candidate.fixture.awayTeam,
+      providerHomeTeamExternalId: candidate.fixture.homeTeamExternalId || null,
+      providerAwayTeamExternalId: candidate.fixture.awayTeamExternalId || null,
+      providerKickoffAt: candidate.fixture.kickoffAt,
+      providerDate: getAppDateKey(candidate.fixture.kickoffAt) || String(candidate.fixture.kickoffAt || "").slice(0, 10),
+      flipScore: candidate.flipScore,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now
+    };
+
+    if (existing) Object.assign(existing, mapping);
+    else data.oddsMatchMappings.push(mapping);
+    mappings.push(existing || mapping);
+  });
+
+  return mappings;
+}
+
+function findBestProviderFixtureForMatch(match, fixtures, usedFixtureIds = new Set()) {
+  return fixtures
+    .filter((fixture) => fixture.externalId && !usedFixtureIds.has(fixture.externalId))
+    .map((fixture) => {
+      const orientation = getProviderFixtureOrientation(match, fixture);
+      if (!orientation) return null;
+      return {
+        fixture,
+        flipScore: orientation.flipScore,
+        score: scoreProviderFixtureMatch(match, fixture, orientation)
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score)[0] || null;
+}
+
+function getProviderFixtureOrientation(match, fixture) {
+  const directTeamIds = teamsMatchByProviderId(
+    match.homeTeamExternalId,
+    match.awayTeamExternalId,
+    fixture.homeTeamExternalId,
+    fixture.awayTeamExternalId
+  );
+  if (directTeamIds != null) return { flipScore: directTeamIds };
+
+  const directNames = teamsMatchByName(match.homeTeam, match.awayTeam, fixture.homeTeam, fixture.awayTeam);
+  if (directNames != null) return { flipScore: directNames };
+  return null;
+}
+
+function teamsMatchByProviderId(appHomeId, appAwayId, providerHomeId, providerAwayId) {
+  const appHome = normalizeProviderTeamId(appHomeId);
+  const appAway = normalizeProviderTeamId(appAwayId);
+  const providerHome = normalizeProviderTeamId(providerHomeId);
+  const providerAway = normalizeProviderTeamId(providerAwayId);
+  if (!appHome || !appAway || !providerHome || !providerAway) return null;
+  if (appHome === providerHome && appAway === providerAway) return false;
+  if (appHome === providerAway && appAway === providerHome) return true;
+  return null;
+}
+
+function teamsMatchByName(appHomeName, appAwayName, providerHomeName, providerAwayName) {
+  const appHome = normalizeTeamName(appHomeName);
+  const appAway = normalizeTeamName(appAwayName);
+  const providerHome = normalizeTeamName(providerHomeName);
+  const providerAway = normalizeTeamName(providerAwayName);
+  if (!appHome || !appAway || !providerHome || !providerAway) return null;
+  if (appHome === providerHome && appAway === providerAway) return false;
+  if (appHome === providerAway && appAway === providerHome) return true;
+  return null;
+}
+
+function scoreProviderFixtureMatch(match, fixture, orientation) {
+  let score = orientation.flipScore ? 70 : 80;
+  if (match.externalProvider === fixture.externalProvider && String(match.externalId || "") === String(fixture.externalId || "")) score += 80;
+  if (teamsMatchByProviderId(match.homeTeamExternalId, match.awayTeamExternalId, fixture.homeTeamExternalId, fixture.awayTeamExternalId) != null) score += 50;
+  const diff = Math.abs(new Date(match.kickoffAt).getTime() - new Date(fixture.kickoffAt).getTime());
+  if (Number.isFinite(diff)) {
+    if (diff <= 2 * 60 * 60 * 1000) score += 30;
+    else if (diff <= 36 * 60 * 60 * 1000) score += 10;
+    else score -= 100;
+  }
+  return score;
+}
+
+function projectOddsMatchMapping(mapping) {
+  return {
+    provider: mapping.provider,
+    appMatchId: mapping.appMatchId,
+    matchDayId: mapping.matchDayId,
+    providerMatchId: mapping.providerMatchId,
+    providerHomeTeam: mapping.providerHomeTeam,
+    providerAwayTeam: mapping.providerAwayTeam,
+    providerHomeTeamExternalId: mapping.providerHomeTeamExternalId,
+    providerAwayTeamExternalId: mapping.providerAwayTeamExternalId,
+    providerKickoffAt: mapping.providerKickoffAt,
+    providerDate: mapping.providerDate,
+    flipScore: Boolean(mapping.flipScore)
+  };
+}
+
 function createOddsSnapshotId(tournamentMatchId, odd, index, capturedAt) {
   return [
     "odds",
@@ -1051,7 +1226,9 @@ function getStageInfo(fixtures) {
   return { key, label, sort };
 }
 
-function createMatchResolver(matches, matchDayId) {
+function createMatchResolver(matches, mappingsOrMatchDayId = null) {
+  const mappings = Array.isArray(mappingsOrMatchDayId) ? mappingsOrMatchDayId : [];
+  const matchDayId = Array.isArray(mappingsOrMatchDayId) ? null : mappingsOrMatchDayId;
   const scopedMatches = matchDayId ? matches.filter((match) => match.matchDayId === matchDayId) : matches;
   const matchesById = new Map(scopedMatches
     .filter((match) => match.id)
@@ -1059,8 +1236,16 @@ function createMatchResolver(matches, matchDayId) {
   const matchesByExternal = new Map(scopedMatches
     .filter((match) => match.externalId)
     .map((match) => [String(match.externalId), match]));
+  const byProviderMatchId = new Map();
   const byTeamIdAndDate = new Map();
   const byTeamAndDate = new Map();
+
+  mappings.forEach((mapping) => {
+    const match = matchesById.get(String(mapping.appMatchId || ""));
+    if (!match || !mapping.providerMatchId) return;
+    const resolved = { match, flipScore: Boolean(mapping.flipScore) };
+    setProviderMatchMapping(byProviderMatchId, mapping.provider, mapping.providerMatchId, resolved);
+  });
 
   scopedMatches.forEach((match) => {
     const date = getAppDateKey(match.kickoffAt);
@@ -1079,6 +1264,13 @@ function createMatchResolver(matches, matchDayId) {
   });
 
   return (odd) => {
+    const directMappedMatch = matchesById.get(String(odd.appMatchId || ""));
+    if (directMappedMatch) return resolveProviderMatchOrientation(directMappedMatch, odd);
+
+    const oddMatchId = String(odd.providerMatchId || odd.tournamentMatchId || "");
+    const matchByProviderMapping = getProviderMatchMapping(byProviderMatchId, odd.provider, oddMatchId);
+    if (matchByProviderMapping) return matchByProviderMapping;
+
     const date = getAppDateKey(odd.commenceAt || odd.sourceFixtureDate);
     const oddProvider = normalizeProviderKey(odd.provider);
     const homeTeamId = normalizeProviderTeamId(odd.homeTeamExternalId);
@@ -1086,7 +1278,6 @@ function createMatchResolver(matches, matchDayId) {
     const matchByTeamIds = getTeamIdMatch(byTeamIdAndDate, date, oddProvider, homeTeamId, awayTeamId);
     if (matchByTeamIds) return matchByTeamIds;
 
-    const oddMatchId = String(odd.tournamentMatchId || "");
     const matchById = matchesById.get(oddMatchId);
     if (matchById) return resolveProviderMatchOrientation(matchById, odd);
 
@@ -1135,6 +1326,23 @@ function resolveProviderMatchOrientation(match, odd) {
 function setTeamIdMatch(map, date, provider, homeTeamId, awayTeamId, resolved) {
   map.set(teamDateKey(date, homeTeamId, awayTeamId, provider), resolved);
   map.set(teamDateKey(date, homeTeamId, awayTeamId), resolved);
+}
+
+function setProviderMatchMapping(map, provider, providerMatchId, resolved) {
+  const normalizedProvider = normalizeProviderKey(provider);
+  const normalizedMatchId = String(providerMatchId || "").trim();
+  if (!normalizedMatchId) return;
+  if (normalizedProvider) map.set(`${normalizedProvider}:${normalizedMatchId}`, resolved);
+  map.set(normalizedMatchId, resolved);
+}
+
+function getProviderMatchMapping(map, provider, providerMatchId) {
+  const normalizedProvider = normalizeProviderKey(provider);
+  const normalizedMatchId = String(providerMatchId || "").trim();
+  if (!normalizedMatchId) return null;
+  return (normalizedProvider ? map.get(`${normalizedProvider}:${normalizedMatchId}`) : null) ||
+    map.get(normalizedMatchId) ||
+    null;
 }
 
 function getTeamIdMatch(map, date, provider, homeTeamId, awayTeamId) {
@@ -2373,6 +2581,7 @@ function ensureDemoScaffold(data) {
 
 function ensureDataCollections(data) {
   data.cardShots ||= [];
+  data.oddsMatchMappings ||= [];
 }
 
 function ensureCurrentCardRules(data) {
