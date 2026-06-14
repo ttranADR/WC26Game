@@ -4,6 +4,7 @@ import { defaultPasswordForRole, ensureUserPassword, hashPassword, verifyPasswor
 import { sendInviteEmail } from "./email.js";
 import { shuffle } from "./random.js";
 import { createCorrectScorePrices } from "./oddsPricing.js";
+import { readFileSync } from "node:fs";
 import {
   CARD_POINTS_CORRECT,
   CARD_POINTS_INCORRECT,
@@ -16,12 +17,14 @@ import {
 } from "./config.js";
 
 const APP_TIME_ZONE = "America/Los_Angeles";
+const BUNDLED_CORRECT_SCORE_ODDS_URL = new URL("../public/data/correct-score-odds.json", import.meta.url);
 const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-US", {
   timeZone: APP_TIME_ZONE,
   year: "numeric",
   month: "2-digit",
   day: "2-digit"
 });
+let bundledCorrectScoreRowsCache = null;
 
 export async function getAppState(store, userId = "user_you") {
   return store.update((data) => {
@@ -40,9 +43,10 @@ export async function getMatchdayOdds(store, input = {}) {
   const matchIds = new Set(data.tournamentMatches
     .filter((match) => match.matchDayId === matchday.id)
     .map((match) => match.id));
+  const oddsSnapshots = getEffectiveOddsSnapshots(data, { matchIds });
   return {
     matchDayId: matchday.id,
-    correctScoreOdds: data.oddsSnapshots.filter((odd) => (
+    correctScoreOdds: oddsSnapshots.filter((odd) => (
       odd.marketKey === "CORRECT_SCORE" &&
       matchIds.has(odd.tournamentMatchId)
     ))
@@ -156,6 +160,9 @@ export async function submitPicks(store, input) {
       prediction.userId !== userId ||
       submittedMatchIds.has(prediction.tournamentMatchId)
     ));
+    const effectiveOddsSnapshots = getEffectiveOddsSnapshots(data, {
+      matchIds: new Set(matchdayMatches.map((match) => match.id))
+    });
 
     submittedScorePredictions.forEach((scorePredictionItem) => {
       const match = mustFind(data.tournamentMatches, scorePredictionItem.tournamentMatchId, "Match");
@@ -171,7 +178,7 @@ export async function submitPicks(store, input) {
         tournamentMatchId: match.id,
         predictedHomeScore: clampScore(scorePredictionItem.predictedHomeScore),
         predictedAwayScore: clampScore(scorePredictionItem.predictedAwayScore),
-        oddsMultiplier: getExactScoreMultiplier(scorePredictionItem, match, data.oddsSnapshots),
+        oddsMultiplier: getExactScoreMultiplier(scorePredictionItem, match, effectiveOddsSnapshots),
         isExact: null,
         pointsAwarded: 0,
         submittedAt
@@ -1108,12 +1115,126 @@ function normalizeScoreOutcomeName(value) {
   return match ? `${Number(match[1])}-${Number(match[2])}` : String(value || "").trim();
 }
 
+function getEffectiveOddsSnapshots(data, options = {}) {
+  const bundledOdds = getBundledCorrectScoreOdds(data, options);
+  if (!bundledOdds.length) return data.oddsSnapshots;
+
+  const bundledKeys = new Set(bundledOdds.map(correctScoreOutcomeKey));
+  return [
+    ...data.oddsSnapshots.filter((odd) => (
+      odd.marketKey !== "CORRECT_SCORE" ||
+      !bundledKeys.has(correctScoreOutcomeKey(odd))
+    )),
+    ...bundledOdds
+  ];
+}
+
+function getBundledCorrectScoreOdds(data, options = {}) {
+  const targetMatchIds = options.matchIds instanceof Set
+    ? options.matchIds
+    : options.matchIds
+      ? new Set(options.matchIds)
+      : null;
+  const sourceRows = readBundledCorrectScoreRows();
+  if (!sourceRows.length || !data.tournamentMatches?.length) return [];
+
+  const matchesById = new Map(data.tournamentMatches.map((match) => [match.id, match]));
+  const mappingsByProviderMatchId = new Map((data.oddsMatchMappings || [])
+    .filter((mapping) => mapping.providerMatchId)
+    .map((mapping) => [String(mapping.providerMatchId), mapping]));
+  const capturedAt = new Date().toISOString();
+
+  return sourceRows.flatMap((row) => {
+    const resolved = resolveBundledCorrectScoreRow(row, data.tournamentMatches, matchesById, mappingsByProviderMatchId);
+    if (!resolved || (targetMatchIds && !targetMatchIds.has(resolved.match.id))) return [];
+
+    return (row.outcomes || []).flatMap((outcome, index) => {
+      const sourceLabel = normalizeScoreOutcomeName(outcome.label);
+      const outcomeName = resolved.flipScore ? flipCorrectScoreOutcome(sourceLabel) : sourceLabel;
+      const priceDecimal = Number(outcome.odds);
+      if (!/^\d+-\d+$/.test(outcomeName) || !Number.isFinite(priceDecimal) || priceDecimal <= 1) return [];
+
+      return [{
+        id: [
+          "odds",
+          cleanId(resolved.match.id),
+          "bundled_correct_score",
+          cleanId(row.bookmaker || "book"),
+          cleanId(outcomeName),
+          index
+        ].join("_"),
+        tournamentMatchId: resolved.match.id,
+        provider: "bundled-correct-score-file",
+        providerMatchId: row.matchId == null ? null : String(row.matchId),
+        marketKey: "CORRECT_SCORE",
+        bookmaker: row.bookmaker || "Bet365",
+        outcomeName,
+        priceDecimal,
+        priceAmerican: null,
+        impliedProbability: Number((1 / priceDecimal).toFixed(4)),
+        sourceFixtureDate: getAppDateKey(row.date || resolved.match.kickoffAt),
+        rawData: {
+          importedFrom: "public/data/correct-score-odds.json",
+          sourceMatchId: row.matchId,
+          sourceHome: row.home,
+          sourceAway: row.away,
+          sourceDate: row.date,
+          sourceBookmaker: row.bookmaker,
+          sourceMarket: row.market,
+          sourceUpdatedAt: row.updatedAt,
+          sourceLabel: outcome.label,
+          sourceOdds: outcome.odds,
+          filledFromPrevious: Boolean(outcome.filledFromPrevious),
+          ignoredColumns: ["status"]
+        },
+        capturedAt
+      }];
+    });
+  });
+}
+
+function readBundledCorrectScoreRows() {
+  if (bundledCorrectScoreRowsCache) return bundledCorrectScoreRowsCache;
+  try {
+    bundledCorrectScoreRowsCache = JSON.parse(readFileSync(BUNDLED_CORRECT_SCORE_ODDS_URL, "utf8"));
+  } catch {
+    bundledCorrectScoreRowsCache = [];
+  }
+  return bundledCorrectScoreRowsCache;
+}
+
+function resolveBundledCorrectScoreRow(row, matches, matchesById, mappingsByProviderMatchId) {
+  const providerMatchId = row.matchId == null ? "" : String(row.matchId);
+  const mapping = mappingsByProviderMatchId.get(providerMatchId);
+  if (mapping) {
+    const match = matchesById.get(mapping.appMatchId);
+    if (match) return { match, flipScore: Boolean(mapping.flipScore) };
+  }
+
+  const rowDate = getAppDateKey(row.date);
+  const rowHome = normalizeTeamName(row.home);
+  const rowAway = normalizeTeamName(row.away);
+  if (!rowDate || !rowHome || !rowAway) return null;
+
+  return matches
+    .map((match) => {
+      if (getAppDateKey(match.kickoffAt) !== rowDate) return null;
+      const matchHome = normalizeTeamName(match.homeTeam);
+      const matchAway = normalizeTeamName(match.awayTeam);
+      if (teamNamesMatch(rowHome, matchHome) && teamNamesMatch(rowAway, matchAway)) return { match, flipScore: false };
+      if (teamNamesMatch(rowHome, matchAway) && teamNamesMatch(rowAway, matchHome)) return { match, flipScore: true };
+      return null;
+    })
+    .filter(Boolean)[0] || null;
+}
+
 function summarizeTournamentData(data) {
-  const correctScoreOdds = data.oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE");
+  const oddsSnapshots = getEffectiveOddsSnapshots(data);
+  const correctScoreOdds = oddsSnapshots.filter((odd) => odd.marketKey === "CORRECT_SCORE");
   return {
     matchdays: data.matchdays.length,
     matches: data.tournamentMatches.length,
-    oddsSnapshots: data.oddsSnapshots.length,
+    oddsSnapshots: oddsSnapshots.length,
     correctScoreOdds: correctScoreOdds.length,
     generatedCorrectScoreOdds: correctScoreOdds.filter((odd) => odd.provider === "pitchpick-generated").length
   };
@@ -1900,11 +2021,12 @@ function calculateMatchdayScores(data, matchDayId, options = {}) {
       cardStats.set(set.userId, { cardCorrect, cardAttempted });
     });
 
+  const effectiveOddsSnapshots = getEffectiveOddsSnapshots(data, { matchIds: new Set(matches.keys()) });
   data.scorePredictions
     .filter((prediction) => prediction.matchDayId === matchDayId)
     .forEach((prediction) => {
       const match = matches.get(prediction.tournamentMatchId);
-      const grade = gradeExactPrediction(prediction, match, data.oddsSnapshots);
+      const grade = gradeExactPrediction(prediction, match, effectiveOddsSnapshots);
       if (options.mutate) Object.assign(prediction, grade);
       if (!submittedUsers.has(prediction.userId)) return;
       playerTotals.set(prediction.userId, (playerTotals.get(prediction.userId) || 0) + grade.pointsAwarded);

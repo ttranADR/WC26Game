@@ -149,6 +149,55 @@ assert.equal("correctScoreOdds" in assignmentState, false);
 assert.equal(assignmentState.tournamentSummary.matches, splitPayloadData.tournamentMatches.length);
 assert.ok(matchdayOddsPayload.correctScoreOdds.length > 0);
 assert.ok(matchdayOddsPayload.correctScoreOdds.every((odd) => odd.marketKey === "CORRECT_SCORE"));
+const bundledOddsData = createSeedData();
+bundledOddsData.matchdays.push({
+  id: "md_bundle_odds",
+  name: "Bundled Odds",
+  date: "2026-06-16",
+  lockAt: "2026-06-16T19:00:00.000Z",
+  status: "OPEN",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+bundledOddsData.tournamentMatches.push({
+  id: "match_fra_sen_bundle",
+  externalProvider: "football-data",
+  externalId: "fix_fra_sen_bundle",
+  matchDayId: "md_bundle_odds",
+  homeTeam: "France",
+  awayTeam: "Senegal",
+  homeTeamCode: "FRA",
+  awayTeamCode: "SEN",
+  kickoffAt: "2026-06-16T19:00:00.000Z",
+  status: "SCHEDULED",
+  homeScore: null,
+  awayScore: null,
+  firstGoalMinute: null,
+  firstGoalTeam: null,
+  redCardShown: false,
+  topScorerName: "",
+  topScorerScored: false,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+bundledOddsData.oddsSnapshots.push({
+  id: "odds_stale_fra_sen_0_1",
+  tournamentMatchId: "match_fra_sen_bundle",
+  provider: "pitchpick-generated",
+  marketKey: "CORRECT_SCORE",
+  bookmaker: "World Cup 26 Prediction",
+  outcomeName: "0-1",
+  priceDecimal: 99,
+  capturedAt: new Date().toISOString()
+});
+const bundledOddsPayload = await getMatchdayOdds(createMemoryStore(bundledOddsData), { matchDayId: "md_bundle_odds" });
+const bundledFileOdd = bundledOddsPayload.correctScoreOdds.find((odd) => odd.tournamentMatchId === "match_fra_sen_bundle" && odd.outcomeName === "0-1");
+assert.equal(bundledFileOdd?.provider, "bundled-correct-score-file");
+assert.equal(bundledFileOdd?.priceDecimal, 17);
+assert.equal(getExactScoreMultiplier({
+  predictedHomeScore: 0,
+  predictedAwayScore: 1
+}, bundledOddsData.tournamentMatches.find((item) => item.id === "match_fra_sen_bundle"), bundledOddsPayload.correctScoreOdds), 17);
 assert.equal(assignmentSummary.matchupAssignment.matchupId, assignmentSummary.userContest.id);
 assert.equal(assignmentSummary.matchupAssignment.userId, "user_you");
 assert.ok(assignmentState.matchupAssignments.some((assignment) => (
