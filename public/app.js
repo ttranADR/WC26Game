@@ -351,6 +351,15 @@ function renderPlayer() {
         </div>
       </div>
 
+      <div class="submission-bar">
+        <div>
+          <p class="label">Ready to submit</p>
+          <strong>${lockedScoreCount}/${summary.matches.length} games locked</strong>
+          <span class="muted">${summary.matches.length ? "Lock every game score before submitting." : "No matches are scheduled for this matchday yet."}</span>
+        </div>
+        ${renderSubmitPicksButton(submitDisabledReason)}
+      </div>
+
       <div class="workspace">
         <section class="picks-panel">
           <div class="section-head">
@@ -367,27 +376,8 @@ function renderPlayer() {
         </section>
 
         <aside class="right-rail">
-          ${renderExactScorePanel({ summary, selectedMatch, exactOdds, multiplier, potential, matchdayReadOnly: locked })}
-
-          <section class="panel">
-            <div class="panel-head"><h2>Matchup</h2><span class="label">${formatPairingMode(displayContest?.mode || data.league.pairingMode)}</span></div>
-            ${renderContest(summary)}
-          </section>
-
-          <section class="panel">
-            <div class="panel-head"><h2>Standings</h2><button class="panel-button" data-route-click="leaderboard">View Full</button></div>
-            ${renderStandingsTable(data.standings.slice(0, 6))}
-          </section>
+          ${renderExactScorePanel({ summary, selectedMatch, multiplier, potential, matchdayReadOnly: locked })}
         </aside>
-      </div>
-
-      <div class="bottom-fixtures submission-bar">
-        <div>
-          <p class="label">Score Prediction</p>
-          <strong>${lockedScoreCount}/${summary.matches.length} games locked</strong>
-          <span class="muted">${summary.matches.length ? "Lock every game score before submitting." : "No matches are scheduled for this matchday yet."}</span>
-        </div>
-        ${renderSubmitPicksButton(submitDisabledReason)}
       </div>
     </section>
   `;
@@ -413,7 +403,7 @@ function getSubmitDisabledReason({ summary, hasAssignedCards, locked, selected }
   return "";
 }
 
-function renderExactScorePanel({ summary, selectedMatch, exactOdds, multiplier, potential, matchdayReadOnly }) {
+function renderExactScorePanel({ summary, selectedMatch, multiplier, potential, matchdayReadOnly }) {
   if (!selectedMatch) {
     return `
       <section class="panel">
@@ -434,11 +424,6 @@ function renderExactScorePanel({ summary, selectedMatch, exactOdds, multiplier, 
     ? predictionLocked ? "Locked" : "Matchday Locked"
     : predictionLocked ? "Edit Prediction" : "Lock Game";
   const activeScore = normalizeScoreState(activePrediction);
-  const selectedScore = scoreKey(activeScore);
-  const scoreOdds = withOtherExactOdd(exactOdds);
-  const listedOdd = getExactOddForScore(scoreOdds, selectedScore);
-  const displayOdd = listedOdd || getOtherExactOdd(scoreOdds);
-  const usesOtherRate = !listedOdd && Boolean(displayOdd);
 
   return `
     <section class="panel">
@@ -452,36 +437,29 @@ function renderExactScorePanel({ summary, selectedMatch, exactOdds, multiplier, 
         <span>vs</span>
         ${renderTeamFlag(selectedMatch.awayTeamCode, selectedMatch.awayTeam, { side: "away" })}
       </div>
-      <div class="score-controls">
-        <div class="score-stack">
-          <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyScore ? "disabled" : ""}>+</button>
-          <strong>${activeScore.home}</strong>
-          <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyScore ? "disabled" : ""}>-</button>
+      <div class="score-action-row">
+        <div class="score-controls">
+          <div class="score-stack">
+            <button class="score-step" data-score-team="home" data-delta="1" ${readOnlyScore ? "disabled" : ""}>+</button>
+            <strong>${activeScore.home}</strong>
+            <button class="score-step" data-score-team="home" data-delta="-1" ${readOnlyScore ? "disabled" : ""}>-</button>
+          </div>
+          <span> - </span>
+          <div class="score-stack">
+            <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyScore ? "disabled" : ""}>+</button>
+            <strong>${activeScore.away}</strong>
+            <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyScore ? "disabled" : ""}>-</button>
+          </div>
         </div>
-        <span> - </span>
-        <div class="score-stack">
-          <button class="score-step" data-score-team="away" data-delta="1" ${readOnlyScore ? "disabled" : ""}>+</button>
-          <strong>${activeScore.away}</strong>
-          <button class="score-step" data-score-team="away" data-delta="-1" ${readOnlyScore ? "disabled" : ""}>-</button>
-        </div>
+        <button class="panel-button score-lock-button ${predictionLocked ? "locked" : "primary"}" data-score-lock="${predictionLocked ? "edit" : "lock"}" ${matchdayReadOnly ? "disabled" : ""}>
+          ${lockButtonLabel}
+        </button>
       </div>
       <div class="score-odds">
         <span>Multiplier</span>
         <strong>${multiplier.toFixed(1)}x</strong>
         <em>${potential} pts</em>
       </div>
-      <label class="score-picker">
-        <span>Score list</span>
-        <select id="scoreSelect" aria-label="Exact score list" ${readOnlyScore || !scoreOdds.length ? "disabled" : ""}>
-          ${renderScoreSelectOptions(scoreOdds, selectedScore, displayOdd)}
-        </select>
-        <small>${usesOtherRate
-          ? `Other scores use the 5-5 rate: ${displayOdd.priceDecimal.toFixed(1)}x.`
-          : "Listed score odds from the database."}</small>
-      </label>
-      <button class="panel-button score-lock-button ${predictionLocked ? "locked" : "primary"}" data-score-lock="${predictionLocked ? "edit" : "lock"}" ${matchdayReadOnly ? "disabled" : ""}>
-        ${lockButtonLabel}
-      </button>
     </section>
   `;
 }
@@ -1119,17 +1097,14 @@ function renderSeasonMatchups() {
   }
 
   const dayMatchups = managedSelectedContests(summary.id);
-  const visibleDayMatchups = visibleContestsForUser(dayMatchups);
+  const visibleDayMatchups = dayMatchups;
   const seasonMatchups = managedSeasonMatchups();
-  const visibleSeasonMatchups = isAdmin() ? seasonMatchups : seasonMatchups.filter(({ contest }) => contestIncludesCurrentUser(contest));
+  const visibleSeasonMatchups = seasonMatchups;
   const generatedDays = new Set(visibleSeasonMatchups.map((item) => item.matchday.id)).size;
   const finalizedCount = visibleSeasonMatchups.filter(({ contest }) => contest.status === "FINAL").length;
   const defaultSeasonPairingMode = league.pairingMode === "SOLO" ? "MIXED" : league.pairingMode;
   const dayModeLabel = formatContestModeSummary(visibleDayMatchups, defaultSeasonPairingMode);
   const seasonModeLabel = formatContestModeSummary(visibleSeasonMatchups.map((item) => item.contest), defaultSeasonPairingMode);
-  const currentUserContest = dayMatchups.find((contest) => (
-    contest.participants.some((part) => part.userId === state.data.currentUser.id)
-  ));
 
   document.querySelector("#leagueName").textContent = league.name;
   document.querySelector("#matchdayName").textContent = `${league.name} · Season Matchups`;
@@ -1181,25 +1156,11 @@ function renderSeasonMatchups() {
           <div class="contest-list season-day-matchups">
             ${visibleDayMatchups.length
               ? visibleDayMatchups.map(renderContestRow).join("")
-              : `<div class="empty-state compact-empty">${isAdmin() ? "No matchups generated for this matchday yet." : "Your matchup assignment is pending for this matchday."}</div>`}
+              : `<div class="empty-state compact-empty">No matchups generated for this matchday yet.</div>`}
           </div>
         </section>
 
         <aside class="right-rail">
-          <section class="panel">
-            <div class="panel-head"><h2>${currentUserContest ? "Your Matchup" : "Day Snapshot"}</h2><span class="label">${summary.name}</span></div>
-            ${currentUserContest
-              ? renderContestRow(currentUserContest)
-              : `<div class="league-summary compact-summary"><span><strong>${visibleDayMatchups.length}</strong> contests</span><span><strong>${summary.matches.length}</strong> games</span></div>`}
-          </section>
-
-          <section class="panel">
-            <div class="panel-head"><h2>Tournament Matches</h2><span class="label">${summary.matches.length} games</span></div>
-            <div class="contest-list">
-              ${summary.matches.length ? summary.matches.map((match) => renderCompactMatchLog(match)).join("") : `<p class="muted">No tournament matches are scheduled for this day.</p>`}
-            </div>
-          </section>
-
           <section class="panel">
             <div class="panel-head"><h2>Standings</h2><button class="panel-button" data-route-click="leaderboard">View Full</button></div>
             ${renderStandingsTable(league.standings.slice(0, 6))}
@@ -1353,18 +1314,6 @@ function formatContestModeSummary(contests, fallback = "MIXED") {
   return shapes.join(" / ");
 }
 
-function playerSeasonMatchups() {
-  const userId = state.data.currentUser.id;
-  return state.data.matchdaySummaries
-    .filter((summary) => summary.userContest?.participants.some((part) => part.userId === userId));
-}
-
-function renderPlayerSeasonMatchups() {
-  const matchups = playerSeasonMatchups();
-  if (!matchups.length) return `<p class="muted">No season matchups have been generated yet.</p>`;
-  return `<div class="contest-list season-matchups">${matchups.map((summary) => renderContestRow(summary.userContest, { matchday: summary })).join("")}</div>`;
-}
-
 function getPrimaryMatchup(summary = selectedMatchday()) {
   if (!summary) return null;
   const matchupId = summary.matchupAssignment?.matchupId || summary.userContestId || summary.userContest?.id;
@@ -1442,14 +1391,6 @@ function formatMatchupSideLabel(parts, fallback) {
 
 function participantName(part) {
   return part.user?.displayName || part.userId;
-}
-
-function visibleContestsForUser(contests) {
-  return isAdmin() ? contests : contests.filter(contestIncludesCurrentUser);
-}
-
-function contestIncludesCurrentUser(contest) {
-  return contest.participants.some((part) => part.userId === state.data.currentUser.id);
 }
 
 function formatScoreValue(value) {
@@ -1538,31 +1479,6 @@ function totalScorePredictionPotential(summary) {
   return (summary?.matches || []).reduce((sum, match) => (
     sum + exactScoreBoostPoints(exactScoreMultiplierForMatch(match.id))
   ), 0);
-}
-
-function renderScoreSelectOptions(exactOdds, selectedScore, displayOdd) {
-  if (!exactOdds.length) return `<option value="">No score odds available</option>`;
-  const listedOdd = getExactOddForScore(exactOdds, selectedScore);
-  const otherOption = !listedOdd && displayOdd
-    ? `<option value="${selectedScore}" selected>Other score ${selectedScore} · ${displayOdd.priceDecimal.toFixed(1)}x</option>`
-    : "";
-  const groups = new Map();
-  exactOdds.forEach((odd) => {
-    const score = parseScoreValue(odd.outcomeName);
-    const home = score ? score.home : "Other";
-    if (!groups.has(home)) groups.set(home, []);
-    groups.get(home).push(odd);
-  });
-
-  return otherOption + [...groups.entries()].map(([home, odds]) => `
-    <optgroup label="${home} home goals">
-      ${odds.map((odd) => `
-        <option value="${odd.outcomeName}" ${odd.outcomeName === selectedScore ? "selected" : ""}>
-          ${odd.outcomeName} · ${odd.priceDecimal.toFixed(1)}x
-        </option>
-      `).join("")}
-    </optgroup>
-  `).join("");
 }
 
 function getActiveExactOdd(exactOdds) {
@@ -1967,15 +1883,6 @@ root.addEventListener("click", async (event) => {
     return;
   }
 
-  const scoreChip = event.target.closest("[data-score-chip]");
-  if (scoreChip) {
-    if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
-    if (isScorePredictionLocked(state.selectedMatchId)) return showToast("Edit this score prediction before changing it.");
-    setScore(parseScoreValue(scoreChip.dataset.scoreChip));
-    render();
-    return;
-  }
-
   const scoreLock = event.target.closest("[data-score-lock]");
   if (scoreLock) {
     if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
@@ -2033,22 +1940,6 @@ root.addEventListener("change", (event) => {
     render();
   }
 
-  if (event.target.id === "scoreSelect") {
-    if (isMatchdayLocked(selectedMatchday())) {
-      showToast("This matchday auto-locked at first kickoff.");
-      render();
-      return;
-    }
-    if (isScorePredictionLocked(state.selectedMatchId)) {
-      showToast("Edit this score prediction before changing it.");
-      render();
-      return;
-    }
-    const score = parseScoreValue(event.target.value);
-    if (!score) return;
-    setScore(score);
-    render();
-  }
 });
 
 root.addEventListener("submit", async (event) => {
