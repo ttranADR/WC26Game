@@ -1103,26 +1103,43 @@ select:focus-visible {
 }
 
 .shot-panel {
-  margin-top: 14px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.shot-panel h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.shot-panel > .muted {
+  margin-top: 8px;
 }
 
 .shot-card-list {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
 }
 
 .shot-card {
+  position: relative;
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
+  overflow: hidden;
   min-height: 42px;
   padding: 8px 10px;
   text-align: left;
+  isolation: isolate;
 }
 
 .shot-card span {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 28px;
@@ -1135,9 +1152,43 @@ select:focus-visible {
 }
 
 .shot-card strong {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: 13px;
+}
+
+.shot-card::before,
+.shot-card::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+}
+
+.shot-card::before {
+  top: 50%;
+  left: 38px;
+  z-index: 0;
+  width: 52%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--red));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gold) 72%, transparent);
+  transform: translate(-115%, -50%) scaleX(0.32);
+}
+
+.shot-card::after {
+  top: 50%;
+  right: 14px;
+  z-index: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--gold) 70%, transparent);
+  transform: translateY(-50%) scale(0.3);
 }
 
 .shot-card.selected {
@@ -1148,6 +1199,76 @@ select:focus-visible {
 .shot-card.selected span {
   background: var(--red);
   color: white;
+}
+
+.shot-card.shooting {
+  animation: shot-card-pop 620ms ease-out;
+}
+
+.shot-card.shooting::before {
+  animation: shot-trail 620ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.shot-card.shooting::after {
+  animation: shot-impact 620ms ease-out;
+}
+
+@keyframes shot-trail {
+  0% {
+    opacity: 0;
+    transform: translate(-115%, -50%) scaleX(0.32);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  64% {
+    opacity: 1;
+    transform: translate(74%, -50%) scaleX(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(94%, -50%) scaleX(0.4);
+  }
+}
+
+@keyframes shot-impact {
+  0%,
+  45% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.3);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translateY(-50%) scale(0.85);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.8);
+  }
+}
+
+@keyframes shot-card-pop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  44% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shot-card.shooting,
+  .shot-card.shooting::before,
+  .shot-card.shooting::after {
+    animation: none;
+  }
 }
 
 .chips {
@@ -1883,6 +2004,7 @@ th {
   }
 
   .cards-grid,
+  .shot-card-list,
   .right-rail,
   .submission-bar,
   .score-action-row,

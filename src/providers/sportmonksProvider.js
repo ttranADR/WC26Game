@@ -49,6 +49,8 @@ function mapFixture(row) {
   return {
     externalProvider: "sportmonks",
     externalId: String(row.id),
+    homeTeamExternalId: home?.id == null ? null : String(home.id),
+    awayTeamExternalId: away?.id == null ? null : String(away.id),
     homeTeam: home?.name || "Home",
     awayTeam: away?.name || "Away",
     homeTeamCode: (home?.short_code || home?.name || "HOM").slice(0, 3).toUpperCase(),
@@ -67,6 +69,7 @@ function mapFixture(row) {
 }
 
 function mapOdds(row) {
+  const { home, away } = getFixtureTeams(row);
   return (row.odds || []).map((odd) => ({
     tournamentMatchId: String(row.id),
     provider: "sportmonks",
@@ -76,9 +79,20 @@ function mapOdds(row) {
     priceDecimal: Number(odd.value),
     priceAmerican: null,
     impliedProbability: Number((1 / Number(odd.value)).toFixed(4)),
+    homeTeam: home?.name,
+    awayTeam: away?.name,
+    homeTeamExternalId: home?.id == null ? null : String(home.id),
+    awayTeamExternalId: away?.id == null ? null : String(away.id),
+    commenceAt: row.starting_at,
     rawData: odd,
     capturedAt: new Date().toISOString()
   }));
+}
+
+function getFixtureTeams(row) {
+  const home = row.participants?.find((team) => team.meta?.location === "home") || row.participants?.[0];
+  const away = row.participants?.find((team) => team.meta?.location === "away") || row.participants?.[1];
+  return { home, away };
 }
 
 function normalizeMarket(name) {

@@ -512,7 +512,7 @@ export async function syncOdds(store, provider, input = {}) {
   });
   const rawOdds = plan.useCompetitionOdds
     ? await provider.getCompetitionOdds()
-    : await fetchOddsForStoredFixtures(provider, plan.dates);
+    : await fetchOddsForStoredFixtures(provider, plan.dates, plan.matches);
   const targetMatchIds = new Set(plan.matches.map((match) => match.id));
 
   return store.update((data) => {
@@ -801,7 +801,10 @@ function selectStoredFixturesForOdds(data, input) {
 function projectFixtureForOddsSync(match) {
   return {
     id: match.id,
+    externalProvider: match.externalProvider,
     externalId: match.externalId,
+    homeTeamExternalId: match.homeTeamExternalId,
+    awayTeamExternalId: match.awayTeamExternalId,
     matchDayId: match.matchDayId,
     homeTeam: match.homeTeam,
     awayTeam: match.awayTeam,
@@ -816,10 +819,11 @@ function getFixtureDates(matches) {
     .sort();
 }
 
-async function fetchOddsForStoredFixtures(provider, fixtureDates) {
+async function fetchOddsForStoredFixtures(provider, fixtureDates, storedFixtures = []) {
   const batches = [];
   for (const date of fixtureDates) {
-    const rows = await provider.getOddsByDate(date);
+    const matchesForDate = storedFixtures.filter((match) => getAppDateKey(match.kickoffAt) === date);
+    const rows = await provider.getOddsByDate(date, { matches: matchesForDate });
     batches.push(...rows.map((row) => ({ ...row, sourceFixtureDate: date })));
   }
   return batches;
@@ -1055,18 +1059,33 @@ function createMatchResolver(matches, matchDayId) {
   const matchesByExternal = new Map(scopedMatches
     .filter((match) => match.externalId)
     .map((match) => [String(match.externalId), match]));
+  const byTeamIdAndDate = new Map();
   const byTeamAndDate = new Map();
 
   scopedMatches.forEach((match) => {
     const date = getAppDateKey(match.kickoffAt);
+    const provider = normalizeProviderKey(match.externalProvider);
+    const homeTeamId = normalizeProviderTeamId(match.homeTeamExternalId);
+    const awayTeamId = normalizeProviderTeamId(match.awayTeamExternalId);
     const home = normalizeTeamName(match.homeTeam);
     const away = normalizeTeamName(match.awayTeam);
+    if (date && homeTeamId && awayTeamId) {
+      setTeamIdMatch(byTeamIdAndDate, date, provider, homeTeamId, awayTeamId, { match, flipScore: false });
+      setTeamIdMatch(byTeamIdAndDate, date, provider, awayTeamId, homeTeamId, { match, flipScore: true });
+    }
     if (!date || !home || !away) return;
-    byTeamAndDate.set(`${date}:${home}:${away}`, { match, flipScore: false });
-    byTeamAndDate.set(`${date}:${away}:${home}`, { match, flipScore: true });
+    byTeamAndDate.set(teamDateKey(date, home, away), { match, flipScore: false });
+    byTeamAndDate.set(teamDateKey(date, away, home), { match, flipScore: true });
   });
 
   return (odd) => {
+    const date = getAppDateKey(odd.commenceAt || odd.sourceFixtureDate);
+    const oddProvider = normalizeProviderKey(odd.provider);
+    const homeTeamId = normalizeProviderTeamId(odd.homeTeamExternalId);
+    const awayTeamId = normalizeProviderTeamId(odd.awayTeamExternalId);
+    const matchByTeamIds = getTeamIdMatch(byTeamIdAndDate, date, oddProvider, homeTeamId, awayTeamId);
+    if (matchByTeamIds) return matchByTeamIds;
+
     const oddMatchId = String(odd.tournamentMatchId || "");
     const matchById = matchesById.get(oddMatchId);
     if (matchById) return resolveProviderMatchOrientation(matchById, odd);
@@ -1074,14 +1093,28 @@ function createMatchResolver(matches, matchDayId) {
     const matchByExternal = matchesByExternal.get(oddMatchId);
     if (matchByExternal) return resolveProviderMatchOrientation(matchByExternal, odd);
 
-    const date = getAppDateKey(odd.commenceAt);
     const home = normalizeTeamName(odd.homeTeam);
     const away = normalizeTeamName(odd.awayTeam);
-    return byTeamAndDate.get(`${date}:${home}:${away}`) || null;
+    if (!date || !home || !away) return null;
+    return byTeamAndDate.get(teamDateKey(date, home, away)) || null;
   };
 }
 
 function resolveProviderMatchOrientation(match, odd) {
+  const providerHomeId = normalizeProviderTeamId(odd.homeTeamExternalId);
+  const providerAwayId = normalizeProviderTeamId(odd.awayTeamExternalId);
+  const storedHomeId = normalizeProviderTeamId(match.homeTeamExternalId);
+  const storedAwayId = normalizeProviderTeamId(match.awayTeamExternalId);
+
+  if (providerHomeId && providerAwayId && storedHomeId && storedAwayId) {
+    if (providerHomeId === storedAwayId && providerAwayId === storedHomeId) {
+      return { match, flipScore: true };
+    }
+    if (providerHomeId === storedHomeId && providerAwayId === storedAwayId) {
+      return { match, flipScore: false };
+    }
+  }
+
   const providerHome = normalizeTeamName(odd.homeTeam);
   const providerAway = normalizeTeamName(odd.awayTeam);
   const storedHome = normalizeTeamName(match.homeTeam);
@@ -1097,6 +1130,31 @@ function resolveProviderMatchOrientation(match, odd) {
   }
 
   return { match, flipScore: false };
+}
+
+function setTeamIdMatch(map, date, provider, homeTeamId, awayTeamId, resolved) {
+  map.set(teamDateKey(date, homeTeamId, awayTeamId, provider), resolved);
+  map.set(teamDateKey(date, homeTeamId, awayTeamId), resolved);
+}
+
+function getTeamIdMatch(map, date, provider, homeTeamId, awayTeamId) {
+  if (!date || !homeTeamId || !awayTeamId) return null;
+  return map.get(teamDateKey(date, homeTeamId, awayTeamId, provider)) ||
+    map.get(teamDateKey(date, homeTeamId, awayTeamId)) ||
+    null;
+}
+
+function teamDateKey(date, home, away, provider = "") {
+  return (provider ? [provider, date, home, away] : [date, home, away]).join(":");
+}
+
+function normalizeProviderKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeProviderTeamId(value) {
+  const normalized = String(value || "").trim();
+  return normalized || "";
 }
 
 function normalizeOddForStoredMatch(odd, resolved) {

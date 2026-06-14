@@ -26,9 +26,12 @@ export function createApiFootballProvider(apiKey = process.env.API_FOOTBALL_KEY)
       return rows.map(mapFixture);
     },
 
-    async getOddsByDate(date) {
-      const rows = await call(`/odds?date=${date}`);
-      return rows.flatMap(mapOdds);
+    async getOddsByDate(date, options = {}) {
+      const matches = options.matches || [];
+      const dateRows = (await call(`/odds?date=${date}`))
+        .map((row) => enrichOddsRowWithStoredFixture(row, matches));
+      const teamRows = await fetchOddsRowsByTeamAndDate(call, date, options.matches);
+      return dedupeOdds([...dateRows, ...teamRows].flatMap(mapOdds));
     },
 
     async getMatchEvents(matchId) {
@@ -50,6 +53,8 @@ function mapFixture(row) {
   return {
     externalProvider: "api-football",
     externalId: String(row.fixture.id),
+    homeTeamExternalId: row.teams.home.id == null ? null : String(row.teams.home.id),
+    awayTeamExternalId: row.teams.away.id == null ? null : String(row.teams.away.id),
     homeTeam: row.teams.home.name,
     awayTeam: row.teams.away.name,
     homeTeamCode: row.teams.home.name.slice(0, 3).toUpperCase(),
@@ -68,6 +73,8 @@ function mapFixture(row) {
 }
 
 function mapOdds(row) {
+  const homeTeam = row.teams?.home || row.fixture?.teams?.home;
+  const awayTeam = row.teams?.away || row.fixture?.teams?.away;
   return row.bookmakers.flatMap((bookmaker) => (
     bookmaker.bets.flatMap((bet) => (
       bet.values.map((value) => ({
@@ -79,11 +86,85 @@ function mapOdds(row) {
         priceDecimal: Number(value.odd),
         priceAmerican: null,
         impliedProbability: Number((1 / Number(value.odd)).toFixed(4)),
+        homeTeam: homeTeam?.name,
+        awayTeam: awayTeam?.name,
+        homeTeamExternalId: homeTeam?.id == null ? null : String(homeTeam.id),
+        awayTeamExternalId: awayTeam?.id == null ? null : String(awayTeam.id),
+        commenceAt: row.fixture.date,
         rawData: { fixture: row.fixture, bookmaker, bet, value },
         capturedAt: new Date().toISOString()
       }))
     ))
   ));
+}
+
+async function fetchOddsRowsByTeamAndDate(call, date, matches = []) {
+  const teamIds = [...new Set((matches || [])
+    .flatMap((match) => [match.homeTeamExternalId, match.awayTeamExternalId])
+    .map((teamId) => String(teamId || "").trim())
+    .filter(Boolean))];
+  if (!teamIds.length) return [];
+
+  const batches = await Promise.all(teamIds.map(async (teamId) => {
+    try {
+      const rows = await call(`/odds?date=${date}&team=${encodeURIComponent(teamId)}`);
+      return rows.map((row) => enrichOddsRowWithStoredFixture(row, matches, teamId));
+    } catch {
+      return [];
+    }
+  }));
+  return batches.flat();
+}
+
+function enrichOddsRowWithStoredFixture(row, matches = [], teamId = null) {
+  if (row.teams?.home?.id != null && row.teams?.away?.id != null) return row;
+  const fixtureId = row.fixture?.id == null ? "" : String(row.fixture.id);
+  const normalizedTeamId = String(teamId || "").trim();
+  const candidateMatches = normalizedTeamId
+    ? matches.filter((match) => (
+      String(match.homeTeamExternalId || "") === normalizedTeamId ||
+      String(match.awayTeamExternalId || "") === normalizedTeamId
+    ))
+    : matches;
+  const match = candidateMatches.find((item) => String(item.externalId || "") === fixtureId) ||
+    (candidateMatches.length === 1 ? candidateMatches[0] : null);
+  if (!match) return row;
+
+  return {
+    ...row,
+    fixture: {
+      ...row.fixture,
+      date: row.fixture?.date || match.kickoffAt
+    },
+    teams: {
+      home: {
+        id: match.homeTeamExternalId,
+        name: match.homeTeam
+      },
+      away: {
+        id: match.awayTeamExternalId,
+        name: match.awayTeam
+      }
+    }
+  };
+}
+
+function dedupeOdds(odds) {
+  const seen = new Set();
+  return odds.filter((odd) => {
+    const key = [
+      odd.provider,
+      odd.tournamentMatchId,
+      odd.marketKey,
+      odd.bookmaker,
+      odd.outcomeName,
+      odd.homeTeamExternalId || "",
+      odd.awayTeamExternalId || ""
+    ].join("::");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function normalizeStatus(status) {

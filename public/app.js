@@ -186,6 +186,7 @@ const state = {
   scorePredictions: new Map(),
   dirtyCards: new Map(),
   cardShots: new Set(),
+  shotAnimations: new Set(),
   matchdayOdds: new Map()
 };
 
@@ -377,11 +378,11 @@ function renderPlayer() {
           ${visibleCards.length
             ? `<div class="cards-grid">${visibleCards.map((playerCard) => renderCard(playerCard, { locked: readOnlyCards })).join("")}</div>`
             : `<div class="empty-state">No prediction cards have been generated for this matchday yet.</div>`}
+          ${renderCardShotPanel({ summary, matchdayReadOnly: locked })}
         </section>
 
         <aside class="right-rail">
           ${renderExactScorePanel({ summary, selectedMatch, multiplier, potential, matchdayReadOnly: locked })}
-          ${renderCardShotPanel({ summary, matchdayReadOnly: locked })}
         </aside>
       </div>
     </section>
@@ -477,7 +478,7 @@ function renderCardShotPanel({ summary, matchdayReadOnly }) {
   const shotCards = summary.playerCards.length ? summary.playerCards : visiblePredictionCards(summary);
 
   return `
-    <section class="panel shot-panel">
+    <section class="shot-panel">
       <div class="panel-head">
         <h2>Bang Bang Shot</h2>
         <span class="label">${selectedShots.size}/${MAX_CARD_SHOTS}</span>
@@ -487,12 +488,13 @@ function renderCardShotPanel({ summary, matchdayReadOnly }) {
         ${shotCards.map((playerCard) => {
           const card = playerCard.card;
           const selected = selectedShots.has(playerCard.predictionCardId);
+          const shooting = state.shotAnimations.has(playerCard.predictionCardId);
           const shotResult = (summary.cardShots || []).find((shot) => shot.predictionCardId === playerCard.predictionCardId);
           const resultText = summary.status === "FINAL" && shotResult
             ? `${shotResult.hit ? "Hit" : "Miss"} · ${shotResult.pointsAwarded} pts`
             : card.title;
           return `
-            <button class="shot-card ${selected ? "selected" : ""}" data-shot-card-id="${playerCard.predictionCardId}" ${locked ? "disabled" : ""}>
+            <button class="shot-card ${selected ? "selected" : ""} ${shooting ? "shooting" : ""}" data-shot-card-id="${playerCard.predictionCardId}" ${locked ? "disabled" : ""}>
               <span>${cardDisplayNumber(card)}</span>
               <strong>${escapeHtml(resultText)}</strong>
             </button>
@@ -1834,6 +1836,7 @@ function applyMatchdaySelectionState() {
     answer: playerCard.playerAnswer || playerCard.card?.expectedAnswer || "YES"
   }]));
   state.cardShots = new Set(summary.shotCardIds || []);
+  state.shotAnimations = new Set();
 }
 
 function syncHydratedState() {
@@ -1893,10 +1896,18 @@ root.addEventListener("click", async (event) => {
   if (shotButton) {
     if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
     const cardId = shotButton.dataset.shotCardId;
-    if (state.cardShots.has(cardId)) state.cardShots.delete(cardId);
-    else {
+    if (state.cardShots.has(cardId)) {
+      state.cardShots.delete(cardId);
+      state.shotAnimations.delete(cardId);
+    } else {
       if (state.cardShots.size >= MAX_CARD_SHOTS) return showToast(`Shoot up to ${MAX_CARD_SHOTS} cards.`);
       state.cardShots.add(cardId);
+      state.shotAnimations.add(cardId);
+      window.setTimeout(() => {
+        if (!state.shotAnimations.has(cardId)) return;
+        state.shotAnimations.delete(cardId);
+        render();
+      }, 620);
     }
     render();
     return;

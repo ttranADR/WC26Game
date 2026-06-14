@@ -1456,6 +1456,60 @@ assert.ok(brazilCorrectScoreOdds.some((odd) => (
   odd.priceDecimal > 1
 )));
 
+const teamIdOddsData = createSeedData();
+const teamIdMatch = teamIdOddsData.tournamentMatches.find((item) => item.id === "match_bra_mar");
+Object.assign(teamIdMatch, {
+  externalProvider: "api-football",
+  externalId: "api_fixture_bra_mar",
+  homeTeamExternalId: "10",
+  awayTeamExternalId: "20"
+});
+const teamIdOddsStore = createMemoryStore(teamIdOddsData);
+const teamIdOddsContextChecks = [];
+await syncOdds(teamIdOddsStore, {
+  async getOddsByDate(date, context) {
+    if (date !== "2026-06-12") return [];
+    const fixture = context.matches.find((item) => item.id === "match_bra_mar");
+    teamIdOddsContextChecks.push({
+      homeTeamExternalId: fixture?.homeTeamExternalId,
+      awayTeamExternalId: fixture?.awayTeamExternalId
+    });
+    return [{
+      tournamentMatchId: "api_fixture_id_not_used_for_matching",
+      provider: "api-football",
+      marketKey: "CORRECT_SCORE",
+      bookmaker: "TeamDateBook",
+      outcomeName: "1-0",
+      priceDecimal: 8.4,
+      impliedProbability: 0.119,
+      homeTeamExternalId: "10",
+      awayTeamExternalId: "20",
+      commenceAt: "2026-06-12T20:00:00.000Z",
+      capturedAt: new Date().toISOString()
+    }, {
+      tournamentMatchId: "api_fixture_id_not_used_for_matching",
+      provider: "api-football",
+      marketKey: "CORRECT_SCORE",
+      bookmaker: "TeamDateBook",
+      outcomeName: "0-1",
+      priceDecimal: 42,
+      impliedProbability: 0.0238,
+      homeTeamExternalId: "10",
+      awayTeamExternalId: "20",
+      commenceAt: "2026-06-12T20:00:00.000Z",
+      capturedAt: new Date().toISOString()
+    }];
+  }
+}, { matchDayId: "md_12" });
+assert.deepEqual(teamIdOddsContextChecks, [{ homeTeamExternalId: "10", awayTeamExternalId: "20" }]);
+const teamIdCorrectScoreOdds = teamIdOddsData.oddsSnapshots.filter((odd) => (
+  odd.tournamentMatchId === "match_bra_mar" &&
+  odd.marketKey === "CORRECT_SCORE"
+));
+assert.equal(teamIdCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 8.4);
+assert.equal(teamIdCorrectScoreOdds.find((odd) => odd.outcomeName === "0-1")?.priceDecimal, 42);
+assert.equal(teamIdCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.provider, "api-football");
+
 const bulkOddsData = createSeedData();
 const bulkOddsStore = createMemoryStore(bulkOddsData);
 const bulkOddsCalls = [];
