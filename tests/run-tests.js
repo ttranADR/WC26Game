@@ -1278,6 +1278,18 @@ await syncOdds(store, {
       priceDecimal: 25,
       impliedProbability: 0.04,
       capturedAt: new Date().toISOString()
+    }, {
+      tournamentMatchId: "fix_bra_mar",
+      provider: "test-odds",
+      marketKey: "CORRECT_SCORE",
+      bookmaker: "TestBook",
+      outcomeName: "0-1",
+      priceDecimal: 2.1,
+      impliedProbability: 0.4762,
+      homeTeam: "Morocco",
+      awayTeam: "Brazil",
+      commenceAt: "2026-06-12T20:00:00.000Z",
+      capturedAt: new Date().toISOString()
     }];
   }
 }, { matchDayId: "md_12" });
@@ -1293,6 +1305,9 @@ const brazilCorrectScoreOdds = syncData.oddsSnapshots.filter((odd) => (
 ));
 assert.equal(brazilCorrectScoreOdds.length, 36);
 assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "0-0")?.priceDecimal, 25);
+assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 2.1);
+assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.provider, "test-odds");
+assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "0-1")?.provider, "pitchpick-generated");
 assert.ok(brazilCorrectScoreOdds.some((odd) => (
   odd.outcomeName === "5-5" &&
   odd.provider === "pitchpick-generated" &&
@@ -1386,6 +1401,7 @@ globalThis.fetch = async (url) => {
           updatedAt: "2026-06-08T19:09:30.941Z",
           odds: [
             { label: "1-1", odds: "7.000" },
+            { label: "1-2", odds: "15.000" },
             { label: "3-1", odds: "19.000" }
           ]
         }]
@@ -1404,6 +1420,11 @@ try {
     odd.outcomeName === "1-1" &&
     odd.priceDecimal === 7 &&
     odd.bookmaker === "Bet365"
+  )));
+  assert.ok(mappedOdds.some((odd) => (
+    odd.marketKey === "CORRECT_SCORE" &&
+    odd.outcomeName === "1-2" &&
+    odd.priceDecimal === 15
   )));
   assert.ok(mappedOdds.some((odd) => (
     odd.marketKey === "CORRECT_SCORE" &&

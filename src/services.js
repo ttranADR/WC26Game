@@ -468,13 +468,16 @@ export async function syncOdds(store, provider, input = {}) {
     const resolver = createMatchResolver(plan.matches);
     const capturedAt = Date.now();
     const providerOdds = rawOdds.map((odd, index) => {
-      const tournamentMatchId = resolver(odd);
-      if (!targetMatchIds.has(tournamentMatchId)) return null;
+      const resolved = resolver(odd);
+      if (!resolved || !targetMatchIds.has(resolved.match.id)) return null;
+      const normalizedOdd = normalizeOddForStoredMatch(odd, resolved);
       return {
-        ...odd,
-        id: createOddsSnapshotId(tournamentMatchId, odd, index, capturedAt),
-        tournamentMatchId,
-        sourceFixtureDate: odd.sourceFixtureDate || getAppDateKey(odd.commenceAt)
+        ...normalizedOdd,
+        id: createOddsSnapshotId(resolved.match.id, normalizedOdd, index, capturedAt),
+        tournamentMatchId: resolved.match.id,
+        sourceFixtureDate: normalizedOdd.sourceFixtureDate ||
+          getAppDateKey(normalizedOdd.commenceAt) ||
+          getAppDateKey(resolved.match.kickoffAt)
       };
     }).filter(Boolean);
     const nextOdds = withCompleteCorrectScoreOdds(plan.matches, providerOdds, capturedAt);
@@ -994,8 +997,12 @@ function getStageInfo(fixtures) {
 
 function createMatchResolver(matches, matchDayId) {
   const scopedMatches = matchDayId ? matches.filter((match) => match.matchDayId === matchDayId) : matches;
-  const matchesById = new Map(scopedMatches.map((match) => [match.id, match.id]));
-  const matchesByExternal = new Map(scopedMatches.map((match) => [match.externalId, match.id]));
+  const matchesById = new Map(scopedMatches
+    .filter((match) => match.id)
+    .map((match) => [String(match.id), match]));
+  const matchesByExternal = new Map(scopedMatches
+    .filter((match) => match.externalId)
+    .map((match) => [String(match.externalId), match]));
   const byTeamAndDate = new Map();
 
   scopedMatches.forEach((match) => {
@@ -1003,19 +1010,55 @@ function createMatchResolver(matches, matchDayId) {
     const home = normalizeTeamName(match.homeTeam);
     const away = normalizeTeamName(match.awayTeam);
     if (!date || !home || !away) return;
-    byTeamAndDate.set(`${date}:${home}:${away}`, match.id);
-    byTeamAndDate.set(`${date}:${away}:${home}`, match.id);
+    byTeamAndDate.set(`${date}:${home}:${away}`, { match, flipScore: false });
+    byTeamAndDate.set(`${date}:${away}:${home}`, { match, flipScore: true });
   });
 
   return (odd) => {
-    if (matchesById.has(odd.tournamentMatchId)) return matchesById.get(odd.tournamentMatchId);
-    if (matchesByExternal.has(odd.tournamentMatchId)) return matchesByExternal.get(odd.tournamentMatchId);
+    const oddMatchId = String(odd.tournamentMatchId || "");
+    const matchById = matchesById.get(oddMatchId);
+    if (matchById) return resolveProviderMatchOrientation(matchById, odd);
+
+    const matchByExternal = matchesByExternal.get(oddMatchId);
+    if (matchByExternal) return resolveProviderMatchOrientation(matchByExternal, odd);
 
     const date = getAppDateKey(odd.commenceAt);
     const home = normalizeTeamName(odd.homeTeam);
     const away = normalizeTeamName(odd.awayTeam);
     return byTeamAndDate.get(`${date}:${home}:${away}`) || null;
   };
+}
+
+function resolveProviderMatchOrientation(match, odd) {
+  const providerHome = normalizeTeamName(odd.homeTeam);
+  const providerAway = normalizeTeamName(odd.awayTeam);
+  const storedHome = normalizeTeamName(match.homeTeam);
+  const storedAway = normalizeTeamName(match.awayTeam);
+
+  if (providerHome && providerAway && storedHome && storedAway) {
+    if (providerHome === storedAway && providerAway === storedHome) {
+      return { match, flipScore: true };
+    }
+    if (providerHome === storedHome && providerAway === storedAway) {
+      return { match, flipScore: false };
+    }
+  }
+
+  return { match, flipScore: false };
+}
+
+function normalizeOddForStoredMatch(odd, resolved) {
+  if (odd.marketKey !== "CORRECT_SCORE") return odd;
+  const outcomeName = resolved.flipScore
+    ? flipCorrectScoreOutcome(odd.outcomeName)
+    : normalizeScoreOutcomeName(odd.outcomeName);
+  return { ...odd, outcomeName };
+}
+
+function flipCorrectScoreOutcome(value) {
+  const normalized = normalizeScoreOutcomeName(value);
+  const match = normalized.match(/^(\d+)-(\d+)$/);
+  return match ? `${match[2]}-${match[1]}` : normalized;
 }
 
 function normalizeTeamName(value) {

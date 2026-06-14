@@ -164,8 +164,8 @@ function makeDateRange(date) {
 }
 
 function mapOddsApiIoV3EventOdds(event) {
-  return Object.entries(event.bookmakers || {}).flatMap(([bookmaker, markets]) => (
-    (Array.isArray(markets) ? markets : []).flatMap((market) => mapOddsApiIoV3Market(event, bookmaker, market))
+  return normalizeV3Bookmakers(event.bookmakers).flatMap(({ bookmaker, markets }) => (
+    normalizeV3Markets(markets).flatMap((market) => mapOddsApiIoV3Market(event, bookmaker, market))
   ));
 }
 
@@ -173,13 +173,107 @@ function mapOddsApiIoV3Market(event, bookmaker, market) {
   const marketKey = normalizeV3Market(market.name || market.market || market.type);
   if (!marketKey) return [];
 
-  return (market.odds || market.outcomes || []).flatMap((row) => {
+  return normalizeV3MarketRows(market, marketKey).flatMap((row) => {
     if (marketKey === "MATCH_WINNER") return mapV3MatchWinner(event, bookmaker, market, row);
     if (marketKey === "TOTAL_GOALS") return mapV3Totals(event, bookmaker, market, row);
     if (marketKey === "BOTH_TEAMS_SCORE") return mapV3BothTeamsScore(event, bookmaker, market, row);
     if (marketKey === "CORRECT_SCORE") return mapV3CorrectScore(event, bookmaker, market, row);
     return [];
   });
+}
+
+function normalizeV3Bookmakers(bookmakers) {
+  if (Array.isArray(bookmakers)) {
+    return bookmakers.flatMap((row) => {
+      if (!isRecord(row)) return [];
+      const bookmaker = row.name || row.bookmaker || row.key || row.title || "Bookmaker";
+      const markets = row.markets || row.odds || row.outcomes || row.data || [];
+      return [{ bookmaker: String(bookmaker), markets }];
+    });
+  }
+
+  if (!isRecord(bookmakers)) return [];
+  return Object.entries(bookmakers).map(([bookmaker, markets]) => ({
+    bookmaker,
+    markets: unwrapV3BookmakerMarkets(markets)
+  }));
+}
+
+function unwrapV3BookmakerMarkets(value) {
+  if (isRecord(value) && (Array.isArray(value.markets) || isRecord(value.markets))) return value.markets;
+  return value;
+}
+
+function normalizeV3Markets(markets) {
+  if (Array.isArray(markets)) return markets.filter(isRecord);
+  if (!isRecord(markets)) return [];
+  if (looksLikeV3Market(markets)) return [markets];
+
+  return Object.entries(markets).flatMap(([marketName, marketRows]) => {
+    if (Array.isArray(marketRows)) return [{ name: marketName, odds: marketRows }];
+    if (isRecord(marketRows)) {
+      return [{ ...marketRows, name: marketRows.name || marketRows.market || marketName }];
+    }
+    return [];
+  });
+}
+
+function normalizeV3MarketRows(market, marketKey) {
+  const rows = market.odds ?? market.outcomes ?? market.values ?? market.prices ?? market.selections ?? market.lines;
+  if (Array.isArray(rows)) return rows.filter(isRecord);
+  if (isRecord(rows)) {
+    if (marketKey === "CORRECT_SCORE" && hasCorrectScoreLabel(rows)) return [rows];
+    if (marketKey !== "CORRECT_SCORE" && hasSingleMarketRowShape(rows)) return [rows];
+    return mapV3PriceObjectRows(rows);
+  }
+
+  if (marketKey === "CORRECT_SCORE" && (hasCorrectScoreLabel(market) || hasScorePriceEntries(market))) return [market];
+  if (marketKey !== "CORRECT_SCORE" && hasSingleMarketRowShape(market)) return [market];
+  return [];
+}
+
+function mapV3PriceObjectRows(rows) {
+  return Object.entries(rows).flatMap(([label, value]) => {
+    if (isRecord(value)) {
+      return [{
+        ...value,
+        label: value.label || value.score || value.name || label,
+        odds: value.odds ?? value.odd ?? value.price ?? value.decimal ?? value.value
+      }];
+    }
+    return [{ label, odds: value }];
+  });
+}
+
+function looksLikeV3Market(value) {
+  return isRecord(value) && (
+    value.name ||
+    value.market ||
+    value.type ||
+    value.odds ||
+    value.outcomes ||
+    value.values ||
+    value.prices ||
+    value.selections ||
+    value.lines
+  );
+}
+
+function hasSingleMarketRowShape(value) {
+  return isRecord(value) && ["home", "draw", "away", "over", "under", "yes", "no", "Yes", "No"].some((key) => key in value);
+}
+
+function hasCorrectScoreLabel(value) {
+  if (!isRecord(value)) return false;
+  return Boolean(normalizeScoreOutcome(value.score || value.label || value.name || value.outcome || value.result || value.value));
+}
+
+function hasScorePriceEntries(value) {
+  return isRecord(value) && Object.keys(value).some((key) => /^\d+\s*-\s*\d+$/.test(key));
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function mapV3MatchWinner(event, bookmaker, market, row) {
@@ -207,16 +301,32 @@ function mapV3BothTeamsScore(event, bookmaker, market, row) {
 
 function mapV3CorrectScore(event, bookmaker, market, row) {
   const directScore = row.score || row.label || row.name || row.outcome || row.result || row.value;
-  const directPrice = row.odds || row.odd || row.price || row.decimal;
-  const direct = makeV3Odd(event, bookmaker, market, "CORRECT_SCORE", normalizeScoreOutcome(directScore), directPrice);
-  const keyed = Object.entries(row)
+  const directPrice = row.odds ?? row.odd ?? row.price ?? row.decimal ?? (normalizeScoreOutcome(row.value) ? null : row.value);
+  const mapped = [];
+  const seenScores = new Set();
+  const directOutcome = normalizeScoreOutcome(directScore);
+  const direct = makeV3Odd(event, bookmaker, market, "CORRECT_SCORE", directOutcome, directPrice, row);
+  if (direct) {
+    mapped.push(direct);
+    seenScores.add(direct.outcomeName);
+  }
+
+  Object.entries(row)
     .filter(([key]) => /^\d+\s*-\s*\d+$/.test(key))
-    .map(([score, price]) => makeV3Odd(event, bookmaker, market, "CORRECT_SCORE", normalizeScoreOutcome(score), price))
-    .filter(Boolean);
-  return direct ? [direct, ...keyed] : keyed;
+    .forEach(([score, price]) => {
+      const outcomeName = normalizeScoreOutcome(score);
+      if (seenScores.has(outcomeName)) return;
+      const odd = makeV3Odd(event, bookmaker, market, "CORRECT_SCORE", outcomeName, price, row);
+      if (odd) {
+        mapped.push(odd);
+        seenScores.add(outcomeName);
+      }
+    });
+
+  return mapped;
 }
 
-function makeV3Odd(event, bookmaker, market, marketKey, outcomeName, price) {
+function makeV3Odd(event, bookmaker, market, marketKey, outcomeName, price, row = null) {
   const priceDecimal = Number(price);
   if (!outcomeName || !Number.isFinite(priceDecimal) || priceDecimal <= 1) return null;
   return {
@@ -231,7 +341,7 @@ function makeV3Odd(event, bookmaker, market, marketKey, outcomeName, price) {
     homeTeam: event.home,
     awayTeam: event.away,
     commenceAt: event.date,
-    rawData: { event, market },
+    rawData: { event, market, row },
     capturedAt: new Date().toISOString()
   };
 }
