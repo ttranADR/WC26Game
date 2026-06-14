@@ -1,6 +1,7 @@
 import { shuffle } from "./random.js";
 import { hashPassword } from "./auth.js";
 import { CARD_SET_SIZE, MIN_SELECTED_CARDS } from "./config.js";
+import { createCorrectScorePrices } from "./oddsPricing.js";
 
 export const PAIRING_MODES = ["MIXED", "SOLO", "DUO", "HALF"];
 const CONTEST_PAIRING_MODES = ["SOLO", "DUO", "HALF"];
@@ -152,29 +153,21 @@ function match(id, externalId, homeTeam, awayTeam, homeTeamCode, awayTeamCode, k
 }
 
 function createOdds(matches) {
-  return matches.flatMap((matchItem) => [
-    odd(matchItem.id, "MATCH_WINNER", matchItem.homeTeam, 1.7),
-    odd(matchItem.id, "MATCH_WINNER", "Draw", 3.4),
-    odd(matchItem.id, "MATCH_WINNER", matchItem.awayTeam, 4.8),
-    odd(matchItem.id, "TOTAL_GOALS", "Over 2.5", 1.6),
-    odd(matchItem.id, "TOTAL_GOALS", "Under 2.5", 2.2),
-    odd(matchItem.id, "BOTH_TEAMS_SCORE", "Yes", 1.7),
-    odd(matchItem.id, "BOTH_TEAMS_SCORE", "No", 2.0),
-    ...createCorrectScorePrices().map(([score, price]) => odd(matchItem.id, "CORRECT_SCORE", score, price))
-  ]);
-}
-
-function createCorrectScorePrices() {
-  const scores = [];
-  for (let home = 0; home <= 5; home += 1) {
-    for (let away = 0; away <= 5; away += 1) {
-      const total = home + away;
-      const drawPenalty = home === away ? 1.2 : 0;
-      const blowoutPenalty = Math.abs(home - away) * 1.35;
-      scores.push([`${home}-${away}`, Number((5.8 + total * 1.25 + drawPenalty + blowoutPenalty).toFixed(1))]);
-    }
-  }
-  return scores;
+  return matches.flatMap((matchItem) => {
+    const marketOdds = [
+      odd(matchItem.id, "MATCH_WINNER", matchItem.homeTeam, 1.7),
+      odd(matchItem.id, "MATCH_WINNER", "Draw", 3.4),
+      odd(matchItem.id, "MATCH_WINNER", matchItem.awayTeam, 4.8),
+      odd(matchItem.id, "TOTAL_GOALS", "Over 2.5", 1.6),
+      odd(matchItem.id, "TOTAL_GOALS", "Under 2.5", 2.2),
+      odd(matchItem.id, "BOTH_TEAMS_SCORE", "Yes", 1.7),
+      odd(matchItem.id, "BOTH_TEAMS_SCORE", "No", 2.0)
+    ];
+    return [
+      ...marketOdds,
+      ...createCorrectScorePrices(matchItem, marketOdds).map(([score, price]) => odd(matchItem.id, "CORRECT_SCORE", score, price))
+    ];
+  });
 }
 
 function odd(tournamentMatchId, marketKey, outcomeName, priceDecimal) {

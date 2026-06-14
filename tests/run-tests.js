@@ -25,6 +25,17 @@ import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig
 const data = createSeedData();
 const match = data.tournamentMatches.find((item) => item.id === "match_bra_mar");
 assert.equal(data.predictionCards.length, 12);
+const seededFavoriteScoreOdd = data.oddsSnapshots.find((odd) => (
+  odd.tournamentMatchId === "match_bra_mar" &&
+  odd.marketKey === "CORRECT_SCORE" &&
+  odd.outcomeName === "1-0"
+));
+const seededUnderdogScoreOdd = data.oddsSnapshots.find((odd) => (
+  odd.tournamentMatchId === "match_bra_mar" &&
+  odd.marketKey === "CORRECT_SCORE" &&
+  odd.outcomeName === "0-1"
+));
+assert.ok(seededFavoriteScoreOdd.priceDecimal < seededUnderdogScoreOdd.priceDecimal);
 
 const loginData = createSeedData();
 const loginStore = createMemoryStore(loginData);
@@ -1266,8 +1277,26 @@ await syncOdds(store, {
       marketKey: "MATCH_WINNER",
       bookmaker: "TestBook",
       outcomeName: "Brazil",
-      priceDecimal: 1.8,
-      impliedProbability: 0.5556,
+      priceDecimal: 1.35,
+      impliedProbability: 0.7407,
+      capturedAt: new Date().toISOString()
+    }, {
+      tournamentMatchId: "fix_bra_mar",
+      provider: "test-odds",
+      marketKey: "MATCH_WINNER",
+      bookmaker: "TestBook",
+      outcomeName: "Draw",
+      priceDecimal: 5.2,
+      impliedProbability: 0.1923,
+      capturedAt: new Date().toISOString()
+    }, {
+      tournamentMatchId: "fix_bra_mar",
+      provider: "test-odds",
+      marketKey: "MATCH_WINNER",
+      bookmaker: "TestBook",
+      outcomeName: "Morocco",
+      priceDecimal: 9.5,
+      impliedProbability: 0.1053,
       capturedAt: new Date().toISOString()
     }, {
       tournamentMatchId: "fix_bra_mar",
@@ -1308,6 +1337,11 @@ assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "0-0")?.pr
 assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 2.1);
 assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "1-0")?.provider, "test-odds");
 assert.equal(brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "0-1")?.provider, "pitchpick-generated");
+const generatedFavoriteWin = brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "2-0");
+const generatedUnderdogWin = brazilCorrectScoreOdds.find((odd) => odd.outcomeName === "0-2");
+assert.equal(generatedFavoriteWin?.provider, "pitchpick-generated");
+assert.equal(generatedUnderdogWin?.provider, "pitchpick-generated");
+assert.ok(generatedFavoriteWin.priceDecimal < generatedUnderdogWin.priceDecimal);
 assert.ok(brazilCorrectScoreOdds.some((odd) => (
   odd.outcomeName === "5-5" &&
   odd.provider === "pitchpick-generated" &&

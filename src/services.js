@@ -3,6 +3,7 @@ import { gradeCard, gradeExactPrediction, getExactScoreMultiplier } from "./scor
 import { defaultPasswordForRole, ensureUserPassword, hashPassword, verifyPassword } from "./auth.js";
 import { sendInviteEmail } from "./email.js";
 import { shuffle } from "./random.js";
+import { createCorrectScorePrices } from "./oddsPricing.js";
 import {
   CARD_POINTS_CORRECT,
   CARD_POINTS_INCORRECT,
@@ -480,7 +481,7 @@ export async function syncOdds(store, provider, input = {}) {
           getAppDateKey(resolved.match.kickoffAt)
       };
     }).filter(Boolean);
-    const nextOdds = withCompleteCorrectScoreOdds(plan.matches, providerOdds, capturedAt);
+    const nextOdds = withCompleteCorrectScoreOdds(plan.matches, providerOdds, capturedAt, data.oddsSnapshots);
     const nextKeys = new Set(nextOdds.map(oddsSnapshotKey));
     const coveredCorrectScoreKeys = new Set(nextOdds
       .filter((odd) => odd.marketKey === "CORRECT_SCORE")
@@ -787,15 +788,16 @@ function createOddsSnapshotId(tournamentMatchId, odd, index, capturedAt) {
   ].join("_");
 }
 
-function withCompleteCorrectScoreOdds(matches, providerOdds, capturedAt) {
+function withCompleteCorrectScoreOdds(matches, providerOdds, capturedAt, existingOdds = []) {
   const nextOdds = [...providerOdds];
+  const strengthOdds = [...providerOdds, ...existingOdds].filter((odd) => odd.marketKey === "MATCH_WINNER");
   const existingScorelines = new Set(nextOdds
     .filter((odd) => odd.marketKey === "CORRECT_SCORE")
     .map(correctScoreOutcomeKey));
   const capturedIso = new Date(capturedAt).toISOString();
 
   matches.forEach((match) => {
-    createCorrectScorePrices().forEach(([score, price], scoreIndex) => {
+    createCorrectScorePrices(match, strengthOdds).forEach(([score, price], scoreIndex) => {
       const key = correctScoreOutcomeKey({
         tournamentMatchId: match.id,
         marketKey: "CORRECT_SCORE",
@@ -813,7 +815,7 @@ function withCompleteCorrectScoreOdds(matches, providerOdds, capturedAt) {
         priceAmerican: null,
         impliedProbability: Number((1 / price).toFixed(4)),
         sourceFixtureDate: getAppDateKey(match.kickoffAt),
-        rawData: { generated: true, reason: "Missing correct-score bookmaker quote" },
+        rawData: { generated: true, reason: "Missing correct-score bookmaker quote", pricing: "match-winner-strength" },
         capturedAt: capturedIso
       };
       nextOdds.push({
@@ -2293,19 +2295,6 @@ function createPlayableCorrectScoreOdds(matches, capturedAt) {
     rawData: { seed: "today" },
     capturedAt
   })));
-}
-
-function createCorrectScorePrices() {
-  const scores = [];
-  for (let home = 0; home <= 5; home += 1) {
-    for (let away = 0; away <= 5; away += 1) {
-      const total = home + away;
-      const drawPenalty = home === away ? 1.2 : 0;
-      const blowoutPenalty = Math.abs(home - away) * 1.35;
-      scores.push([`${home}-${away}`, Number((5.8 + total * 1.25 + drawPenalty + blowoutPenalty).toFixed(1))]);
-    }
-  }
-  return scores;
 }
 
 function ensureDemoMatchdayHistory(data) {
