@@ -519,9 +519,8 @@ export async function syncOdds(store, provider, input = {}) {
       mappings: mappings.map(projectOddsMatchMapping)
     };
   });
-  const rawOdds = plan.useCompetitionOdds
-    ? await provider.getCompetitionOdds()
-    : await fetchOddsForOddsPlan(provider, plan);
+  const oddsResult = await fetchOddsForOddsPlan(provider, plan);
+  const rawOdds = oddsResult.odds;
   const targetMatchIds = new Set(plan.matches.map((match) => match.id));
 
   return store.update((data) => {
@@ -552,13 +551,10 @@ export async function syncOdds(store, provider, input = {}) {
       !coveredCorrectScoreKeys.has(correctScoreOutcomeKey(odd))
     ));
     data.oddsSnapshots.push(...nextOdds);
-    const oddsSource = plan.useCompetitionOdds
-      ? "using one bulk competition odds fetch"
-      : `across ${plan.dates.length} date${plan.dates.length === 1 ? "" : "s"}`;
     data.syncLogs.unshift(log(
       "SYNC_ODDS",
       "SUCCESS",
-      `Synced ${nextOdds.length} odds snapshots for ${plan.matches.length} stored fixtures ${oddsSource}; ${providerCorrectScoreCount} provider score odds${rawOdds.length > providerOdds.length ? ` (${rawOdds.length - providerOdds.length} unmatched)` : ""}.`
+      `Synced ${nextOdds.length} odds snapshots for ${plan.matches.length} stored fixtures ${oddsResult.source}; ${providerCorrectScoreCount} provider score odds${rawOdds.length > providerOdds.length ? ` (${rawOdds.length - providerOdds.length} unmatched)` : ""}.`
     ));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
@@ -842,9 +838,23 @@ async function fetchOddsForStoredFixtures(provider, fixtureDates, storedFixtures
 async function fetchOddsForOddsPlan(provider, plan) {
   if (typeof provider.getOddsByMatchMappings === "function" && plan.mappings.length) {
     const mappedOdds = await provider.getOddsByMatchMappings(plan.mappings);
-    if (mappedOdds.length) return mappedOdds;
+    if (mappedOdds.length) {
+      return {
+        odds: mappedOdds,
+        source: `using ${plan.mappings.length} mapped provider event id${plan.mappings.length === 1 ? "" : "s"}`
+      };
+    }
   }
-  return fetchOddsForStoredFixtures(provider, plan.dates, plan.matches);
+  if (plan.useCompetitionOdds && typeof provider.getCompetitionOdds === "function") {
+    return {
+      odds: await provider.getCompetitionOdds(),
+      source: "using one bulk competition odds fetch"
+    };
+  }
+  return {
+    odds: await fetchOddsForStoredFixtures(provider, plan.dates, plan.matches),
+    source: `across ${plan.dates.length} date${plan.dates.length === 1 ? "" : "s"}`
+  };
 }
 
 async function fetchOddsMappingFixtures(provider, matches) {

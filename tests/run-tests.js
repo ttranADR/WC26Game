@@ -1774,6 +1774,22 @@ try {
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 17);
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "0-1")?.priceDecimal, 41);
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.provider, "odds-api-v3");
+
+  oddsApiMappingEventDates.length = 0;
+  oddsApiMappingOddsEventIds.length = 0;
+  const oddsApiAllScopeData = createSeedData();
+  const oddsApiAllScopeStore = createMemoryStore(oddsApiAllScopeData);
+  await syncOdds(oddsApiAllScopeStore, createOddsApiProvider("test-key"), { scope: "all" });
+  assert.equal(oddsApiMappingEventDates.includes(undefined), false);
+  assert.deepEqual(oddsApiMappingOddsEventIds, ["oddsapi_event_bra_mar"]);
+  assert.match(oddsApiAllScopeData.syncLogs[0].message, /mapped provider event id/);
+  assert.doesNotMatch(oddsApiAllScopeData.syncLogs[0].message, /bulk competition odds fetch/);
+  const allScopeMappedCorrectScores = oddsApiAllScopeData.oddsSnapshots.filter((odd) => (
+    odd.tournamentMatchId === "match_bra_mar" &&
+    odd.marketKey === "CORRECT_SCORE"
+  ));
+  assert.equal(allScopeMappedCorrectScores.filter((odd) => odd.provider === "odds-api-v3").length, 36);
+  assert.equal(allScopeMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 17);
 } finally {
   globalThis.fetch = oddsApiMappingFetch;
   if (oddsApiMappingVersion == null) delete process.env.ODDS_API_VERSION;

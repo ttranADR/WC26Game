@@ -138,12 +138,12 @@ function createOddsApiIoV3Provider(apiKey) {
     return eventRows;
   }
 
-  async function fetchOddsForEvents(eventRows) {
+  async function fetchOddsForEvents(eventRows, batchSize = 10) {
     const oddsRows = [];
     const eventsById = new Map(eventRows
       .map((event) => [getV3EventId(event), event])
       .filter(([eventId]) => eventId));
-    for (const eventChunk of chunk(eventRows, 10)) {
+    for (const eventChunk of chunk(eventRows, batchSize)) {
       const eventIds = eventChunk.map(getV3EventId).filter(Boolean).join(",");
       if (!eventIds) continue;
       const rows = await call("/odds/multi", { eventIds, bookmakers });
@@ -183,7 +183,7 @@ function createOddsApiIoV3Provider(apiKey) {
           (!mapping.provider || mapping.provider === "odds-api-v3")
         ))
         .map(mapOddsApiIoV3MappingEvent);
-      return fetchOddsForEvents(eventRows);
+      return fetchOddsForEvents(eventRows, 1);
     },
 
     async getMatchEvents() {
