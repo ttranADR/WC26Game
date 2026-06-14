@@ -507,10 +507,11 @@ export async function syncOdds(store, provider, input = {}) {
     return {
       matches: matches.map(projectFixtureForOddsSync),
       dates: getFixtureDates(matches),
+      scope: input.scope,
       useCompetitionOdds
     };
   });
-  const mappingFixtures = await fetchOddsMappingFixtures(provider, basePlan.matches);
+  const mappingFixtures = await fetchOddsMappingFixtures(provider, basePlan.matches, basePlan);
   const plan = await store.update((data) => {
     ensureDataCollections(data);
     const mappings = upsertOddsMatchMappings(data, basePlan.matches, mappingFixtures);
@@ -863,7 +864,15 @@ async function fetchOddsForOddsPlan(provider, plan) {
   };
 }
 
-async function fetchOddsMappingFixtures(provider, matches) {
+async function fetchOddsMappingFixtures(provider, matches, options = {}) {
+  if (options.scope === "all" && typeof provider.getFixturesByCompetition === "function") {
+    try {
+      const rows = await provider.getFixturesByCompetition({ matches });
+      if (rows.length) return rows;
+    } catch {
+      // Fall back to date-by-date lookup below.
+    }
+  }
   if (typeof provider.getFixturesByDate !== "function") return [];
   const dates = getProviderFixtureLookupDates(matches);
   const batches = await Promise.all(dates.map(async (date) => {

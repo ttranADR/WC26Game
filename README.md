@@ -159,7 +159,7 @@ ODDS_API_EVENT_LIMIT=50
 ODDS_API_BOOKMAKERS=Bet365
 ```
 
-`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports odds from odds-api.io v3. Initial Load pages all available World Cup `/events` with `limit`/`skip`, then batches `/odds/multi` requests for up to 10 events at a time. Daily updates still fetch odds only for the selected match date.
+`FOOTBALL_DATA_TOKEN` imports the World Cup fixture schedule/results from football-data.org. `ODDS_API_KEY` imports odds from odds-api.io v3. Initial Load scans odds-api `/events` across the stored World Cup fixture window, maps provider event IDs to app matches, then fetches `/odds/multi` for those mapped events. Daily updates still fetch odds only for the selected match date.
 
 Postman smoke test for odds-api.io v3:
 

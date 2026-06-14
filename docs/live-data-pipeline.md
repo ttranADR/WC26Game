@@ -41,7 +41,7 @@ Odds sync is based on the stored fixture list, not on whatever games the odds AP
 2. Choose the target games:
    - one `matchDayId` for a daily admin action, or
    - every stored fixture for Initial Load.
-3. For Initial Load, call odds-api v3 `/events` without a date range, page through all available World Cup events with `limit`/`skip`, then call `/odds/multi` in event batches.
+3. For Initial Load, call odds-api v3 `/events` across the stored World Cup fixture date range, map provider event IDs to app matches, then call `/odds/multi` for those mapped events.
 4. For daily updates, group the target games by fixture date from `kickoffAt` and call the configured odds API only for those dates.
 5. Resolve each provider odds row back to a stored `tournamentMatchId` using:
    - stored match ID,
@@ -56,7 +56,7 @@ Cards, exact-score boosts, player screens, and admin screens then read odds from
 
 Use the Admin **Live Data** panel for normal operations:
 
-1. `Initial Load`: one-time setup. Read all World Cup matches from football-data, store as much fixture data as available in Neon, bulk-read all available World Cup odds from odds-api, then store odds snapshots in Neon.
+1. `Initial Load`: one-time setup. Read all World Cup matches from football-data, store as much fixture data as available in Neon, scan odds-api events across the stored fixture window, fetch odds by mapped provider event ID, then store odds snapshots in Neon.
 2. `Update Date`: daily update. Read the selected stored match date, update fixture status/results for that date, then refresh odds for only those stored games.
 
 The initial load is idempotent, but it is intended to be used as the database bootstrap rather than a daily task.

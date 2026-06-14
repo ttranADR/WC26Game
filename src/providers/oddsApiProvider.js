@@ -155,6 +155,11 @@ function createOddsApiIoV3Provider(apiKey) {
   return {
     supportsMatchEvents: false,
 
+    async getFixturesByCompetition(options = {}) {
+      const eventRows = await fetchEventRows(makeEventRangeFromMatches(options.matches));
+      return eventRows.map(mapOddsApiIoV3EventFixture);
+    },
+
     async getFixturesByDate(date) {
       const { from, to } = makeDateRange(date);
       const eventRows = await fetchEventRows({ from, to });
@@ -203,6 +208,24 @@ function makeDateRange(date) {
   return {
     from: start.toISOString().replace(".000Z", "Z"),
     to: end.toISOString().replace(".000Z", "Z")
+  };
+}
+
+function makeEventRangeFromMatches(matches = []) {
+  const envFrom = process.env.ODDS_API_DATE_FROM || process.env.DATE_FROM;
+  const envTo = process.env.ODDS_API_DATE_TO || process.env.DATE_TO;
+  if (envFrom || envTo) return { from: envFrom, to: envTo };
+
+  const times = (matches || [])
+    .map((match) => new Date(match.kickoffAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  if (!times.length) return {};
+
+  const paddingMs = 12 * 60 * 60 * 1000;
+  return {
+    from: new Date(times[0] - paddingMs).toISOString().replace(".000Z", "Z"),
+    to: new Date(times[times.length - 1] + paddingMs).toISOString().replace(".000Z", "Z")
   };
 }
 

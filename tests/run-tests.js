@@ -1711,6 +1711,7 @@ process.env.ODDS_API_EVENT_LIMIT = "50";
 process.env.ODDS_API_LEAGUE = "international-fifa-world-cup";
 process.env.ODDS_API_BOOKMAKERS = "Bet365";
 const oddsApiMappingEventDates = [];
+const oddsApiMappingEventRequests = [];
 const oddsApiMappingOddsEventIds = [];
 const oddsApiMappingExpectedEventIds = [
   "oddsapi_event_bra_mar",
@@ -1756,8 +1757,15 @@ const oddsApiMappingExactScoreRows = Array.from({ length: 6 }, (_, home) => (
 globalThis.fetch = async (url) => {
   const parsed = new URL(String(url));
   if (parsed.pathname.endsWith("/events")) {
-    const fromDate = parsed.searchParams.get("from")?.slice(0, 10);
+    const from = parsed.searchParams.get("from") || "";
+    const to = parsed.searchParams.get("to") || "";
+    const fromDate = from.slice(0, 10);
+    oddsApiMappingEventRequests.push({ from, to });
     oddsApiMappingEventDates.push(fromDate);
+    const rangeMs = new Date(to).getTime() - new Date(from).getTime();
+    if (rangeMs > 24 * 60 * 60 * 1000) {
+      return jsonResponse(Object.values(oddsApiMappingEventsByDate).flat());
+    }
     return jsonResponse(oddsApiMappingEventsByDate[fromDate] || []);
   }
   if (parsed.pathname.endsWith("/odds/multi")) {
@@ -1812,10 +1820,13 @@ try {
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.provider, "odds-api-v3");
 
   oddsApiMappingEventDates.length = 0;
+  oddsApiMappingEventRequests.length = 0;
   oddsApiMappingOddsEventIds.length = 0;
   const oddsApiAllScopeData = createSeedData();
   const oddsApiAllScopeStore = createMemoryStore(oddsApiAllScopeData);
   await syncOdds(oddsApiAllScopeStore, createOddsApiProvider("test-key"), { scope: "all" });
+  assert.equal(oddsApiMappingEventRequests.length, 1);
+  assert.ok(new Date(oddsApiMappingEventRequests[0].to).getTime() - new Date(oddsApiMappingEventRequests[0].from).getTime() > 24 * 60 * 60 * 1000);
   assert.equal(oddsApiMappingEventDates.includes(undefined), false);
   assert.deepEqual(oddsApiMappingOddsEventIds, oddsApiMappingExpectedEventIds);
   assert.match(oddsApiAllScopeData.syncLogs[0].message, /mapped provider event id/);
