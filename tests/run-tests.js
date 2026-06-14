@@ -897,8 +897,8 @@ const fallbackData = createSeedData();
 fallbackData.matchdays.push({
   id: "md_no_direct_odds",
   name: "No Direct Odds",
-  date: "2026-06-14",
-  lockAt: "2026-06-14T20:00:00.000Z",
+  date: "2026-06-20",
+  lockAt: "2026-06-20T20:00:00.000Z",
   status: "SCHEDULED",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
@@ -912,7 +912,7 @@ fallbackData.tournamentMatches.push({
   awayTeam: "Senegal",
   homeTeamCode: "POR",
   awayTeamCode: "SEN",
-  kickoffAt: "2026-06-14T20:00:00.000Z",
+  kickoffAt: "2026-06-20T20:00:00.000Z",
   status: "SCHEDULED",
   homeScore: null,
   awayScore: null,
@@ -1524,7 +1524,7 @@ await syncOdds(mappedFixtureOddsStore, {
       homeTeamExternalId: "api_brazil",
       awayTeamExternalId: "api_morocco",
       homeTeam: "Brazil",
-      awayTeam: "Morocco",
+      awayTeam: "Morócco",
       homeTeamCode: "BRA",
       awayTeamCode: "MAR",
       kickoffAt: "2026-06-12T20:00:00.000Z",
@@ -1712,6 +1712,36 @@ process.env.ODDS_API_LEAGUE = "international-fifa-world-cup";
 process.env.ODDS_API_BOOKMAKERS = "Bet365";
 const oddsApiMappingEventDates = [];
 const oddsApiMappingOddsEventIds = [];
+const oddsApiMappingExpectedEventIds = [
+  "oddsapi_event_bra_mar",
+  "oddsapi_event_arg_jpn",
+  "oddsapi_event_ger_can",
+  "oddsapi_event_esp_crc"
+];
+const oddsApiMappingEventsByDate = {
+  "2026-06-12": [{
+    id: "oddsapi_event_bra_mar",
+    home_team: "Brazil",
+    away_team: "Morócco",
+    start_time: "2026-06-12T20:00:00Z"
+  }, {
+    id: "oddsapi_event_arg_jpn",
+    home_team: "Argentina",
+    away_team: "Japan",
+    start_time: "2026-06-12T23:00:00Z"
+  }],
+  "2026-06-13": [{
+    id: "oddsapi_event_ger_can",
+    home_team: "Germány",
+    away_team: "Canadá",
+    start_time: "2026-06-13T02:00:00Z"
+  }, {
+    id: "oddsapi_event_esp_crc",
+    home_team: "Spain",
+    away_team: "Costa Rika",
+    start_time: "2026-06-13T05:00:00Z"
+  }]
+};
 const oddsApiMappingExactScoreRows = Array.from({ length: 6 }, (_, home) => (
   Array.from({ length: 6 }, (__, away) => {
     const label = `${home}-${away}`;
@@ -1728,20 +1758,13 @@ globalThis.fetch = async (url) => {
   if (parsed.pathname.endsWith("/events")) {
     const fromDate = parsed.searchParams.get("from")?.slice(0, 10);
     oddsApiMappingEventDates.push(fromDate);
-    if (fromDate === "2026-06-12") {
-      return jsonResponse([{
-        id: "oddsapi_event_bra_mar",
-        home_team: "Brazil",
-        away_team: "Morocco",
-        start_time: "2026-06-12T20:00:00Z"
-      }]);
-    }
-    return jsonResponse([]);
+    return jsonResponse(oddsApiMappingEventsByDate[fromDate] || []);
   }
   if (parsed.pathname.endsWith("/odds/multi")) {
-    oddsApiMappingOddsEventIds.push(parsed.searchParams.get("eventIds"));
-    return jsonResponse([{
-      id: "oddsapi_event_bra_mar",
+    const eventIds = parsed.searchParams.get("eventIds").split(",").filter(Boolean);
+    oddsApiMappingOddsEventIds.push(...eventIds);
+    return jsonResponse(eventIds.map((eventId) => ({
+      id: eventId,
       bookmakers: {
         Bet365: {
           odds: [{
@@ -1751,7 +1774,7 @@ globalThis.fetch = async (url) => {
           }]
         }
       }
-    }]);
+    })));
   }
   throw new Error(`Unexpected odds-api mapping fetch URL ${url}`);
 };
@@ -1760,11 +1783,24 @@ try {
   const oddsApiMappingStore = createMemoryStore(oddsApiMappingData);
   await syncOdds(oddsApiMappingStore, createOddsApiProvider("test-key"), { matchDayId: "md_12" });
   assert.ok(oddsApiMappingEventDates.includes("2026-06-12"));
-  assert.deepEqual(oddsApiMappingOddsEventIds, ["oddsapi_event_bra_mar"]);
+  assert.ok(oddsApiMappingEventDates.includes("2026-06-13"));
+  assert.deepEqual(oddsApiMappingOddsEventIds, oddsApiMappingExpectedEventIds);
   assert.equal(oddsApiMappingData.oddsMatchMappings.find((mapping) => (
     mapping.appMatchId === "match_bra_mar" &&
     mapping.provider === "odds-api-v3"
   ))?.providerMatchId, "oddsapi_event_bra_mar");
+  assert.deepEqual(
+    oddsApiMappingData.oddsMatchMappings
+      .filter((mapping) => mapping.provider === "odds-api-v3")
+      .map((mapping) => mapping.providerMatchId),
+    oddsApiMappingExpectedEventIds
+  );
+  const oddsApiAllMappedCorrectScores = oddsApiMappingData.oddsSnapshots.filter((odd) => (
+    odd.marketKey === "CORRECT_SCORE" &&
+    ["match_bra_mar", "match_arg_jpn", "match_ger_can", "match_esp_crc"].includes(odd.tournamentMatchId)
+  ));
+  assert.equal(oddsApiAllMappedCorrectScores.filter((odd) => odd.provider === "odds-api-v3").length, 144);
+  assert.equal(oddsApiAllMappedCorrectScores.filter((odd) => odd.provider === "pitchpick-generated").length, 0);
   const oddsApiMappedCorrectScores = oddsApiMappingData.oddsSnapshots.filter((odd) => (
     odd.tournamentMatchId === "match_bra_mar" &&
     odd.marketKey === "CORRECT_SCORE"
@@ -1781,14 +1817,15 @@ try {
   const oddsApiAllScopeStore = createMemoryStore(oddsApiAllScopeData);
   await syncOdds(oddsApiAllScopeStore, createOddsApiProvider("test-key"), { scope: "all" });
   assert.equal(oddsApiMappingEventDates.includes(undefined), false);
-  assert.deepEqual(oddsApiMappingOddsEventIds, ["oddsapi_event_bra_mar"]);
+  assert.deepEqual(oddsApiMappingOddsEventIds, oddsApiMappingExpectedEventIds);
   assert.match(oddsApiAllScopeData.syncLogs[0].message, /mapped provider event id/);
   assert.doesNotMatch(oddsApiAllScopeData.syncLogs[0].message, /bulk competition odds fetch/);
   const allScopeMappedCorrectScores = oddsApiAllScopeData.oddsSnapshots.filter((odd) => (
-    odd.tournamentMatchId === "match_bra_mar" &&
-    odd.marketKey === "CORRECT_SCORE"
+    odd.marketKey === "CORRECT_SCORE" &&
+    ["match_bra_mar", "match_arg_jpn", "match_ger_can", "match_esp_crc"].includes(odd.tournamentMatchId)
   ));
-  assert.equal(allScopeMappedCorrectScores.filter((odd) => odd.provider === "odds-api-v3").length, 36);
+  assert.equal(allScopeMappedCorrectScores.filter((odd) => odd.provider === "odds-api-v3").length, 144);
+  assert.equal(allScopeMappedCorrectScores.filter((odd) => odd.provider === "pitchpick-generated").length, 0);
   assert.equal(allScopeMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 17);
 } finally {
   globalThis.fetch = oddsApiMappingFetch;

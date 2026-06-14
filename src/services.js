@@ -845,6 +845,12 @@ async function fetchOddsForOddsPlan(provider, plan) {
       };
     }
   }
+  if (typeof provider.getFixturesByDate === "function" && typeof provider.getOddsByDate === "function") {
+    return {
+      odds: await fetchOddsForStoredFixtures(provider, plan.dates, plan.matches),
+      source: `across ${plan.dates.length} event-date lookup${plan.dates.length === 1 ? "" : "s"}`
+    };
+  }
   if (plan.useCompetitionOdds && typeof provider.getCompetitionOdds === "function") {
     return {
       odds: await provider.getCompetitionOdds(),
@@ -981,8 +987,8 @@ function teamsMatchByName(appHomeName, appAwayName, providerHomeName, providerAw
   const providerHome = normalizeTeamName(providerHomeName);
   const providerAway = normalizeTeamName(providerAwayName);
   if (!appHome || !appAway || !providerHome || !providerAway) return null;
-  if (appHome === providerHome && appAway === providerAway) return false;
-  if (appHome === providerAway && appAway === providerHome) return true;
+  if (teamNamesMatch(appHome, providerHome) && teamNamesMatch(appAway, providerAway)) return false;
+  if (teamNamesMatch(appHome, providerAway) && teamNamesMatch(appAway, providerHome)) return true;
   return null;
 }
 
@@ -1391,7 +1397,11 @@ function flipCorrectScoreOutcome(value) {
 }
 
 function normalizeTeamName(value) {
-  const normalized = String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const normalized = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
   const aliases = {
     usa: "unitedstates",
     usmnt: "unitedstates",
@@ -1401,6 +1411,35 @@ function normalizeTeamName(value) {
     iriran: "iran"
   };
   return aliases[normalized] || normalized;
+}
+
+function teamNamesMatch(left, right) {
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (Math.min(left.length, right.length) < 6) return false;
+  return editDistanceWithin(left, right, 1);
+}
+
+function editDistanceWithin(left, right, limit) {
+  if (Math.abs(left.length - right.length) > limit) return false;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    const current = [leftIndex];
+    let rowMinimum = current[0];
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const cost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      const value = Math.min(
+        previous[rightIndex] + 1,
+        current[rightIndex - 1] + 1,
+        previous[rightIndex - 1] + cost
+      );
+      current[rightIndex] = value;
+      rowMinimum = Math.min(rowMinimum, value);
+    }
+    if (rowMinimum > limit) return false;
+    previous = current;
+  }
+  return previous[right.length] <= limit;
 }
 
 function formatShortDate(date) {
