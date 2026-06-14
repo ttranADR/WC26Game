@@ -1712,6 +1712,17 @@ process.env.ODDS_API_LEAGUE = "international-fifa-world-cup";
 process.env.ODDS_API_BOOKMAKERS = "Bet365";
 const oddsApiMappingEventDates = [];
 const oddsApiMappingOddsEventIds = [];
+const oddsApiMappingExactScoreRows = Array.from({ length: 6 }, (_, home) => (
+  Array.from({ length: 6 }, (__, away) => {
+    const label = `${home}-${away}`;
+    const odds = label === "1-0"
+      ? "17.000"
+      : label === "0-1"
+        ? "41.000"
+        : (12 + home * 6 + away).toFixed(3);
+    return { label, odds };
+  })
+)).flat();
 globalThis.fetch = async (url) => {
   const parsed = new URL(String(url));
   if (parsed.pathname.endsWith("/events")) {
@@ -1735,10 +1746,8 @@ globalThis.fetch = async (url) => {
         Bet365: {
           odds: [{
             key: "correct_score",
-            outcomes: [
-              { label: "1-0", odds: "17.000" },
-              { label: "0-1", odds: "41.000" }
-            ]
+            updatedAt: "2026-06-08T19:09:30.941Z",
+            outcomes: oddsApiMappingExactScoreRows
           }]
         }
       }
@@ -1760,6 +1769,8 @@ try {
     odd.tournamentMatchId === "match_bra_mar" &&
     odd.marketKey === "CORRECT_SCORE"
   ));
+  assert.equal(oddsApiMappedCorrectScores.filter((odd) => odd.provider === "odds-api-v3").length, 36);
+  assert.equal(oddsApiMappedCorrectScores.filter((odd) => odd.provider === "pitchpick-generated").length, 0);
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 17);
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "0-1")?.priceDecimal, 41);
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.provider, "odds-api-v3");

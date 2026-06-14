@@ -206,6 +206,12 @@ function makeDateRange(date) {
   };
 }
 
+const PLAYABLE_CORRECT_SCORE_LABELS = new Set(
+  Array.from({ length: 6 }, (_, home) => (
+    Array.from({ length: 6 }, (__, away) => `${home}-${away}`)
+  )).flat()
+);
+
 function mapOddsApiIoV3EventFixture(event) {
   return {
     externalProvider: "odds-api-v3",
@@ -242,15 +248,54 @@ function mapOddsApiIoV3MappingEvent(mapping) {
 }
 
 function mapOddsApiIoV3EventOdds(event) {
+  const bookmakerEntries = getV3BookmakerEntries(event);
+  const exactScoreOdds = bookmakerEntries.flatMap(({ bookmaker, markets }) => (
+    normalizeV3Markets(markets).flatMap((market) => extractV3ExactScoreOdds(event, bookmaker, market))
+  ));
+  const marketOdds = bookmakerEntries.flatMap(({ bookmaker, markets }) => (
+    normalizeV3Markets(markets).flatMap((market) => mapOddsApiIoV3Market(event, bookmaker, market))
+  ));
+
+  return dedupeV3Odds([...exactScoreOdds, ...marketOdds]);
+}
+
+function getV3BookmakerEntries(event) {
   const bookmakers = normalizeV3Bookmakers(getV3BookmakerSource(event));
-  const fallbackBookmakers = bookmakers.length ? bookmakers : [{
+  return bookmakers.length ? bookmakers : [{
     bookmaker: String(event.bookmaker || event.bookmakerName || event.bookmaker_name || "Bookmaker"),
     markets: event.markets || event.odds || event.outcomes || event.data || []
   }];
+}
 
-  return fallbackBookmakers.flatMap(({ bookmaker, markets }) => (
-    normalizeV3Markets(markets).flatMap((market) => mapOddsApiIoV3Market(event, bookmaker, market))
+function extractV3ExactScoreOdds(event, bookmaker, market) {
+  const marketKey = normalizeV3Market(getV3MarketName(market)) || inferV3MarketKey(market);
+  if (marketKey !== "CORRECT_SCORE") return [];
+
+  const seenScores = new Set();
+  return normalizeV3MarketRows(market, "CORRECT_SCORE").flatMap((row) => (
+    getV3ScorePriceEntries(row).flatMap(({ label, price, raw }) => {
+      const outcomeName = normalizeScoreOutcome(label);
+      if (!PLAYABLE_CORRECT_SCORE_LABELS.has(outcomeName) || seenScores.has(outcomeName)) return [];
+      const odd = makeV3Odd(event, bookmaker, market, "CORRECT_SCORE", outcomeName, price, raw || row);
+      if (!odd) return [];
+      seenScores.add(outcomeName);
+      return [odd];
+    })
   ));
+}
+
+function getV3ScorePriceEntries(row) {
+  if (!isRecord(row)) return [];
+  const entries = [];
+  const directLabel = row.score || row.label || row.name || row.outcome || row.result || row.value;
+  const directPrice = row.odds ?? row.odd ?? row.price ?? row.decimal ?? (normalizeScoreOutcome(row.value) ? null : row.value);
+  if (normalizeScoreOutcome(directLabel)) entries.push({ label: directLabel, price: directPrice, raw: row });
+
+  Object.entries(row)
+    .filter(([key]) => /^\d+\s*-\s*\d+$/.test(key))
+    .forEach(([label, price]) => entries.push({ label, price, raw: row }));
+
+  return entries;
 }
 
 function mapOddsApiIoV3Market(event, bookmaker, market) {
@@ -383,6 +428,22 @@ function inferV3MarketKey(market) {
   return scoreRows.some((row) => hasCorrectScoreLabel(row) || hasScorePriceEntries(row))
     ? "CORRECT_SCORE"
     : null;
+}
+
+function dedupeV3Odds(odds) {
+  const seen = new Set();
+  return odds.filter((odd) => {
+    const key = [
+      odd.provider,
+      odd.providerMatchId || odd.tournamentMatchId,
+      odd.bookmaker,
+      odd.marketKey,
+      odd.outcomeName
+    ].join("::");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function isRecord(value) {

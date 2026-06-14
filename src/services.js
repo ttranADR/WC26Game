@@ -540,6 +540,7 @@ export async function syncOdds(store, provider, input = {}) {
           getAppDateKey(resolved.match.kickoffAt)
       };
     }).filter(Boolean);
+    const providerCorrectScoreCount = providerOdds.filter((odd) => odd.marketKey === "CORRECT_SCORE").length;
     const nextOdds = withCompleteCorrectScoreOdds(plan.matches, providerOdds, capturedAt, data.oddsSnapshots);
     const nextKeys = new Set(nextOdds.map(oddsSnapshotKey));
     const coveredCorrectScoreKeys = new Set(nextOdds
@@ -557,7 +558,7 @@ export async function syncOdds(store, provider, input = {}) {
     data.syncLogs.unshift(log(
       "SYNC_ODDS",
       "SUCCESS",
-      `Synced ${nextOdds.length} odds snapshots for ${plan.matches.length} stored fixtures ${oddsSource}${rawOdds.length > providerOdds.length ? ` (${rawOdds.length - providerOdds.length} unmatched)` : ""}.`
+      `Synced ${nextOdds.length} odds snapshots for ${plan.matches.length} stored fixtures ${oddsSource}; ${providerCorrectScoreCount} provider score odds${rawOdds.length > providerOdds.length ? ` (${rawOdds.length - providerOdds.length} unmatched)` : ""}.`
     ));
     return { ok: true, state: hydrateState(data, input.currentUserId) };
   });
