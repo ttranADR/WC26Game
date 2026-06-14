@@ -25,7 +25,13 @@ import { assertStorageConfiguration, getStorageMode } from "../src/storageConfig
 
 const data = createSeedData();
 const match = data.tournamentMatches.find((item) => item.id === "match_bra_mar");
-assert.equal(data.predictionCards.length, 12);
+assert.equal(data.predictionCards.length, 6);
+const youSeedSet = data.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_you");
+const mayaSeedSet = data.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_maya");
+assert.deepEqual(
+  data.playerCards.filter((card) => card.playerCardSetId === youSeedSet.id).map((card) => card.predictionCardId),
+  data.playerCards.filter((card) => card.playerCardSetId === mayaSeedSet.id).map((card) => card.predictionCardId)
+);
 const seededFavoriteScoreOdd = data.oddsSnapshots.find((odd) => (
   odd.tournamentMatchId === "match_bra_mar" &&
   odd.marketKey === "CORRECT_SCORE" &&
@@ -155,11 +161,11 @@ assert.deepEqual(assignmentState.submissionChecks, []);
 const adminSubmissionState = await getAppState(createMemoryStore(createSeedData()), "admin_1");
 const md12SubmissionCheck = adminSubmissionState.submissionChecks.find((item) => item.matchDayId === "md_12");
 assert.equal(md12SubmissionCheck.totalCount, 11);
-assert.equal(md12SubmissionCheck.submittedCount, 3);
-assert.equal(md12SubmissionCheck.missingCount, 8);
-assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_you").submitted, true);
+assert.equal(md12SubmissionCheck.submittedCount, 0);
+assert.equal(md12SubmissionCheck.missingCount, 11);
+assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_you").submitted, false);
 assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_noah").submitted, false);
-assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_noah").selectedCount, 5);
+assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_noah").selectedCount, 0);
 assert.equal(md12SubmissionCheck.rows.find((row) => row.userId === "user_noah").hasExactScore, false);
 
 const multiLeagueData = createSeedData();
@@ -241,16 +247,26 @@ assert.equal(invitedLeagueState.leagues.some((league) => league.id === "league_2
 const multiLeagueAdminState = await getAppState(createMemoryStore(multiLeagueData), "admin_1");
 assert.deepEqual(multiLeagueAdminState.leagues.map((league) => league.id), ["league_1", "league_2"]);
 
-const over = data.predictionCards.find((card) => card.cardType === "TOTAL_GOALS_OVER");
-assert.equal(gradeCard(over, match).pointsAwarded, 10);
+const over = {
+  status: "ACTIVE",
+  cardType: "TOTAL_GOALS_OVER",
+  expectedAnswer: "YES",
+  gradingRule: { threshold: 2.5 }
+};
+assert.equal(gradeCard(over, match).pointsAwarded, 30);
 assert.equal(gradeCard(over, {
   ...match,
   homeScore: null,
   awayScore: null
 }).voidReason, "Final score is unavailable");
 
-const draw = data.predictionCards.find((card) => card.cardType === "DRAW" && card.tournamentMatchId === match.id);
-assert.equal(gradeCard(draw, match).pointsAwarded, -10);
+const draw = {
+  status: "ACTIVE",
+  cardType: "DRAW",
+  expectedAnswer: "YES",
+  gradingRule: {}
+};
+assert.equal(gradeCard(draw, match).pointsAwarded, 0);
 
 const exactScoreCard = {
   status: "ACTIVE",
@@ -258,13 +274,13 @@ const exactScoreCard = {
   expectedAnswer: "YES",
   gradingRule: { homeScore: 2, awayScore: 1 }
 };
-assert.equal(gradeCard(exactScoreCard, match).pointsAwarded, 10);
+assert.equal(gradeCard(exactScoreCard, match).pointsAwarded, 30);
 assert.equal(gradeCard({
   status: "ACTIVE",
   cardType: "FIRST_TEAM_TO_SCORE",
   expectedAnswer: "YES",
   gradingRule: { team: "HOME" }
-}, match).pointsAwarded, 10);
+}, match).pointsAwarded, 30);
 assert.equal(gradeCard({
   status: "ACTIVE",
   cardType: "FIRST_TEAM_TO_SCORE",
@@ -275,36 +291,31 @@ assert.equal(gradeCard({
   homeScore: "2",
   awayScore: "0",
   firstGoalTeam: null
-}).pointsAwarded, 10);
+}).pointsAwarded, 30);
 assert.equal(gradeCard({
   status: "ACTIVE",
   cardType: "RED_CARD",
   expectedAnswer: "NO",
   gradingRule: {}
-}, match).pointsAwarded, 10);
+}, match).pointsAwarded, 30);
 assert.equal(gradeCard({
   status: "ACTIVE",
   cardType: "TOP_SCORER_SCORES",
   expectedAnswer: "YES",
   gradingRule: { scorerName: match.topScorerName }
-}, match).pointsAwarded, 10);
+}, match).pointsAwarded, 30);
 
 const oddsGeneratedCards = createCardsFromOdds("md_12", data.tournamentMatches, data.oddsSnapshots, "test_odds_cards");
-assert.equal(oddsGeneratedCards.length, 12);
+assert.equal(oddsGeneratedCards.length, 6);
 assert.ok(oddsGeneratedCards.some((card) => card.sourceOddsSnapshotIds.length === 1));
 assert.ok(oddsGeneratedCards.some((card) => card.sourceOddsSnapshotIds.length === 0));
 assert.equal(oddsGeneratedCards.some((card) => card.cardType === "EXACT_SCORE"), false);
-assert.ok(oddsGeneratedCards.some((card) => card.cardType === "FIRST_TEAM_TO_SCORE"));
-assert.ok(oddsGeneratedCards.some((card) => card.cardType === "RED_CARD"));
-assert.ok(oddsGeneratedCards.some((card) => card.cardType === "TOP_SCORER_SCORES"));
 assert.equal(oddsGeneratedCards.some((card) => /\b\d+\s*-\s*\d+\b/.test(card.questionText)), false);
 assert.equal(new Set(oddsGeneratedCards.map(getCardMeaningKey)).size, oddsGeneratedCards.length);
 assert.ok(oddsGeneratedCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
 assert.ok(data.predictionCards.every((card) => card.estimatedProbability >= 0.4 && card.estimatedProbability <= 0.6));
 const templateQuestionCards = createCardPool("md_question_mix", [match], data.oddsSnapshots);
-assert.ok(templateQuestionCards.some((card) => card.cardType === "FIRST_TEAM_TO_SCORE"));
-assert.ok(templateQuestionCards.some((card) => card.cardType === "RED_CARD"));
-assert.ok(templateQuestionCards.some((card) => card.cardType === "TOP_SCORER_SCORES"));
+assert.equal(templateQuestionCards.length, 6);
 assert.equal(new Set(templateQuestionCards.map(getCardMeaningKey)).size, templateQuestionCards.length);
 const resultLoadedCards = createCardPool("md_result_independent", [{
   ...match,
@@ -337,10 +348,6 @@ const comparableCardShape = (cards) => cards.map((card) => ({
 }));
 assert.deepEqual(comparableCardShape(resultLoadedCards), comparableCardShape(resultFreeCards));
 assert.equal(resultLoadedCards.some((card) => card.questionText.includes("Actual Result Scorer")), false);
-assert.ok(resultLoadedCards.some((card) => (
-  card.cardType === "TOP_SCORER_SCORES" &&
-  card.gradingRule.scorerName === "Vinicius Junior"
-)));
 const mirroredTotalCards = createCardsFromOdds("md_mirror", [match], [{
   id: "odds_mirror_over",
   tournamentMatchId: match.id,
@@ -405,8 +412,18 @@ assert.equal(halfContest[0].participants.filter((part) => part.side === "B").len
 const mixedContests = createContests("league_test", "md_test_mixed", pairingUsers, "MIXED", { seedText: "pairing_test" });
 assert.ok(["SOLO", "DUO", "HALF"].includes(mixedContests[0].mode));
 assert.equal(mixedContests[0].requestedMode, "MIXED");
-assert.equal(createContests("league_test", "md_test_mixed_1", pairingUsers, "MIXED", { modeIndex: 1 })[0].mode, "DUO");
-assert.equal(createContests("league_test", "md_test_mixed_2", pairingUsers, "MIXED", { modeIndex: 2 })[0].mode, "HALF");
+const mixedModeCounts = { SOLO: 0, DUO: 0, HALF: 0 };
+for (let index = 0; index < 1000; index += 1) {
+  mixedModeCounts[createContests("league_weighted", `md_weighted_${index}`, pairingUsers, "MIXED", {
+    seedText: "weighted",
+    modeIndex: index
+  })[0].mode] += 1;
+}
+assert.ok(mixedModeCounts.SOLO > mixedModeCounts.DUO);
+assert.ok(mixedModeCounts.DUO > mixedModeCounts.HALF);
+assert.ok(mixedModeCounts.SOLO > 620 && mixedModeCounts.SOLO < 760);
+assert.ok(mixedModeCounts.DUO > 140 && mixedModeCounts.DUO < 280);
+assert.ok(mixedModeCounts.HALF > 60 && mixedModeCounts.HALF < 150);
 
 const seasonPairingData = createSeedData();
 seasonPairingData.matchdays.push({
@@ -438,7 +455,7 @@ assert.match(seasonPairingResult.message, /season matchups/);
 assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_12"));
 assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_pairing_future"));
 assert.ok(seasonPairingData.headToHeadContests.some((contest) => contest.matchDayId === "md_pairing_future_2"));
-assert.deepEqual(new Set(seasonPairingData.headToHeadContests.map((contest) => contest.mode)), new Set(["SOLO", "DUO", "HALF"]));
+assert.ok(seasonPairingData.headToHeadContests.every((contest) => ["SOLO", "DUO", "HALF"].includes(contest.mode)));
 
 const preserveData = createSeedData();
 preserveData.matchdays.push({
@@ -561,7 +578,7 @@ const opponentContestBefore = opponentProjectionBefore.matchdaySummaries
 assert.equal(opponentContestBefore.participants.find((part) => part.userId === "user_noah").projectedScore, 0);
 const noahSet = opponentProjectionData.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_noah");
 const noahCards = opponentProjectionData.playerCards.filter((card) => card.playerCardSetId === noahSet.id);
-const noahSelectedCardIds = noahCards.slice(0, 5).map((card) => card.predictionCardId);
+const noahSelectedCardIds = noahCards.slice(0, 2).map((card) => card.predictionCardId);
 await submitPicks(opponentProjectionStore, {
   userId: "user_noah",
   matchDayId: "md_12",
@@ -580,16 +597,86 @@ const noahExactBoost = opponentProjectionData.scorePredictions.filter((predictio
   prediction.matchDayId === "md_12" &&
   prediction.userId === "user_noah"
 )).reduce((sum, prediction) => sum + prediction.oddsMultiplier * 5, 0);
-assert.equal(noahProjection, Number((noahSelectedCardIds.length * 10 + noahExactBoost).toFixed(1)));
+assert.equal(noahProjection, Number((noahSelectedCardIds.length * 30 + noahExactBoost).toFixed(1)));
+
+const shotScoreData = createSeedData();
+shotScoreData.matchdays.find((item) => item.id === "md_12").status = "OPEN";
+shotScoreData.matchdays.find((item) => item.id === "md_12").lockAt = "2026-12-01T20:00:00.000Z";
+shotScoreData.tournamentMatches
+  .filter((item) => item.matchDayId === "md_12")
+  .forEach((item) => {
+    item.status = "SCHEDULED";
+    item.homeScore = null;
+    item.awayScore = null;
+  });
+shotScoreData.headToHeadContests = [{
+  id: "contest_md_12_shots",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  mode: "SOLO",
+  requestedMode: "SOLO",
+  status: "SCHEDULED",
+  participantAName: "user_you",
+  participantBName: "user_noah",
+  participantAScore: 0,
+  participantBScore: 0,
+  result: null,
+  participants: [
+    { id: "part_md_12_shots_a", side: "A", userId: "user_you" },
+    { id: "part_md_12_shots_b", side: "B", userId: "user_noah" }
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}];
+const shotStore = createMemoryStore(shotScoreData);
+const shotYouSet = shotScoreData.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_you");
+const shotNoahSet = shotScoreData.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_noah");
+const shotYouCards = shotScoreData.playerCards.filter((card) => card.playerCardSetId === shotYouSet.id);
+const shotNoahCards = shotScoreData.playerCards.filter((card) => card.playerCardSetId === shotNoahSet.id);
+const shotNoahSelectedIds = shotNoahCards.slice(0, 2).map((card) => card.predictionCardId);
+await submitPicks(shotStore, {
+  userId: "user_noah",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  selectedCardIds: shotNoahSelectedIds,
+  answers: Object.fromEntries(shotNoahSelectedIds.map((cardId) => [cardId, "YES"])),
+  scorePredictions: buildScorePredictions(shotScoreData, "md_12")
+});
+const shotYouSelectedIds = shotYouCards.slice(0, 2).map((card) => card.predictionCardId);
+const shotMissCardId = shotNoahCards[2].predictionCardId;
+await submitPicks(shotStore, {
+  userId: "user_you",
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  selectedCardIds: shotYouSelectedIds,
+  answers: Object.fromEntries(shotYouSelectedIds.map((cardId) => [cardId, "YES"])),
+  cardShotIds: [shotNoahSelectedIds[0], shotMissCardId],
+  scorePredictions: buildScorePredictions(shotScoreData, "md_12")
+});
+await finalizeMatchday(shotStore, {
+  leagueId: "league_1",
+  matchDayId: "md_12",
+  currentUserId: "admin_1"
+});
+const savedShots = shotScoreData.cardShots.filter((shot) => shot.shooterUserId === "user_you");
+assert.equal(savedShots.length, 2);
+assert.equal(savedShots.find((shot) => shot.predictionCardId === shotNoahSelectedIds[0])?.hit, true);
+assert.equal(savedShots.find((shot) => shot.predictionCardId === shotNoahSelectedIds[0])?.pointsAwarded, 30);
+assert.equal(savedShots.find((shot) => shot.predictionCardId === shotMissCardId)?.hit, false);
+assert.equal(savedShots.find((shot) => shot.predictionCardId === shotMissCardId)?.pointsAwarded, -30);
+const shotFinalState = await getAppState(shotStore, "user_you");
+const shotFinalSummary = shotFinalState.matchdaySummaries.find((item) => item.id === "md_12");
+assert.equal(shotFinalSummary.canShootCards, true);
+assert.equal(shotFinalSummary.shotPoints, 0);
+
 await finalizeMatchday(groupScoreStore, {
   leagueId: "league_1",
   matchDayId: "md_12",
   currentUserId: "admin_1"
 });
-const groupScoreByUser = getMatchdayScoreTotals(groupScoreData, "md_12");
 const groupContest = groupScoreData.headToHeadContests[0];
-assert.equal(groupContest.participantAScore, groupScoreByUser.get("user_you") + groupScoreByUser.get("user_maya"));
-assert.equal(groupContest.participantBScore, groupScoreByUser.get("user_liam") + groupScoreByUser.get("user_noah"));
+assert.equal(groupContest.participantAScore, 0);
+assert.equal(groupContest.participantBScore, 0);
 const groupFinalState = await getAppState(groupScoreStore, "user_you");
 const groupFinalSummary = groupFinalState.matchdaySummaries.find((item) => item.id === "md_12");
 assert.equal(groupFinalSummary.userScore, groupContest.participantAScore);
@@ -622,10 +709,9 @@ await finalizeMatchday(unevenScoreStore, {
   matchDayId: "md_12",
   currentUserId: "admin_1"
 });
-const unevenScoreByUser = getMatchdayScoreTotals(unevenScoreData, "md_12");
 const unevenContest = unevenScoreData.headToHeadContests[0];
-assert.equal(unevenContest.participantAScore, Number((unevenScoreByUser.get("user_you") * 2).toFixed(1)));
-assert.equal(unevenContest.participantBScore, Number((unevenScoreByUser.get("user_maya") + unevenScoreByUser.get("user_liam")).toFixed(1)));
+assert.equal(unevenContest.participantAScore, 0);
+assert.equal(unevenContest.participantBScore, 0);
 
 const noSubmitScoreData = createSeedData();
 noSubmitScoreData.headToHeadContests = [{
@@ -658,7 +744,7 @@ const noSubmitNoahStanding = noSubmitScoreData.leagueStandings.find((standing) =
 const noSubmitNoahSet = noSubmitScoreData.playerCardSets.find((set) => set.matchDayId === "md_12" && set.userId === "user_noah");
 assert.equal(noSubmitContest.participantBScore, 0);
 assert.equal(noSubmitNoahStanding.played, 1);
-assert.equal(noSubmitNoahStanding.leaguePoints, 0);
+assert.equal(noSubmitNoahStanding.leaguePoints, 1);
 assert.equal(noSubmitNoahStanding.fantasyPointsFor, 0);
 assert.ok(noSubmitScoreData.playerCards
   .filter((card) => card.playerCardSetId === noSubmitNoahSet.id)
@@ -695,8 +781,8 @@ const wrongSelections = negativeYouCards
     return grade.isCorrect == null ? null : { playerCard, card, grade };
   })
   .filter(Boolean)
-  .slice(0, 5);
-assert.equal(wrongSelections.length, 5);
+  .slice(0, 2);
+assert.equal(wrongSelections.length, 2);
 negativeYouCards.forEach((playerCard) => {
   playerCard.selected = false;
   playerCard.playerAnswer = null;
@@ -728,13 +814,13 @@ const negativeContest = negativeCardScoreData.headToHeadContests[0];
 const negativeYouStanding = negativeCardScoreData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_you");
 const negativeFinalState = await getAppState(negativeCardScoreStore, "user_you");
 const negativeSummary = negativeFinalState.matchdaySummaries.find((item) => item.id === "md_12");
-assert.equal(negativeContest.participantAScore, -50);
-assert.equal(negativeYouStanding.fantasyPointsFor, -50);
-assert.equal(negativeSummary.cardPoints, -50);
-assert.equal(negativeSummary.totalPoints, -50);
+assert.equal(negativeContest.participantAScore, 0);
+assert.equal(negativeYouStanding.fantasyPointsFor, 0);
+assert.equal(negativeSummary.cardPoints, 0);
+assert.equal(negativeSummary.totalPoints, 0);
 assert.ok(negativeSummary.playerCards
   .filter((card) => card.selected)
-  .every((card) => card.pointsAwarded === -10 && card.isCorrect === false));
+  .every((card) => card.pointsAwarded === 0 && card.isCorrect === false));
 
 const duplicateContestData = createSeedData();
 duplicateContestData.scorePredictions = duplicateContestData.scorePredictions.filter((prediction) => prediction.userId === "user_you");
@@ -803,7 +889,7 @@ await finalizeMatchday(duplicateContestStore, {
 const duplicateYouStanding = duplicateContestData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_you");
 const duplicateAvaStanding = duplicateContestData.leagueStandings.find((standing) => standing.leagueId === "league_1" && standing.userId === "user_ava");
 assert.equal(duplicateYouStanding.played, 1);
-assert.equal(duplicateYouStanding.leaguePoints, 3);
+assert.equal(duplicateYouStanding.leaguePoints, 1);
 assert.equal(duplicateAvaStanding.played, 1);
 assert.notEqual(duplicateAvaStanding.played, 2);
 
@@ -841,8 +927,8 @@ const fallbackResult = await generateCardsForMatchday(fallbackStore, {
   currentUserId: "user_you"
 });
 const fallbackSummary = fallbackResult.state.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
-assert.equal(fallbackSummary.predictionCardCount, 12);
-assert.equal(fallbackSummary.playerCards.length, 12);
+assert.equal(fallbackSummary.predictionCardCount, 6);
+assert.equal(fallbackSummary.playerCards.length, 6);
 assert.ok(fallbackData.predictionCards
   .filter((card) => card.matchDayId === "md_no_direct_odds")
   .every((card) => card.tournamentMatchId === "match_no_direct_odds"));
@@ -853,12 +939,12 @@ const refreshedFutureSummary = refreshedFutureState.matchdaySummaries.find((item
 assert.equal(refreshedFutureSummary.status, "SCHEDULED");
 const adminFutureState = await getAppState(fallbackStore, "admin_1");
 const adminFutureSummary = adminFutureState.matchdaySummaries.find((item) => item.id === "md_no_direct_odds");
-assert.equal(adminFutureSummary.playerCards.length, 12);
+assert.equal(adminFutureSummary.playerCards.length, 6);
 const adminFutureSubmitResult = await submitPicks(fallbackStore, {
   userId: "admin_1",
   matchDayId: "md_no_direct_odds",
-  selectedCardIds: adminFutureSummary.playerCards.slice(0, 5).map((card) => card.predictionCardId),
-  answers: Object.fromEntries(adminFutureSummary.playerCards.slice(0, 5).map((card) => [card.predictionCardId, "YES"])),
+  selectedCardIds: adminFutureSummary.playerCards.slice(0, 2).map((card) => card.predictionCardId),
+  answers: Object.fromEntries(adminFutureSummary.playerCards.slice(0, 2).map((card) => [card.predictionCardId, "YES"])),
   scorePrediction: {
     tournamentMatchId: "match_no_direct_odds",
     predictedHomeScore: 2,
@@ -869,8 +955,8 @@ assert.equal(adminFutureSubmitResult.message, "Picks submitted.");
 const futureSubmitResult = await submitPicks(fallbackStore, {
   userId: "user_you",
   matchDayId: "md_no_direct_odds",
-  selectedCardIds: fallbackSummary.playerCards.slice(0, 5).map((card) => card.predictionCardId),
-  answers: Object.fromEntries(fallbackSummary.playerCards.slice(0, 5).map((card) => [card.predictionCardId, "YES"])),
+  selectedCardIds: fallbackSummary.playerCards.slice(0, 2).map((card) => card.predictionCardId),
+  answers: Object.fromEntries(fallbackSummary.playerCards.slice(0, 2).map((card) => [card.predictionCardId, "YES"])),
   scorePrediction: {
     tournamentMatchId: "match_no_direct_odds",
     predictedHomeScore: 1,
@@ -912,7 +998,7 @@ const staleAdminResult = await generateCardsForMatchday(staleAdminStore, {
   currentUserId: "admin_1"
 });
 const staleAdminSummary = staleAdminResult.state.matchdaySummaries.find((item) => item.id === "md_12");
-assert.equal(staleAdminSummary.playerCards.length, 12);
+assert.equal(staleAdminSummary.playerCards.length, 6);
 assert.ok(staleAdminSummary.playerCards.every((card) => card.card));
 assert.equal(staleAdminData.playerCards.some((card) => (
   card.playerCardSetId === "set_md_12_admin_1" &&
@@ -1032,9 +1118,9 @@ const seasonCardResult = await generateCardsForMatchday(seasonCardStore, {
   scope: "season",
   currentUserId: "admin_1"
 });
-assert.match(seasonCardResult.message, /Generated 24 season prediction cards for 2 matchdays/);
-assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_future_1").length, 12);
-assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_future_2").length, 12);
+assert.match(seasonCardResult.message, /Generated 12 season prediction cards for 2 matchdays/);
+assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_future_1").length, 6);
+assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_future_2").length, 6);
 assert.equal(seasonCardData.predictionCards.filter((card) => card.matchDayId === "md_cards_past").length, 0);
 assert.ok(seasonCardData.predictionCards
   .filter((card) => card.matchDayId === "md_cards_future_1")

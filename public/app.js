@@ -16,10 +16,13 @@ const api = {
   }
 };
 
-const MIN_SELECTED_CARDS = 5;
-const MAX_SELECTED_CARDS = 12;
-const CARD_SET_SIZE = 12;
-const CARD_POINTS_CORRECT = 10;
+const MIN_SELECTED_CARDS = 2;
+const MAX_SELECTED_CARDS = 6;
+const CARD_SET_SIZE = 6;
+const CARD_POINTS_CORRECT = 30;
+const MAX_CARD_SHOTS = 3;
+const CARD_SHOT_POINTS_HIT = 30;
+const CARD_SHOT_POINTS_MISS = -30;
 const EXACT_SCORE_POINTS_MULTIPLIER = 5;
 const DEFAULT_OTHER_SCORE_MULTIPLIER = 19.5;
 const APP_TIME_ZONE = "America/Los_Angeles";
@@ -182,6 +185,7 @@ const state = {
   score: { home: 2, away: 1 },
   scorePredictions: new Map(),
   dirtyCards: new Map(),
+  cardShots: new Set(),
   matchdayOdds: new Map()
 };
 
@@ -377,6 +381,7 @@ function renderPlayer() {
 
         <aside class="right-rail">
           ${renderExactScorePanel({ summary, selectedMatch, multiplier, potential, matchdayReadOnly: locked })}
+          ${renderCardShotPanel({ summary, matchdayReadOnly: locked })}
         </aside>
       </div>
     </section>
@@ -459,6 +464,40 @@ function renderExactScorePanel({ summary, selectedMatch, multiplier, potential, 
         <span>Multiplier</span>
         <strong>${multiplier.toFixed(1)}x</strong>
         <em>${potential} pts</em>
+      </div>
+    </section>
+  `;
+}
+
+function renderCardShotPanel({ summary, matchdayReadOnly }) {
+  if (!summary.canShootCards) return "";
+  const selectedShots = state.cardShots;
+  const targetName = summary.shotTargetName || "Opponent";
+  const locked = matchdayReadOnly;
+  const shotCards = summary.playerCards.length ? summary.playerCards : visiblePredictionCards(summary);
+
+  return `
+    <section class="panel shot-panel">
+      <div class="panel-head">
+        <h2>Bang Bang Shot</h2>
+        <span class="label">${selectedShots.size}/${MAX_CARD_SHOTS}</span>
+      </div>
+      <p class="muted">Shoot ${targetName}'s selected cards. Hit +${CARD_SHOT_POINTS_HIT}, miss ${CARD_SHOT_POINTS_MISS}.</p>
+      <div class="shot-card-list">
+        ${shotCards.map((playerCard) => {
+          const card = playerCard.card;
+          const selected = selectedShots.has(playerCard.predictionCardId);
+          const shotResult = (summary.cardShots || []).find((shot) => shot.predictionCardId === playerCard.predictionCardId);
+          const resultText = summary.status === "FINAL" && shotResult
+            ? `${shotResult.hit ? "Hit" : "Miss"} · ${shotResult.pointsAwarded} pts`
+            : card.title;
+          return `
+            <button class="shot-card ${selected ? "selected" : ""}" data-shot-card-id="${playerCard.predictionCardId}" ${locked ? "disabled" : ""}>
+              <span>${cardDisplayNumber(card)}</span>
+              <strong>${escapeHtml(resultText)}</strong>
+            </button>
+          `;
+        }).join("")}
       </div>
     </section>
   `;
@@ -568,6 +607,7 @@ function renderMatchdayResult(summary) {
         <div class="result-breakdown">
           <span><strong>${summary.cardPoints}</strong> card pts</span>
           <span><strong>${summary.exactPoints}</strong> exact pts</span>
+          <span><strong>${summary.shotPoints || 0}</strong> shot pts</span>
           <span><strong>${summary.totalPoints}</strong> your fantasy</span>
         </div>
       </div>
@@ -687,7 +727,7 @@ function cardPanelMessage(summary, hasAssignedCards, locked) {
   }
   if (!hasAssignedCards) return "No player card set is assigned yet.";
   if (locked) return "This matchday is read-only after first kickoff.";
-  return "Correct picks score +10. Incorrect picks score -10.";
+  return "Correct picks score +30. Incorrect picks score 0.";
 }
 
 function renderAdmin() {
@@ -1218,13 +1258,14 @@ function renderRules() {
         <p>To submit a matchday result prediction:</p>
         <ol>
           <li>Go to <strong>Player</strong> and choose the matchday from <strong>All Matchdays</strong>.</li>
-          <li>Select at least <strong>5</strong> prediction cards, up to all <strong>12</strong>.</li>
+          <li>Select at least <strong>2</strong> prediction cards, up to all <strong>6</strong>.</li>
           <li>Answer each selected card with <strong>Yes</strong> or <strong>No</strong>.</li>
+          <li>In a <strong>1v1</strong> matchup, optionally shoot 0-3 of your opponent's selected cards.</li>
           <li>In <strong>Score Prediction</strong>, choose each match, set the final score, then click <strong>Lock Game</strong>.</li>
           <li>Click <strong>Submit Picks</strong>. After submission, the calendar shows <strong>Submitted</strong>.</li>
         </ol>
         <p>Submit before the first kickoff. Once a matchday is locked, it shows <strong>Locked</strong> and picks cannot be changed.</p>
-        <p>Every selected card scores <strong>+10</strong> when correct and <strong>-10</strong> when incorrect. Each score prediction scores <strong>5 x odds multiplier</strong> only when it is exactly correct.</p>
+        <p>Every selected card scores <strong>+30</strong> when correct and <strong>0</strong> when incorrect. In 1v1 matchups, each shot scores <strong>+30</strong> for a hit and <strong>-30</strong> for a miss. Each score prediction scores <strong>5 x odds multiplier</strong> only when it is exactly correct.</p>
         <p>Matchup winners receive <strong>3 league points</strong>; draws receive <strong>1</strong>. Finalized matchup points stay in standings when future matchups are shuffled.</p>
       </div>
       <div class="rules-section translated">
@@ -1240,13 +1281,14 @@ function renderRules() {
         <p>Cách nộp dự đoán cho một ngày thi đấu:</p>
         <ol>
           <li>Vào tab <strong>Player</strong> và chọn ngày thi đấu trong phần <strong>All Matchdays</strong>.</li>
-          <li>Chọn ít nhất <strong>5</strong> thẻ dự đoán, tối đa <strong>12</strong> thẻ.</li>
+          <li>Chọn ít nhất <strong>2</strong> thẻ dự đoán, tối đa <strong>6</strong> thẻ.</li>
           <li>Trả lời từng thẻ đã chọn bằng <strong>Yes</strong> hoặc <strong>No</strong>.</li>
+          <li>Nếu là matchup <strong>1v1</strong>, bạn có thể bắn 0-3 thẻ mà bạn nghĩ đối thủ đã chọn.</li>
           <li>Trong phần <strong>Score Prediction</strong>, chọn từng trận, chỉnh tỉ số cuối cùng, rồi bấm <strong>Lock Game</strong>.</li>
           <li>Bấm <strong>Submit Picks</strong>. Sau khi nộp thành công, lịch sẽ hiện <strong>Submitted</strong>.</li>
         </ol>
         <p>Hãy nộp trước giờ bóng lăn trận đầu tiên. Khi ngày thi đấu đã khóa, lịch sẽ hiện <strong>Locked</strong> và bạn không thể đổi lựa chọn.</p>
-        <p>Mỗi thẻ đã chọn được <strong>+10</strong> điểm nếu đúng và <strong>-10</strong> điểm nếu sai. Mỗi dự đoán tỉ số chỉ có điểm khi đúng tuyệt đối, với công thức <strong>5 x hệ số odds</strong>.</p>
+        <p>Mỗi thẻ đã chọn được <strong>+30</strong> điểm nếu đúng và <strong>0</strong> điểm nếu sai. Trong matchup 1v1, mỗi phát bắn đúng được <strong>+30</strong>, bắn trượt bị <strong>-30</strong>. Mỗi dự đoán tỉ số chỉ có điểm khi đúng tuyệt đối, với công thức <strong>5 x hệ số odds</strong>.</p>
         <p>Người thắng matchup nhận <strong>3 điểm league</strong>; hòa nhận <strong>1 điểm</strong>. Điểm của matchup đã finalize sẽ được giữ trong bảng xếp hạng dù lịch matchup tương lai được shuffle.</p>
       </div>
     </section>
@@ -1632,7 +1674,7 @@ function exactScoreBoostPoints(multiplier) {
 function estimateProjectedScore(exactScoreBoost = 0) {
   const selectedCards = [...state.dirtyCards.values()].filter((card) => card.selected).length;
   if (!selectedCards) return 0;
-  return Number((selectedCards * CARD_POINTS_CORRECT + exactScoreBoost).toFixed(1));
+  return Number((selectedCards * CARD_POINTS_CORRECT + exactScoreBoost + state.cardShots.size * CARD_SHOT_POINTS_HIT).toFixed(1));
 }
 
 function formatCountdown(lockAt) {
@@ -1791,6 +1833,7 @@ function applyMatchdaySelectionState() {
     selected: playerCard.selected,
     answer: playerCard.playerAnswer || playerCard.card?.expectedAnswer || "YES"
   }]));
+  state.cardShots = new Set(summary.shotCardIds || []);
 }
 
 function syncHydratedState() {
@@ -1846,6 +1889,19 @@ root.addEventListener("click", async (event) => {
 
   const cardEl = event.target.closest(".prediction-card");
   const answerButton = event.target.closest("[data-answer]");
+  const shotButton = event.target.closest("[data-shot-card-id]");
+  if (shotButton) {
+    if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
+    const cardId = shotButton.dataset.shotCardId;
+    if (state.cardShots.has(cardId)) state.cardShots.delete(cardId);
+    else {
+      if (state.cardShots.size >= MAX_CARD_SHOTS) return showToast(`Shoot up to ${MAX_CARD_SHOTS} cards.`);
+      state.cardShots.add(cardId);
+    }
+    render();
+    return;
+  }
+
   if (cardEl?.dataset.cardId && answerButton) {
     if (isMatchdayLocked(selectedMatchday())) return showToast("This matchday auto-locked at first kickoff.");
     const cardId = cardEl.dataset.cardId;
@@ -2010,9 +2066,11 @@ async function submitPicks() {
   const answers = Object.fromEntries([...state.dirtyCards.entries()].map(([cardId, value]) => [cardId, value.answer]));
   await mutate("/api/player/submit-picks", {
     userId: state.data.currentUser.id,
+    leagueId: managedLeague().id,
     matchDayId: summary.id,
     selectedCardIds,
     answers,
+    cardShotIds: [...state.cardShots],
     scorePredictions: summary.matches.map((match) => {
       const prediction = normalizeScoreState(scorePredictionForMatch(match.id));
       return {

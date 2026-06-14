@@ -7,7 +7,10 @@ import { createCorrectScorePrices } from "./oddsPricing.js";
 import {
   CARD_POINTS_CORRECT,
   CARD_POINTS_INCORRECT,
+  CARD_SHOT_POINTS_HIT,
+  CARD_SHOT_POINTS_MISS,
   CARD_SET_SIZE,
+  MAX_CARD_SHOTS,
   MAX_SELECTED_CARDS,
   MIN_SELECTED_CARDS
 } from "./config.js";
@@ -110,9 +113,10 @@ function normalizePassword(value) {
 }
 
 export async function submitPicks(store, input) {
-  const { userId = "user_you", matchDayId = "md_12", selectedCardIds, answers, scorePrediction, scorePredictions } = input;
+  const { userId = "user_you", matchDayId = "md_12", selectedCardIds, answers, scorePrediction, scorePredictions, cardShotIds, leagueId } = input;
 
   return store.update((data) => {
+    ensureDataCollections(data);
     refreshMatchdayStatuses(data);
     const matchday = mustFind(data.matchdays, matchDayId, "Matchday");
     if (isLocked(matchday)) throw new Error("This matchday is locked. Picks can no longer be edited.");
@@ -145,6 +149,7 @@ export async function submitPicks(store, input) {
     });
 
     const submittedAt = new Date().toISOString();
+    upsertCardShotsForSubmission(data, { matchDayId, userId, leagueId, cardShotIds, submittedAt });
     const submittedMatchIds = new Set(submittedScorePredictions.map((prediction) => prediction.tournamentMatchId));
     data.scorePredictions = data.scorePredictions.filter((prediction) => (
       prediction.matchDayId !== matchDayId ||
@@ -179,6 +184,51 @@ export async function submitPicks(store, input) {
     data.syncLogs.unshift(log("PLAYER_SUBMIT", "SUCCESS", `${userId} submitted picks.`));
     return { ok: true, message: "Picks submitted.", state: hydrateState(data, userId) };
   });
+}
+
+function upsertCardShotsForSubmission(data, { matchDayId, userId, leagueId, cardShotIds, submittedAt }) {
+  const shotCardIds = normalizeSubmittedCardShotIds(cardShotIds);
+  const contest = getUserOneVOneContest(data, matchDayId, userId, leagueId);
+
+  if (shotCardIds.length > MAX_CARD_SHOTS) throw new Error(`Shoot up to ${MAX_CARD_SHOTS} cards.`);
+  if (!contest) {
+    if (shotCardIds.length) throw new Error("Card shooting is only available for 1v1 matchups.");
+    data.cardShots = data.cardShots.filter((shot) => !(shot.matchDayId === matchDayId && shot.shooterUserId === userId));
+    return;
+  }
+
+  const targetUserId = getContestOpponentUserId(contest, userId);
+  if (!targetUserId) throw new Error("No 1v1 opponent is available for card shooting.");
+  const targetCardIds = getPlayerPredictionCardIds(data, matchDayId, targetUserId);
+  shotCardIds.forEach((predictionCardId) => {
+    if (!targetCardIds.has(predictionCardId)) throw new Error(`Card ${predictionCardId} is not available to shoot.`);
+  });
+
+  data.cardShots = data.cardShots.filter((shot) => !(shot.matchDayId === matchDayId && shot.shooterUserId === userId));
+  shotCardIds.forEach((predictionCardId) => {
+    data.cardShots.push({
+      id: `shot_${matchDayId}_${contest.id}_${userId}_${predictionCardId}`,
+      leagueId: contest.leagueId,
+      matchDayId,
+      contestId: contest.id,
+      shooterUserId: userId,
+      targetUserId,
+      predictionCardId,
+      hit: null,
+      pointsAwarded: 0,
+      submittedAt,
+      updatedAt: submittedAt
+    });
+  });
+}
+
+function normalizeSubmittedCardShotIds(cardShotIds) {
+  if (cardShotIds == null) return [];
+  if (!Array.isArray(cardShotIds)) throw new Error("Card shots must be a list.");
+  const normalized = cardShotIds.map((cardId) => String(cardId || "").trim()).filter(Boolean);
+  const unique = [...new Set(normalized)];
+  if (unique.length !== normalized.length) throw new Error("Card shots must be unique.");
+  return unique;
 }
 
 export async function acceptLeagueInvite(store, input) {
@@ -1419,12 +1469,55 @@ function allLeagueIds(data) {
   return data.leagues.map((league) => league.id);
 }
 
+function isOneVOneContest(contest) {
+  if (!contest || contest.mode !== "SOLO") return false;
+  return getContestSideUserIds(contest, "A").length === 1 &&
+    getContestSideUserIds(contest, "B").length === 1;
+}
+
+function getContestSideUserIds(contest, side) {
+  return uniqueUserIds((contest?.participants || [])
+    .filter((part) => part.side === side)
+    .map((part) => part.userId));
+}
+
+function getContestOpponentUserId(contest, userId) {
+  if (!isOneVOneContest(contest)) return null;
+  const userPart = contest.participants.find((part) => part.userId === userId);
+  if (!userPart) return null;
+  return contest.participants.find((part) => part.side !== userPart.side)?.userId || null;
+}
+
+function getUserOneVOneContest(data, matchDayId, userId, leagueId = null) {
+  const contests = data.headToHeadContests.filter((contest) => (
+    contest.matchDayId === matchDayId &&
+    (!leagueId || contest.leagueId === leagueId) &&
+    contest.participants.some((part) => part.userId === userId)
+  ));
+  return contests.find(isOneVOneContest) || null;
+}
+
+function getPlayerPredictionCardIds(data, matchDayId, userId) {
+  const set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId);
+  return new Set(data.playerCards
+    .filter((card) => card.playerCardSetId === set?.id)
+    .map((card) => card.predictionCardId));
+}
+
+function getSelectedPredictionCardIds(data, matchDayId, userId) {
+  const set = data.playerCardSets.find((item) => item.matchDayId === matchDayId && item.userId === userId);
+  return new Set(data.playerCards
+    .filter((card) => card.playerCardSetId === set?.id && card.selected)
+    .map((card) => card.predictionCardId));
+}
+
 function calculateMatchdayScores(data, matchDayId, options = {}) {
   const matches = new Map(data.tournamentMatches.map((match) => [match.id, match]));
   const cards = new Map(data.predictionCards.map((card) => [card.id, card]));
   const playerTotals = new Map();
   const cardStats = new Map();
   const exactStats = new Map();
+  const shotStats = new Map();
   const submittedUsers = new Set();
 
   data.playerCardSets
@@ -1497,7 +1590,30 @@ function calculateMatchdayScores(data, matchDayId, options = {}) {
       });
     });
 
-  return { playerTotals, cardStats, exactStats };
+  (data.cardShots || [])
+    .filter((shot) => shot.matchDayId === matchDayId)
+    .forEach((shot) => {
+      if (!submittedUsers.has(shot.shooterUserId)) return;
+      const contest = data.headToHeadContests.find((item) => item.id === shot.contestId);
+      if (!isOneVOneContest(contest)) return;
+      const targetSelectedCards = getSelectedPredictionCardIds(data, matchDayId, shot.targetUserId);
+      const hit = targetSelectedCards.has(shot.predictionCardId);
+      const pointsAwarded = hit ? CARD_SHOT_POINTS_HIT : CARD_SHOT_POINTS_MISS;
+      if (options.mutate) Object.assign(shot, {
+        hit,
+        pointsAwarded,
+        updatedAt: new Date().toISOString()
+      });
+      playerTotals.set(shot.shooterUserId, Number(((playerTotals.get(shot.shooterUserId) || 0) + pointsAwarded).toFixed(1)));
+      const currentStats = shotStats.get(shot.shooterUserId) || { shotHits: 0, shotMisses: 0, shotPoints: 0 };
+      shotStats.set(shot.shooterUserId, {
+        shotHits: currentStats.shotHits + (hit ? 1 : 0),
+        shotMisses: currentStats.shotMisses + (hit ? 0 : 1),
+        shotPoints: currentStats.shotPoints + pointsAwarded
+      });
+    });
+
+  return { playerTotals, cardStats, exactStats, shotStats };
 }
 
 function updateContestScore(contest, playerTotals) {
@@ -1713,6 +1829,13 @@ function getUserScorePredictionsForMatchday(data, matchDayId, userId) {
     ));
 }
 
+function getUserCardShotsForMatchday(data, matchDayId, userId) {
+  return (data.cardShots || [])
+    .filter((shot) => shot.matchDayId === matchDayId && shot.shooterUserId === userId)
+    .slice()
+    .sort((a, b) => String(a.predictionCardId).localeCompare(String(b.predictionCardId)));
+}
+
 function normalizeSubmittedScorePredictions(scorePredictions, scorePrediction) {
   if (Array.isArray(scorePredictions)) return scorePredictions;
   return scorePrediction ? [scorePrediction] : [];
@@ -1784,8 +1907,13 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
           .filter((part) => part.side !== userSide)
           .map((part) => part.user?.displayName || part.userId)
         : [];
+      const canShootCards = isOneVOneContest(userContest);
+      const shotTargetUserId = canShootCards ? getContestOpponentUserId(userContest, userId) : null;
+      const shotTargetUser = data.users.find((user) => user.id === shotTargetUserId);
+      const cardShots = getUserCardShotsForMatchday(data, matchday.id, userId);
       const cardPoints = playerCards.reduce((sum, card) => sum + (card.pointsAwarded || 0), 0);
       const exactPoints = scorePredictions.reduce((sum, prediction) => sum + (prediction.pointsAwarded || 0), 0);
+      const shotPoints = cardShots.reduce((sum, shot) => sum + (shot.pointsAwarded || 0), 0);
       const userScore = userSide === "A" ? userContest?.participantAScore : userContest?.participantBScore;
       const opponentScore = userSide === "A" ? userContest?.participantBScore : userContest?.participantAScore;
 
@@ -1808,7 +1936,13 @@ function hydrateMatchdaySummaries(data, leagueId, userId) {
         userSide,
         cardPoints,
         exactPoints,
-        totalPoints: Number((cardPoints + exactPoints).toFixed(1)),
+        shotPoints,
+        totalPoints: Number((cardPoints + exactPoints + shotPoints).toFixed(1)),
+        canShootCards,
+        shotTargetUserId,
+        shotTargetName: shotTargetUser?.displayName || opponentNames[0] || null,
+        cardShots,
+        shotCardIds: cardShots.map((shot) => shot.predictionCardId),
         userScore: userScore ?? 0,
         opponentScore: opponentScore ?? 0,
         resultLabel: getContestResultLabel(userContest, userSide)
@@ -1917,6 +2051,7 @@ function hydrateContests(data, leagueId, matchDayId, options = {}) {
     ))
     .map((contest) => ({
       ...contest,
+      isOneVOne: isOneVOneContest(contest),
       participants: contest.participants.map((part) => ({
         ...part,
         user: data.users.find((user) => user.id === part.userId),
@@ -1954,7 +2089,8 @@ function estimateStoredProjectedScore(data, matchDayId, userId) {
   const exactScoreBoost = scorePredictions.reduce((sum, prediction) => (
     sum + Number((Number(prediction.oddsMultiplier || 0) * 5).toFixed(1))
   ), 0);
-  return Number((selectedCards.length * CARD_POINTS_CORRECT + exactScoreBoost).toFixed(1));
+  const shotBoost = getUserCardShotsForMatchday(data, matchDayId, userId).length * CARD_SHOT_POINTS_HIT;
+  return Number((selectedCards.length * CARD_POINTS_CORRECT + exactScoreBoost + shotBoost).toFixed(1));
 }
 
 function hydrateStandings(data, leagueId) {
@@ -2104,33 +2240,23 @@ function ensurePlayerCardSet(data, userId, matchDayId = "md_12") {
   const validCardIds = new Set(data.predictionCards
     .filter((card) => card.matchDayId === matchDayId)
     .map((card) => card.id));
-  data.playerCards = data.playerCards.filter((card) => (
-    card.playerCardSetId !== set.id ||
-    validCardIds.has(card.predictionCardId)
-  ));
-
-  const assignedIds = new Set(
-    data.playerCards
-      .filter((card) => card.playerCardSetId === set.id)
-      .map((card) => card.predictionCardId)
-  );
-  const assignedCount = assignedIds.size;
-  shuffle(data.predictionCards
-    .filter((card) => card.matchDayId === matchDayId)
-    .filter((card) => !assignedIds.has(card.id)), `${matchDayId}_${userId}`)
-    .slice(0, Math.max(0, CARD_SET_SIZE - assignedCount))
-    .forEach((card) => {
-      data.playerCards.push({
-        id: `pc_${set.id}_${card.id}`,
-        playerCardSetId: set.id,
-        predictionCardId: card.id,
-        selected: false,
-        playerAnswer: null,
-        isCorrect: null,
-        pointsAwarded: 0,
-        answeredAt: null
-      });
+  const existingByCardId = new Map(data.playerCards
+    .filter((card) => card.playerCardSetId === set.id && validCardIds.has(card.predictionCardId))
+    .map((card) => [card.predictionCardId, card]));
+  data.playerCards = data.playerCards.filter((card) => card.playerCardSetId !== set.id);
+  getMatchdayPredictionCards(data, matchDayId).forEach((card) => {
+    const existing = existingByCardId.get(card.id);
+    data.playerCards.push({
+      id: existing?.id || `pc_${set.id}_${card.id}`,
+      playerCardSetId: set.id,
+      predictionCardId: card.id,
+      selected: Boolean(existing?.selected),
+      playerAnswer: existing?.playerAnswer || null,
+      isCorrect: existing?.isCorrect ?? null,
+      pointsAwarded: existing?.pointsAwarded || 0,
+      answeredAt: existing?.answeredAt || null
     });
+  });
 
   return set;
 }
@@ -2162,8 +2288,7 @@ function rebuildPlayerCardsForMatchday(data, matchDayId) {
     if (!data.playerCardSets.some((item) => item.id === set.id)) data.playerCardSets.push(set);
 
     data.playerCards = data.playerCards.filter((card) => card.playerCardSetId !== set.id);
-    shuffle(data.predictionCards.filter((card) => card.matchDayId === matchDayId), `${matchDayId}_${userId}`)
-      .slice(0, CARD_SET_SIZE)
+    getMatchdayPredictionCards(data, matchDayId)
       .forEach((card) => {
         data.playerCards.push({
           id: `pc_${set.id}_${card.id}`,
@@ -2180,6 +2305,7 @@ function rebuildPlayerCardsForMatchday(data, matchDayId) {
 }
 
 function ensureDemoScaffold(data) {
+  ensureDataCollections(data);
   ensureDemoMatchdayHistory(data);
   refreshMatchdayStatuses(data);
   ensurePlayableMatchday(data);
@@ -2187,23 +2313,47 @@ function ensureDemoScaffold(data) {
   ensureCurrentCardRules(data);
 }
 
+function ensureDataCollections(data) {
+  data.cardShots ||= [];
+}
+
 function ensureCurrentCardRules(data) {
   data.matchdays
     .filter((matchday) => matchday.status !== "FINAL")
     .forEach((matchday) => {
-      const cards = data.predictionCards.filter((card) => card.matchDayId === matchday.id);
+      let cards = getMatchdayPredictionCards(data, matchday.id, { limit: false });
+      if (cards.length > CARD_SET_SIZE) {
+        const keepIds = new Set(cards.slice(0, CARD_SET_SIZE).map((card) => card.id));
+        data.predictionCards = data.predictionCards.filter((card) => card.matchDayId !== matchday.id || keepIds.has(card.id));
+        data.cardShots = data.cardShots.filter((shot) => shot.matchDayId !== matchday.id || keepIds.has(shot.predictionCardId));
+        cards = getMatchdayPredictionCards(data, matchday.id, { limit: false });
+      }
       if (cards.length < CARD_SET_SIZE) {
         const matches = data.tournamentMatches.filter((match) => match.matchDayId === matchday.id);
         const generatedCards = createCardPool(matchday.id, matches, data.oddsSnapshots);
         const existingIds = new Set(data.predictionCards.map((card) => card.id));
         data.predictionCards.push(...generatedCards.filter((card) => !existingIds.has(card.id)));
       }
+      getMatchdayPredictionCards(data, matchday.id, { limit: false }).forEach((card, index) => {
+        card.displayIndex = index + 1;
+      });
 
       const userIds = [...new Set(data.leagueMembers
         .filter((member) => member.status !== "REMOVED")
         .map((member) => member.userId))];
       userIds.forEach((userId) => ensurePlayerCardSet(data, userId, matchday.id));
     });
+}
+
+function getMatchdayPredictionCards(data, matchDayId, options = {}) {
+  const cards = data.predictionCards
+    .filter((card) => card.matchDayId === matchDayId)
+    .slice()
+    .sort((a, b) => (
+      Number(a.displayIndex || 9999) - Number(b.displayIndex || 9999) ||
+      String(a.id).localeCompare(String(b.id))
+    ));
+  return options.limit === false ? cards : cards.slice(0, CARD_SET_SIZE);
 }
 
 function ensurePlayableMatchday(data) {
@@ -2380,10 +2530,7 @@ function ensureDemoMatchdayHistory(data) {
     historyCard(3, "FIRST_GOAL_BEFORE", "First Goal Before 30", "Will the first goal happen before minute 30?", "match_fra_mex", { minute: 30 }),
     historyCard(4, "BOTH_TEAMS_SCORE", "Both Teams Score", "Will both teams score in England vs USA?", "match_eng_usa", {}),
     historyCard(5, "TOTAL_GOALS_UNDER", "Under 3.5 Goals", "Will England vs USA have under 3.5 goals?", "match_eng_usa", { threshold: 3.5 }),
-    historyCard(6, "WIN_MARGIN", "France by 2+", "Will France win by 2 or more goals?", "match_fra_mex", { team: "HOME", marginAtLeast: 2 }),
-    historyCard(7, "WEAKER_TEAM_SCORES", "Mexico Scores", "Will Mexico score at least 1 goal?", "match_fra_mex", { weakerTeam: "AWAY", scoresAtLeast: 1 }),
-    historyCard(8, "TOTAL_GOALS_OVER", "England vs USA Over 2.5", "Will England vs USA have over 2.5 goals?", "match_eng_usa", { threshold: 2.5 }),
-    historyCard(9, "BOTH_TEAMS_SCORE", "France-Mexico BTTS", "Will France and Mexico both score?", "match_fra_mex", {})
+    historyCard(6, "WIN_MARGIN", "France by 2+", "Will France win by 2 or more goals?", "match_fra_mex", { team: "HOME", marginAtLeast: 2 })
   ];
   data.predictionCards.push(...historyCards);
 
@@ -2405,7 +2552,7 @@ function ensureDemoMatchdayHistory(data) {
       selected,
       playerAnswer: selected ? "YES" : null,
       isCorrect: selected ? correct : null,
-      pointsAwarded: correct ? 10 : 0,
+      pointsAwarded: correct ? CARD_POINTS_CORRECT : CARD_POINTS_INCORRECT,
       answeredAt: selected ? now : null
     };
   }));
@@ -2431,8 +2578,8 @@ function ensureDemoMatchdayHistory(data) {
     status: "FINAL",
     participantAName: "user_you",
     participantBName: "user_maya",
-    participantAScore: 75.5,
-    participantBScore: 58,
+    participantAScore: 155.5,
+    participantBScore: 90,
     result: "A_WIN",
     participants: [
       { id: "part_md_11_1_a", side: "A", userId: "user_you" },

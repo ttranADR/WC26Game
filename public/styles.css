@@ -1102,6 +1102,54 @@ select:focus-visible {
   color: var(--green);
 }
 
+.shot-panel {
+  margin-top: 14px;
+}
+
+.shot-card-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.shot-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.shot-card span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.shot-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.shot-card.selected {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, var(--surface-2));
+}
+
+.shot-card.selected span {
+  background: var(--red);
+  color: white;
+}
+
 .chips {
   flex-wrap: wrap;
   gap: 8px;

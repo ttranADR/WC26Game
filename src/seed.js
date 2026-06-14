@@ -4,7 +4,11 @@ import { CARD_SET_SIZE, MIN_SELECTED_CARDS } from "./config.js";
 import { createCorrectScorePrices } from "./oddsPricing.js";
 
 export const PAIRING_MODES = ["MIXED", "SOLO", "DUO", "HALF"];
-const CONTEST_PAIRING_MODES = ["SOLO", "DUO", "HALF"];
+const CONTEST_PAIRING_MODE_WEIGHTS = [
+  ["SOLO", 0.7],
+  ["DUO", 0.2],
+  ["HALF", 0.1]
+];
 
 export function createSeedData() {
   const now = new Date().toISOString();
@@ -100,6 +104,7 @@ export function createSeedData() {
     predictionCards: cards,
     playerCardSets: cardSets.sets,
     playerCards: cardSets.playerCards,
+    cardShots: [],
     scorePredictions,
     headToHeadContests: createContests("league_1", matchday.id, members.map((member) => member.userId), "SOLO"),
     leagueStandings: createStandings("league_1", members.map((member) => member.userId)),
@@ -541,17 +546,16 @@ function createCardSets(matchDayId, userIds, cards) {
     const playerCardSetId = `set_${matchDayId}_${userId}`;
     sets.push({ id: playerCardSetId, matchDayId, userId, generatedAt: new Date().toISOString() });
 
-    shuffle(cards, `${matchDayId}_${userId}`).slice(0, CARD_SET_SIZE).forEach((card, index) => {
-      const selected = index < MIN_SELECTED_CARDS;
+    cards.slice(0, CARD_SET_SIZE).forEach((card) => {
       playerCards.push({
         id: `pc_${playerCardSetId}_${card.id}`,
         playerCardSetId,
         predictionCardId: card.id,
-        selected,
-        playerAnswer: selected ? card.expectedAnswer : null,
+        selected: false,
+        playerAnswer: null,
         isCorrect: null,
         pointsAwarded: 0,
-        answeredAt: selected ? new Date().toISOString() : null
+        answeredAt: null
       });
     });
   });
@@ -584,8 +588,13 @@ export function normalizePairingMode(mode, fallback = "MIXED") {
 export function resolveContestMode(leagueId, matchDayId, mode, seedText = "", modeIndex = null) {
   const normalized = normalizePairingMode(mode);
   if (normalized !== "MIXED") return normalized;
-  if (Number.isInteger(modeIndex)) return CONTEST_PAIRING_MODES[modeIndex % CONTEST_PAIRING_MODES.length];
-  return shuffle(CONTEST_PAIRING_MODES, `${leagueId}_${matchDayId}_mixed_${seedText}`)[0];
+  const random = seededRatio(`${leagueId}_${matchDayId}_mixed_${seedText}_${modeIndex ?? ""}`);
+  let threshold = 0;
+  for (const [contestMode, weight] of CONTEST_PAIRING_MODE_WEIGHTS) {
+    threshold += weight;
+    if (random < threshold) return contestMode;
+  }
+  return "HALF";
 }
 
 export function createContests(leagueId, matchDayId, userIds, mode, options = {}) {
@@ -674,6 +683,16 @@ function splitSide(userIds) {
     a: userIds.slice(0, splitAt),
     b: userIds.slice(splitAt)
   };
+}
+
+function seededRatio(seedText) {
+  const text = String(seedText || "");
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 4294967296;
 }
 
 export function createStandings(leagueId, userIds) {
