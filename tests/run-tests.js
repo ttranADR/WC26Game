@@ -1701,6 +1701,78 @@ try {
   else process.env.ODDS_API_BOOKMAKERS = originalOddsBookmakers;
 }
 
+const oddsApiMappingFetch = globalThis.fetch;
+const oddsApiMappingVersion = process.env.ODDS_API_VERSION;
+const oddsApiMappingLimit = process.env.ODDS_API_EVENT_LIMIT;
+const oddsApiMappingLeague = process.env.ODDS_API_LEAGUE;
+const oddsApiMappingBookmakers = process.env.ODDS_API_BOOKMAKERS;
+process.env.ODDS_API_VERSION = "v3";
+process.env.ODDS_API_EVENT_LIMIT = "50";
+process.env.ODDS_API_LEAGUE = "international-fifa-world-cup";
+process.env.ODDS_API_BOOKMAKERS = "Bet365";
+const oddsApiMappingEventDates = [];
+const oddsApiMappingOddsEventIds = [];
+globalThis.fetch = async (url) => {
+  const parsed = new URL(String(url));
+  if (parsed.pathname.endsWith("/events")) {
+    const fromDate = parsed.searchParams.get("from")?.slice(0, 10);
+    oddsApiMappingEventDates.push(fromDate);
+    if (fromDate === "2026-06-12") {
+      return jsonResponse([{
+        id: "oddsapi_event_bra_mar",
+        home_team: "Brazil",
+        away_team: "Morocco",
+        start_time: "2026-06-12T20:00:00Z"
+      }]);
+    }
+    return jsonResponse([]);
+  }
+  if (parsed.pathname.endsWith("/odds/multi")) {
+    oddsApiMappingOddsEventIds.push(parsed.searchParams.get("eventIds"));
+    return jsonResponse([{
+      id: "oddsapi_event_bra_mar",
+      bookmakers: {
+        Bet365: [{
+          name: "correct_score",
+          odds: [
+            { label: "1-0", odds: "8.400" },
+            { label: "0-1", odds: "41.000" }
+          ]
+        }]
+      }
+    }]);
+  }
+  throw new Error(`Unexpected odds-api mapping fetch URL ${url}`);
+};
+try {
+  const oddsApiMappingData = createSeedData();
+  const oddsApiMappingStore = createMemoryStore(oddsApiMappingData);
+  await syncOdds(oddsApiMappingStore, createOddsApiProvider("test-key"), { matchDayId: "md_12" });
+  assert.ok(oddsApiMappingEventDates.includes("2026-06-12"));
+  assert.deepEqual(oddsApiMappingOddsEventIds, ["oddsapi_event_bra_mar"]);
+  assert.equal(oddsApiMappingData.oddsMatchMappings.find((mapping) => (
+    mapping.appMatchId === "match_bra_mar" &&
+    mapping.provider === "odds-api-v3"
+  ))?.providerMatchId, "oddsapi_event_bra_mar");
+  const oddsApiMappedCorrectScores = oddsApiMappingData.oddsSnapshots.filter((odd) => (
+    odd.tournamentMatchId === "match_bra_mar" &&
+    odd.marketKey === "CORRECT_SCORE"
+  ));
+  assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 8.4);
+  assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "0-1")?.priceDecimal, 41);
+  assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.provider, "odds-api-v3");
+} finally {
+  globalThis.fetch = oddsApiMappingFetch;
+  if (oddsApiMappingVersion == null) delete process.env.ODDS_API_VERSION;
+  else process.env.ODDS_API_VERSION = oddsApiMappingVersion;
+  if (oddsApiMappingLimit == null) delete process.env.ODDS_API_EVENT_LIMIT;
+  else process.env.ODDS_API_EVENT_LIMIT = oddsApiMappingLimit;
+  if (oddsApiMappingLeague == null) delete process.env.ODDS_API_LEAGUE;
+  else process.env.ODDS_API_LEAGUE = oddsApiMappingLeague;
+  if (oddsApiMappingBookmakers == null) delete process.env.ODDS_API_BOOKMAKERS;
+  else process.env.ODDS_API_BOOKMAKERS = oddsApiMappingBookmakers;
+}
+
 const dailyData = createSeedData();
 const scoreUpdateData = createSeedData();
 scoreUpdateData.tournamentMatches

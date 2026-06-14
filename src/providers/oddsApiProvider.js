@@ -29,8 +29,12 @@ function createTheOddsApiV4Provider(apiKey) {
   return {
     supportsMatchEvents: false,
 
-    async getFixturesByDate() {
-      return [];
+    async getFixturesByDate(date) {
+      const sportKey = preferredSportKey || await findWorldCupSoccerSportKey(call);
+      if (!sportKey) return [];
+
+      const events = await call(`/sports/${sportKey}/events`);
+      return filterEventsByDate(events, date).map(mapTheOddsApiEventFixture);
     },
 
     async getLiveScores() {
@@ -47,6 +51,30 @@ function createTheOddsApiV4Provider(apiKey) {
       const extraOdds = await getExtraMarketOdds(call, sportKey, relevantEvents, extraMarkets, regions);
 
       return [...regularOdds, ...extraOdds];
+    },
+
+    async getOddsByMatchMappings(mappings = []) {
+      const sportKey = preferredSportKey || await findWorldCupSoccerSportKey(call);
+      if (!sportKey) return [];
+
+      const markets = [...new Set([
+        ...featuredMarkets.split(",").map((market) => market.trim()).filter(Boolean),
+        ...extraMarkets
+      ])].join(",");
+      const rows = await Promise.all((mappings || [])
+        .filter((mapping) => (
+          mapping.providerMatchId &&
+          (!mapping.provider || mapping.provider === "odds-api")
+        ))
+        .map(async (mapping) => {
+          try {
+            const row = await call(`/sports/${sportKey}/events/${mapping.providerMatchId}/odds?regions=${encodeURIComponent(regions)}&markets=${encodeURIComponent(markets)}&oddsFormat=decimal`);
+            return mapEventOdds(enrichTheOddsApiEventWithMapping(row, mapping));
+          } catch {
+            return [];
+          }
+        }));
+      return rows.flat();
     },
 
     async getMatchEvents() {
@@ -127,8 +155,10 @@ function createOddsApiIoV3Provider(apiKey) {
   return {
     supportsMatchEvents: false,
 
-    async getFixturesByDate() {
-      return [];
+    async getFixturesByDate(date) {
+      const { from, to } = makeDateRange(date);
+      const eventRows = await fetchEventRows({ from, to });
+      return eventRows.map(mapOddsApiIoV3EventFixture);
     },
 
     async getLiveScores() {
@@ -143,6 +173,16 @@ function createOddsApiIoV3Provider(apiKey) {
 
     async getCompetitionOdds() {
       const eventRows = await fetchEventRows();
+      return fetchOddsForEvents(eventRows);
+    },
+
+    async getOddsByMatchMappings(mappings = []) {
+      const eventRows = (mappings || [])
+        .filter((mapping) => (
+          mapping.providerMatchId &&
+          (!mapping.provider || mapping.provider === "odds-api-v3")
+        ))
+        .map(mapOddsApiIoV3MappingEvent);
       return fetchOddsForEvents(eventRows);
     },
 
@@ -163,6 +203,41 @@ function makeDateRange(date) {
   return {
     from: start.toISOString().replace(".000Z", "Z"),
     to: end.toISOString().replace(".000Z", "Z")
+  };
+}
+
+function mapOddsApiIoV3EventFixture(event) {
+  return {
+    externalProvider: "odds-api-v3",
+    externalId: getV3EventId(event),
+    homeTeamExternalId: getV3TeamId(event, "home"),
+    awayTeamExternalId: getV3TeamId(event, "away"),
+    homeTeam: getV3HomeTeam(event),
+    awayTeam: getV3AwayTeam(event),
+    homeTeamCode: getV3HomeTeam(event).slice(0, 3).toUpperCase(),
+    awayTeamCode: getV3AwayTeam(event).slice(0, 3).toUpperCase(),
+    kickoffAt: getV3EventDate(event),
+    status: "SCHEDULED",
+    rawData: event
+  };
+}
+
+function mapOddsApiIoV3MappingEvent(mapping) {
+  return {
+    id: mapping.providerMatchId,
+    appMatchId: mapping.appMatchId,
+    home: mapping.providerHomeTeam,
+    away: mapping.providerAwayTeam,
+    date: mapping.providerKickoffAt,
+    participants: [{
+      id: mapping.providerHomeTeamExternalId,
+      side: "home",
+      name: mapping.providerHomeTeam
+    }, {
+      id: mapping.providerAwayTeamExternalId,
+      side: "away",
+      name: mapping.providerAwayTeam
+    }]
   };
 }
 
@@ -343,6 +418,8 @@ function makeV3Odd(event, bookmaker, market, marketKey, outcomeName, price, row 
   return {
     tournamentMatchId: getV3EventId(event),
     provider: "odds-api-v3",
+    appMatchId: event.appMatchId,
+    providerMatchId: getV3EventId(event),
     marketKey,
     bookmaker,
     outcomeName,
@@ -439,6 +516,26 @@ function extractV3TeamName(event, side) {
   return team?.name || team?.teamName || team?.team_name || team?.title || team?.displayName || "";
 }
 
+function getV3TeamId(event = {}, side) {
+  const direct = event[side];
+  if (isRecord(direct)) {
+    const id = direct.id ?? direct.teamId ?? direct.team_id ?? direct.participantId ?? direct.participant_id;
+    if (id != null && id !== "") return String(id);
+  }
+
+  const participants = event.participants || event.teams || event.competitors || [];
+  if (!Array.isArray(participants)) return "";
+  const team = participants.find((participant) => {
+    const marker = String(participant.side || participant.position || participant.type || participant.home_away || participant.homeAway || "").toLowerCase();
+    if (marker === side) return true;
+    if (side === "home" && participant.home === true) return true;
+    if (side === "away" && participant.away === true) return true;
+    return false;
+  });
+  const id = team?.id ?? team?.teamId ?? team?.team_id ?? team?.participantId ?? team?.participant_id;
+  return id == null || id === "" ? "" : String(id);
+}
+
 function normalizeV3Text(value) {
   return String(value || "").toLowerCase().replace(/[_-]+/g, " ");
 }
@@ -501,6 +598,8 @@ function makeOdd(event, bookmaker, market, outcome) {
   return {
     tournamentMatchId: event.id,
     provider: "odds-api",
+    appMatchId: event.appMatchId,
+    providerMatchId: event.id,
     marketKey: normalizeMarket(market.key),
     bookmaker: bookmaker.title,
     outcomeName: normalizeOutcomeName(market, outcome),
@@ -512,6 +611,33 @@ function makeOdd(event, bookmaker, market, outcome) {
     commenceAt: event.commence_time,
     rawData: { event, bookmaker, market, outcome },
     capturedAt: new Date().toISOString()
+  };
+}
+
+function mapTheOddsApiEventFixture(event) {
+  return {
+    externalProvider: "odds-api",
+    externalId: String(event.id || ""),
+    homeTeamExternalId: null,
+    awayTeamExternalId: null,
+    homeTeam: event.home_team || "",
+    awayTeam: event.away_team || "",
+    homeTeamCode: String(event.home_team || "HOM").slice(0, 3).toUpperCase(),
+    awayTeamCode: String(event.away_team || "AWY").slice(0, 3).toUpperCase(),
+    kickoffAt: event.commence_time,
+    status: "SCHEDULED",
+    rawData: event
+  };
+}
+
+function enrichTheOddsApiEventWithMapping(event, mapping) {
+  return {
+    ...event,
+    id: event.id || mapping.providerMatchId,
+    appMatchId: mapping.appMatchId,
+    home_team: event.home_team || mapping.providerHomeTeam,
+    away_team: event.away_team || mapping.providerAwayTeam,
+    commence_time: event.commence_time || mapping.providerKickoffAt
   };
 }
 
