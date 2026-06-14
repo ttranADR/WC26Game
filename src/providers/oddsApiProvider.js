@@ -254,7 +254,7 @@ function mapOddsApiIoV3EventOdds(event) {
 }
 
 function mapOddsApiIoV3Market(event, bookmaker, market) {
-  const marketKey = normalizeV3Market(market.name || market.market || market.type);
+  const marketKey = normalizeV3Market(getV3MarketName(market)) || inferV3MarketKey(market);
   if (!marketKey) return [];
 
   return normalizeV3MarketRows(market, marketKey).flatMap((row) => {
@@ -284,7 +284,13 @@ function normalizeV3Bookmakers(bookmakers) {
 }
 
 function unwrapV3BookmakerMarkets(value) {
-  if (isRecord(value) && (Array.isArray(value.markets) || isRecord(value.markets))) return value.markets;
+  if (!isRecord(value)) return value;
+  if (Array.isArray(value.markets) || isRecord(value.markets)) return value.markets;
+  if (!normalizeV3Market(getV3MarketName(value))) {
+    if (Array.isArray(value.odds) || isRecord(value.odds)) return value.odds;
+    if (Array.isArray(value.outcomes) || isRecord(value.outcomes)) return value.outcomes;
+    if (Array.isArray(value.data) || isRecord(value.data)) return value.data;
+  }
   return value;
 }
 
@@ -296,7 +302,7 @@ function normalizeV3Markets(markets) {
   return Object.entries(markets).flatMap(([marketName, marketRows]) => {
     if (Array.isArray(marketRows)) return [{ name: marketName, odds: marketRows }];
     if (isRecord(marketRows)) {
-      return [{ ...marketRows, name: marketRows.name || marketRows.market || marketName }];
+      return [{ ...marketRows, name: getV3MarketName(marketRows) || marketName }];
     }
     return [];
   });
@@ -333,7 +339,10 @@ function looksLikeV3Market(value) {
   return isRecord(value) && (
     value.name ||
     value.market ||
+    value.key ||
     value.type ||
+    value.label ||
+    value.title ||
     value.odds ||
     value.outcomes ||
     value.values ||
@@ -354,6 +363,26 @@ function hasCorrectScoreLabel(value) {
 
 function hasScorePriceEntries(value) {
   return isRecord(value) && Object.keys(value).some((key) => /^\d+\s*-\s*\d+$/.test(key));
+}
+
+function getV3MarketName(market = {}) {
+  return market.name ||
+    market.market ||
+    market.type ||
+    market.key ||
+    market.label ||
+    market.title ||
+    market.displayName ||
+    market.display_name ||
+    "";
+}
+
+function inferV3MarketKey(market) {
+  if (hasCorrectScoreLabel(market) || hasScorePriceEntries(market)) return "CORRECT_SCORE";
+  const scoreRows = normalizeV3MarketRows(market, "CORRECT_SCORE");
+  return scoreRows.some((row) => hasCorrectScoreLabel(row) || hasScorePriceEntries(row))
+    ? "CORRECT_SCORE"
+    : null;
 }
 
 function isRecord(value) {

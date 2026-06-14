@@ -1732,13 +1732,15 @@ globalThis.fetch = async (url) => {
     return jsonResponse([{
       id: "oddsapi_event_bra_mar",
       bookmakers: {
-        Bet365: [{
-          name: "correct_score",
-          odds: [
-            { label: "1-0", odds: "8.400" },
-            { label: "0-1", odds: "41.000" }
-          ]
-        }]
+        Bet365: {
+          odds: [{
+            key: "correct_score",
+            outcomes: [
+              { label: "1-0", odds: "17.000" },
+              { label: "0-1", odds: "41.000" }
+            ]
+          }]
+        }
       }
     }]);
   }
@@ -1758,7 +1760,7 @@ try {
     odd.tournamentMatchId === "match_bra_mar" &&
     odd.marketKey === "CORRECT_SCORE"
   ));
-  assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 8.4);
+  assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.priceDecimal, 17);
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "0-1")?.priceDecimal, 41);
   assert.equal(oddsApiMappedCorrectScores.find((odd) => odd.outcomeName === "1-0")?.provider, "odds-api-v3");
 } finally {
